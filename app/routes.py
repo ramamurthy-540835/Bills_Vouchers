@@ -10,6 +10,7 @@ from .models import Account, AccountType, Document, DocumentType, JournalEntry, 
 from .security import hash_password, verify_password
 from .services.accounting import account_balance, post_entry
 from .services.documents import GCSObjectStore, create_document, validate_upload
+from .services.ocr import review_update
 
 templates=Jinja2Templates(directory="app/templates")
 router=APIRouter()
@@ -74,6 +75,19 @@ async def upload_document(document_type: DocumentType=Form(...), file: UploadFil
 @router.get("/documents")
 def documents(request: Request, db: Session=Depends(get_db), user: User=Depends(current_user)):
     return templates.TemplateResponse("documents.html",ctx(request,user=user,documents=db.scalars(select(Document).order_by(Document.uploaded_at.desc()).limit(100)).all()))
+
+@router.get("/documents/{document_id}/review")
+def review_document(document_id: str, request: Request, db: Session=Depends(get_db), user: User=Depends(current_user)):
+    document=db.get(Document,document_id)
+    if not document: raise HTTPException(404,"Document not found.")
+    return templates.TemplateResponse("document_review.html",ctx(request,user=user,document=document,extraction=document.extraction))
+
+@router.post("/documents/{document_id}/review")
+def save_review(document_id: str, request: Request, vendor_name: str=Form(""), invoice_number: str=Form(""), subtotal: str=Form(""), cgst: str=Form(""), sgst: str=Form(""), igst: str=Form(""), total_amount: str=Form(""), db: Session=Depends(get_db), user: User=Depends(current_user)):
+    document=db.get(Document,document_id)
+    if not document or not document.extraction: raise HTTPException(404,"OCR extraction not found.")
+    review_update(db,document.extraction,{"vendor_name":vendor_name,"invoice_number":invoice_number,"subtotal":subtotal,"cgst":cgst,"sgst":sgst,"igst":igst,"total_amount":total_amount})
+    return RedirectResponse(f"/documents/{document_id}/review",303)
 
 @router.get("/health")
 def health(): return {"status":"ok"}
