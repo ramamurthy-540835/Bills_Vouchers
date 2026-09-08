@@ -132,3 +132,15 @@ class RazorpayEvent(Base):
     event_type: Mapped[str] = mapped_column(String(100), index=True)
     payload: Mapped[str] = mapped_column(Text)
     received_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class AuditLog(Base):
+    __tablename__="audit_logs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
+    action: Mapped[str] = mapped_column(String(100), index=True)
+    entity: Mapped[str] = mapped_column(String(100), index=True)
+    entity_id: Mapped[str | None] = mapped_column(String(100), index=True)
+    old_value: Mapped[str | None] = mapped_column(Text)
+    new_value: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    user: Mapped[User | None] = relationship()

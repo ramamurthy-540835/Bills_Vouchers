@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from .db import get_db
-from .models import Account, AccountType, Document, DocumentType, JournalEntry, User
+from .models import Account, AccountType, AuditLog, Document, DocumentType, JournalEntry, User
 from .security import hash_password, verify_password
 from .services.accounting import account_balance, post_entry
 from .services.documents import GCSObjectStore, create_document, validate_upload
@@ -16,6 +16,7 @@ from .services.ocr import review_update
 from .services.razorpay import record_event, verify_signature
 from .config import get_settings
 from .services.reporting import balances, cash_flow, profit_and_loss
+from .services.audit import log as audit_log
 
 templates=Jinja2Templates(directory="app/templates")
 router=APIRouter()
@@ -34,7 +35,7 @@ def login_page(request: Request): return templates.TemplateResponse("login.html"
 def login(request: Request, email: str=Form(...), password: str=Form(...), db: Session=Depends(get_db)):
     user=db.scalar(select(User).where(User.email==email.lower()))
     if not user or not verify_password(password,user.password_hash): return templates.TemplateResponse("login.html",ctx(request,error="Invalid email or password"),status_code=400)
-    request.session["user_id"]=user.id; return RedirectResponse("/",303)
+    request.session["user_id"]=user.id; audit_log(db,user_id=user.id,action="login",entity="user",entity_id=user.id); return RedirectResponse("/",303)
 @router.post("/logout")
 def logout(request: Request): request.session.clear(); return RedirectResponse("/login",303)
 
@@ -54,6 +55,7 @@ def create_account(code: str=Form(...), name: str=Form(...), account_type: Accou
     db.add(Account(code=code.strip(),name=name.strip(),account_type=account_type))
     try: db.commit()
     except Exception: db.rollback(); raise HTTPException(400,"Account code and name must be unique.")
+    audit_log(db,user_id=user.id,action="create",entity="account",entity_id=code,new={"name":name,"type":account_type.value})
     return RedirectResponse("/accounts",303)
 
 @router.get("/transactions")
@@ -64,6 +66,7 @@ def create_transaction(reference: str=Form(...), description: str=Form(...), amo
     if user.role.value == "viewer": raise HTTPException(403,"Viewer access is read-only.")
     try: post_entry(db,entry_date=entry_date,reference=reference.strip(),description=description.strip(),amount=Decimal(amount),debit_account_id=debit_account_id,credit_account_id=credit_account_id)
     except (ValueError,InvalidOperation) as exc: raise HTTPException(400,str(exc))
+    audit_log(db,user_id=user.id,action="post",entity="journal_entry",entity_id=reference,new={"amount":amount,"debit":debit_account_id,"credit":credit_account_id})
     return RedirectResponse("/transactions",303)
 
 @router.get("/documents/upload")
@@ -113,6 +116,12 @@ def export_reports(start: date|None=None,end:date|None=None,db:Session=Depends(g
     for typ,rows in balances(db,start,end).items():
         for account,value in rows: writer.writerow([account.name,typ.value,f"{value:.2f}"])
     return StreamingResponse(iter([output.getvalue()]),media_type="text/csv",headers={"Content-Disposition":"attachment; filename=finance-report.csv"})
+
+@router.get("/audit-logs")
+def audit_logs(request: Request, db: Session=Depends(get_db), user: User=Depends(current_user)):
+    if user.role.value != "admin": raise HTTPException(403,"Admin access is required.")
+    rows=db.scalars(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(200)).all()
+    return templates.TemplateResponse("audit_logs.html",ctx(request,user=user,rows=rows))
 
 @router.get("/health")
 def health(): return {"status":"ok"}
