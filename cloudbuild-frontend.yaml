@@ -1,0 +1,5 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher-web:$COMMIT_SHA", "frontend"]
+images: ["${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher-web:$COMMIT_SHA"]
+substitutions: { _REGION: asia-south1 }

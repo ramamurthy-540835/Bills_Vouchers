@@ -12,3 +12,9 @@ postgres_data/
 uploads/
 finance.db
 alembic.ini
+
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+frontend/.env.local

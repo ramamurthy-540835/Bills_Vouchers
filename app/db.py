@@ -1,16 +1,22 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from functools import lru_cache
+from fastapi import Depends
 from .config import get_settings
-
-class Base(DeclarativeBase): pass
-
-def _connect_args(url: str) -> dict:
-    return {"check_same_thread": False} if url.startswith("sqlite") else {}
-
-engine = create_engine(get_settings().database_url, future=True, pool_pre_ping=True, connect_args=_connect_args(get_settings().database_url))
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
-
-def get_db():
-    db = SessionLocal()
-    try: yield db
-    finally: db.close()
+class BigQueryRepository:
+    def __init__(self):
+        from google.cloud import bigquery
+        s=get_settings()
+        if not s.gcp_project_id: raise RuntimeError('GCP_PROJECT_ID is required for BigQuery-only mode.')
+        self.client=bigquery.Client(project=s.gcp_project_id); self.settings=s; self.dataset=f'{s.gcp_project_id}.{s.bigquery_dataset}'
+    def table(self,name): return f'{self.dataset}.{name}'
+    def query(self,sql,params=None):
+        from google.cloud import bigquery
+        return list(self.client.query(sql,job_config=bigquery.QueryJobConfig(query_parameters=params or [])).result())
+    def insert(self,table,row,row_id=None):
+        errors=self.client.insert_rows_json(self.table(table),[row],row_ids=[row_id] if row_id else None)
+        if errors: raise RuntimeError(f'BigQuery insert failed: {errors}')
+    def update(self,table,set_sql,where_sql,params): self.query(f'UPDATE `{self.table(table)}` SET {set_sql} WHERE {where_sql}',params)
+    def one(self,sql,params=None):
+        rows=self.query(sql,params); return rows[0] if rows else None
+@lru_cache
+def get_repository(): return BigQueryRepository()
+def get_db(repo: BigQueryRepository=Depends(get_repository)): return repo

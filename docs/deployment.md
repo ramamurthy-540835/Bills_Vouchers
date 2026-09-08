@@ -2,20 +2,17 @@
 
 ## Google Cloud setup
 
-1. Create a GCP project and enable Cloud Run, Artifact Registry, Cloud SQL, Storage, BigQuery, Document AI, Eventarc, Secret Manager, and Cloud Logging APIs.
-2. Create a private Cloud SQL PostgreSQL instance and store its SQLAlchemy URL in Secret Manager.
-3. Copy `infra/terraform.tfvars.example`, complete it, then run `terraform init` and `terraform apply` from `infra`.
-4. Create secrets for `APP_SECRET_KEY`, `DATABASE_URL`, Razorpay API/webhook secrets, and configure them as Cloud Run secret environment variables. Never add them to source control.
-5. Build with `gcloud builds submit --config cloudbuild.yaml --substitutions=_REGION=asia-south1` and deploy the resulting Artifact Registry image to Cloud Run with service account `bills-voucher-app`.
+1. Create a GCP project and enable Cloud Run, Artifact Registry, BigQuery, Cloud Storage, Vertex AI, Secret Manager and Cloud Logging APIs.
+2. Copy `infra/terraform.tfvars.example`, complete it, then run `terraform init` and `terraform apply` from `infra`.
+3. Replace `PROJECT_ID` in `infra/vector_search.sql` and run it in BigQuery to create the IVF vector index.
+4. Configure `GCP_PROJECT_ID`, `GCP_REGION=global`, `GCS_BUCKET_NAME`, `BIGQUERY_DATASET=finance_analytics`, `GEMINI_MODEL=gemini-3.8-flash`, and `EMBEDDING_MODEL=gemini-embedding-001` as Cloud Run environment variables.
+5. Store only `APP_SECRET_KEY` and any optional `GEMINI_API_KEY` in Secret Manager. Cloud Run should use the Terraform service account with Application Default Credentials.
+6. Build with `gcloud builds submit --config cloudbuild.yaml --substitutions=_REGION=asia-south1` and deploy the image to Cloud Run with service account `bills-voucher-app`.
 
-## IAM
+## IAM and controls
 
-The Terraform service account receives only Storage Object Creator, BigQuery Data Editor, Document AI API User, and Secret Manager Secret Accessor. The document bucket has uniform bucket-level access and public-access prevention enforced.
+The app service account receives Storage Object Creator, BigQuery Data Editor, BigQuery Job User and Vertex AI User. The document bucket enforces uniform bucket-level access and public-access prevention. The MCP server exposes only bounded read operations; it has no write tools.
 
-## Razorpay
+## Runtime flow
 
-Set the Razorpay webhook URL to `https://SERVICE_URL/webhooks/razorpay`, configure `RAZORPAY_WEBHOOK_SECRET` from a Secret Manager secret, and subscribe to payment/refund events. The application rejects unverified events.
-
-## Eventarc / Document AI
-
-Configure an Eventarc trigger for Cloud Storage object-finalize events under `finance-documents/`, targeting a separate document worker service. The worker should call the configured Invoice/Expense/OCR processor and POST results through the internal processing API. This keeps camera upload latency low.
+The API writes document metadata to BigQuery and originals to GCS. `POST /documents/{document_id}/scan` sends the document to Gemini, persists structured GST fields, creates a `gemini-embedding-001` vector, and indexes it in BigQuery. `GET /documents/search?q=...` uses `VECTOR_SEARCH`; brute force remains available until the IVF index is built.
