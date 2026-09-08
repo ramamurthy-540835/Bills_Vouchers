@@ -1,14 +1,15 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from .db import get_db
-from .models import Account, AccountType, JournalEntry, User
+from .models import Account, AccountType, Document, DocumentType, JournalEntry, User
 from .security import hash_password, verify_password
 from .services.accounting import account_balance, post_entry
+from .services.documents import GCSObjectStore, create_document, validate_upload
 
 templates=Jinja2Templates(directory="app/templates")
 router=APIRouter()
@@ -58,6 +59,21 @@ def create_transaction(reference: str=Form(...), description: str=Form(...), amo
     try: post_entry(db,entry_date=entry_date,reference=reference.strip(),description=description.strip(),amount=Decimal(amount),debit_account_id=debit_account_id,credit_account_id=credit_account_id)
     except (ValueError,InvalidOperation) as exc: raise HTTPException(400,str(exc))
     return RedirectResponse("/transactions",303)
+
+@router.get("/documents/upload")
+def upload_document_page(request: Request, user: User=Depends(current_user)):
+    return templates.TemplateResponse("document_upload.html",ctx(request,user=user,types=list(DocumentType)))
+
+@router.post("/documents/upload")
+async def upload_document(document_type: DocumentType=Form(...), file: UploadFile=File(...), db: Session=Depends(get_db), user: User=Depends(current_user)):
+    if user.role.value == "viewer": raise HTTPException(403,"Viewer access is read-only.")
+    payload,filename,mime=await validate_upload(file)
+    document=create_document(db,user=user,document_type=document_type,filename=filename,mime_type=mime,payload=payload,store=GCSObjectStore(__import__("app.config",fromlist=["get_settings"]).get_settings().gcs_bucket_name))
+    return {"document_id":document.id,"status":"Upload Successful. Processing Document...","gcs_uri":document.gcs_uri}
+
+@router.get("/documents")
+def documents(request: Request, db: Session=Depends(get_db), user: User=Depends(current_user)):
+    return templates.TemplateResponse("documents.html",ctx(request,user=user,documents=db.scalars(select(Document).order_by(Document.uploaded_at.desc()).limit(100)).all()))
 
 @router.get("/health")
 def health(): return {"status":"ok"}
