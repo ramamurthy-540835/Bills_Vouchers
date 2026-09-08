@@ -10,4 +10,5 @@ build/
 *.egg-info/
 postgres_data/
 uploads/
+finance.db
 alembic.ini
