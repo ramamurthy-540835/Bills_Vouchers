@@ -106,3 +106,29 @@ class DocumentLineItem(Base):
     discount: Mapped[Decimal | None] = mapped_column(Numeric(18,2))
     total: Mapped[Decimal | None] = mapped_column(Numeric(18,2))
     extraction: Mapped[DocumentExtraction] = relationship(back_populates="line_items")
+
+class RazorpayPayment(Base):
+    __tablename__="razorpay_payments"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    razorpay_payment_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    razorpay_order_id: Mapped[str | None] = mapped_column(String(100), index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18,2))
+    currency: Mapped[str] = mapped_column(String(10), default="INR")
+    status: Mapped[str] = mapped_column(String(50), index=True)
+    method: Mapped[str | None] = mapped_column(String(50))
+    customer_name: Mapped[str | None] = mapped_column(String(255))
+    customer_email: Mapped[str | None] = mapped_column(String(255))
+    customer_phone: Mapped[str | None] = mapped_column(String(50))
+    description: Mapped[str | None] = mapped_column(Text)
+    fee: Mapped[Decimal | None] = mapped_column(Numeric(18,2))
+    tax: Mapped[Decimal | None] = mapped_column(Numeric(18,2))
+    journal_entry_id: Mapped[int | None] = mapped_column(ForeignKey("journal_entries.id"), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class RazorpayEvent(Base):
+    __tablename__="razorpay_events"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(100), index=True)
+    payload: Mapped[str] = mapped_column(Text)
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

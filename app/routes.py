@@ -11,6 +11,8 @@ from .security import hash_password, verify_password
 from .services.accounting import account_balance, post_entry
 from .services.documents import GCSObjectStore, create_document, validate_upload
 from .services.ocr import review_update
+from .services.razorpay import record_event, verify_signature
+from .config import get_settings
 
 templates=Jinja2Templates(directory="app/templates")
 router=APIRouter()
@@ -88,6 +90,14 @@ def save_review(document_id: str, request: Request, vendor_name: str=Form(""), i
     if not document or not document.extraction: raise HTTPException(404,"OCR extraction not found.")
     review_update(db,document.extraction,{"vendor_name":vendor_name,"invoice_number":invoice_number,"subtotal":subtotal,"cgst":cgst,"sgst":sgst,"igst":igst,"total_amount":total_amount})
     return RedirectResponse(f"/documents/{document_id}/review",303)
+
+@router.post("/webhooks/razorpay")
+async def razorpay_webhook(request: Request, db: Session=Depends(get_db)):
+    raw_body=await request.body()
+    if not verify_signature(raw_body,request.headers.get("X-Razorpay-Signature"),get_settings().razorpay_webhook_secret):
+        raise HTTPException(400,"Invalid Razorpay webhook signature.")
+    payment=record_event(db,raw_body)
+    return {"status":"duplicate" if payment is None else "processed"}
 
 @router.get("/health")
 def health(): return {"status":"ok"}
