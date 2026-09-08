@@ -1,0 +1,66 @@
+from datetime import date
+from decimal import Decimal, InvalidOperation
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from .db import get_db
+from .models import Account, AccountType, JournalEntry, User
+from .security import hash_password, verify_password
+from .services.accounting import account_balance, post_entry
+
+templates=Jinja2Templates(directory="app/templates")
+router=APIRouter()
+
+def current_user(request: Request, db: Session=Depends(get_db)) -> User:
+    user_id=request.session.get("user_id")
+    user=db.get(User,user_id) if user_id else None
+    if not user or not user.is_active: raise HTTPException(401,"Please log in.")
+    return user
+
+def ctx(request, **kwargs): return {"request":request, **kwargs}
+
+@router.get("/login")
+def login_page(request: Request): return templates.TemplateResponse("login.html",ctx(request))
+@router.post("/login")
+def login(request: Request, email: str=Form(...), password: str=Form(...), db: Session=Depends(get_db)):
+    user=db.scalar(select(User).where(User.email==email.lower()))
+    if not user or not verify_password(password,user.password_hash): return templates.TemplateResponse("login.html",ctx(request,error="Invalid email or password"),status_code=400)
+    request.session["user_id"]=user.id; return RedirectResponse("/",303)
+@router.post("/logout")
+def logout(request: Request): request.session.clear(); return RedirectResponse("/login",303)
+
+@router.get("/")
+def dashboard(request: Request, db: Session=Depends(get_db), user: User=Depends(current_user)):
+    accounts=db.scalars(select(Account).order_by(Account.code)).all()
+    recent=db.scalars(select(JournalEntry).order_by(JournalEntry.created_at.desc()).limit(8)).all()
+    return templates.TemplateResponse("dashboard.html",ctx(request,user=user,accounts=accounts,balances={a.id:account_balance(db,a) for a in accounts},recent=recent))
+
+@router.get("/accounts")
+def accounts(request: Request, db: Session=Depends(get_db), user: User=Depends(current_user)):
+    rows=db.scalars(select(Account).order_by(Account.code)).all()
+    return templates.TemplateResponse("accounts.html",ctx(request,user=user,accounts=rows,balances={a.id:account_balance(db,a) for a in rows},types=list(AccountType)))
+@router.post("/accounts")
+def create_account(code: str=Form(...), name: str=Form(...), account_type: AccountType=Form(...), db: Session=Depends(get_db), user: User=Depends(current_user)):
+    if user.role.value == "viewer": raise HTTPException(403,"Viewer access is read-only.")
+    db.add(Account(code=code.strip(),name=name.strip(),account_type=account_type))
+    try: db.commit()
+    except Exception: db.rollback(); raise HTTPException(400,"Account code and name must be unique.")
+    return RedirectResponse("/accounts",303)
+
+@router.get("/transactions")
+def transactions(request: Request, db: Session=Depends(get_db), user: User=Depends(current_user)):
+    return templates.TemplateResponse("transactions.html",ctx(request,user=user,accounts=db.scalars(select(Account).where(Account.is_active.is_(True)).order_by(Account.name)).all(),entries=db.scalars(select(JournalEntry).order_by(JournalEntry.entry_date.desc()).limit(100)).all()))
+@router.post("/transactions")
+def create_transaction(reference: str=Form(...), description: str=Form(...), amount: str=Form(...), debit_account_id: int=Form(...), credit_account_id: int=Form(...), entry_date: date=Form(...), db: Session=Depends(get_db), user: User=Depends(current_user)):
+    if user.role.value == "viewer": raise HTTPException(403,"Viewer access is read-only.")
+    try: post_entry(db,entry_date=entry_date,reference=reference.strip(),description=description.strip(),amount=Decimal(amount),debit_account_id=debit_account_id,credit_account_id=credit_account_id)
+    except (ValueError,InvalidOperation) as exc: raise HTTPException(400,str(exc))
+    return RedirectResponse("/transactions",303)
+
+@router.get("/health")
+def health(): return {"status":"ok"}
+
+def bootstrap_admin(db: Session) -> None:
+    if not db.scalar(select(User).limit(1)): db.add(User(email="admin@local",full_name="Administrator",password_hash=hash_password("ChangeMe123!"))); db.commit()
