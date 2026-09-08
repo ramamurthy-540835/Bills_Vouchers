@@ -1,7 +1,9 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
+from io import StringIO
+import csv
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,6 +15,7 @@ from .services.documents import GCSObjectStore, create_document, validate_upload
 from .services.ocr import review_update
 from .services.razorpay import record_event, verify_signature
 from .config import get_settings
+from .services.reporting import balances, cash_flow, profit_and_loss
 
 templates=Jinja2Templates(directory="app/templates")
 router=APIRouter()
@@ -98,6 +101,18 @@ async def razorpay_webhook(request: Request, db: Session=Depends(get_db)):
         raise HTTPException(400,"Invalid Razorpay webhook signature.")
     payment=record_event(db,raw_body)
     return {"status":"duplicate" if payment is None else "processed"}
+
+@router.get("/reports")
+def reports(request: Request, start: date|None=None, end: date|None=None, db: Session=Depends(get_db), user: User=Depends(current_user)):
+    data=balances(db,start,end); pnl,revenue,expenses,profit=profit_and_loss(db,start,end)
+    return templates.TemplateResponse("reports.html",ctx(request,user=user,start=start,end=end,data=data,pnl=pnl,revenue=revenue,expenses=expenses,profit=profit,cash=cash_flow(db,start,end)))
+
+@router.get("/reports/export.csv")
+def export_reports(start: date|None=None,end:date|None=None,db:Session=Depends(get_db),user:User=Depends(current_user)):
+    output=StringIO(); writer=csv.writer(output); writer.writerow(["Account","Type","Balance"])
+    for typ,rows in balances(db,start,end).items():
+        for account,value in rows: writer.writerow([account.name,typ.value,f"{value:.2f}"])
+    return StreamingResponse(iter([output.getvalue()]),media_type="text/csv",headers={"Content-Disposition":"attachment; filename=finance-report.csv"})
 
 @router.get("/health")
 def health(): return {"status":"ok"}
