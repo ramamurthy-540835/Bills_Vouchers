@@ -63,3 +63,7 @@ git push -u origin main
 ## Next phases
 
 Document upload/review, private GCS integration, Document AI processing, BigQuery analytics, Razorpay webhook/backfill, reporting, audit logging, Cloud Run infrastructure, and their integration tests are the next implementation phases.
+
+## Deployment
+
+See [production deployment guide](docs/deployment.md). Cloud Run deployment uses private GCS, BigQuery `NUMERIC` financial fields, Secret Manager, Cloud Logging, and least-privilege service accounts.
