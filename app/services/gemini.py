@@ -10,7 +10,8 @@ def scan_document(document,payload):
     from google import genai
     from google.genai import types
     s=__import__('app.config',fromlist=['get_settings']).get_settings(); c=genai.Client(api_key=s.gemini_api_key) if s.gemini_api_key else genai.Client(vertexai=True,project=s.gcp_project_id,location=s.gcp_region)
-    r=c.models.generate_content(model=s.gemini_model,contents=[types.Part.from_bytes(data=payload,mime_type=document.mime_type),'Extract this Indian GST bill or voucher. Return only JSON. Never invent missing values. Distinguish CGST+SGST from IGST and preserve original OCR text.'],config=types.GenerateContentConfig(response_mime_type='application/json',response_schema=SCHEMA,temperature=0))
+    prompt='''Extract this Indian bill or voucher exactly as structured JSON. Inspect the entire image, including the bottom of a long receipt. The final payable TOTAL / GRAND TOTAL is mandatory whenever a visible rupee amount exists; do not leave total_amount blank. Capture subtotal before round-off when shown, and use the final amount after round-off as total_amount. For non-GST grocery receipts, set CGST, SGST and IGST to 0 when no tax lines are printed. Extract all visible line items and preserve useful receipt text in ocr_text. Never invent a number that is not visible.'''
+    r=c.models.generate_content(model=s.gemini_model,contents=[types.Part.from_bytes(data=payload,mime_type=document.mime_type),prompt],config=types.GenerateContentConfig(response_mime_type='application/json',response_schema=SCHEMA,temperature=0))
     try: return json.loads(r.text)
     except Exception as exc: raise RuntimeError('Gemini returned invalid structured output.') from exc
 def process_with_gemini(repo,document,payload):
