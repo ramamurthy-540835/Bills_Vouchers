@@ -199,6 +199,14 @@ def update_client(request:Request,name:str=Form(...),code:str=Form(...),gstin:st
     client=active_client(request,repo,user)
     repo.query(f'UPDATE `{repo.table("clients")}` SET name=@name,code=@code,gstin=@gstin,address=@address WHERE id=@id',[bigquery.ScalarQueryParameter('name','STRING',name.strip()),bigquery.ScalarQueryParameter('code','STRING',code.strip().upper()),bigquery.ScalarQueryParameter('gstin','STRING',gstin.strip() or None),bigquery.ScalarQueryParameter('address','STRING',address.strip() or None),bigquery.ScalarQueryParameter('id','STRING',client.id)])
     fr(repo).audit(user.id,'update','client',client.id,client.id); return RedirectResponse('/settings',303)
+@router.post('/settings/client/create')
+def create_client(request:Request,name:str=Form(...),code:str=Form(...),repo=Depends(get_db),user=Depends(current_user)):
+    if user.role!='admin': raise HTTPException(403,'Admin access is required.')
+    from uuid import uuid4
+    client_id=str(uuid4()); now=datetime.now(timezone.utc).isoformat()
+    repo.insert('clients',{'id':client_id,'code':code.strip().upper(),'name':name.strip(),'gstin':None,'address':None,'is_active':True,'created_at':now},client_id)
+    membership_id=str(uuid4()); repo.insert('client_memberships',{'id':membership_id,'client_id':client_id,'user_id':user.id,'access_role':'admin','is_active':True,'created_at':now},membership_id)
+    request.session['client_id']=client_id; fr(repo).audit(user.id,'create','client',client_id,client_id); return RedirectResponse('/settings',303)
 def _doc_json(d):
     e=d.extraction
     return {'id':d.id,'document_type':d.document_type.value,'status':d.status.value,'original_filename':d.original_filename,'mime_type':d.mime_type,'file_size':d.file_size,'gcs_uri':d.gcs_uri,'uploaded_at':str(d.uploaded_at),'processing_error':d.processing_error,'extraction':({'vendor_name':e.vendor_name,'invoice_number':e.invoice_number,'gstin':e.gstin,'subtotal':str(e.subtotal) if e.subtotal is not None else None,'cgst':str(e.cgst) if e.cgst is not None else None,'sgst':str(e.sgst) if e.sgst is not None else None,'igst':str(e.igst) if e.igst is not None else None,'total_amount':str(e.total_amount) if e.total_amount is not None else None,'line_items':[{k:getattr(x,k,None) for k in ('item_name','description','quantity','unit','unit_price','tax','discount','total')} for x in e.line_items]} if e else None)}
