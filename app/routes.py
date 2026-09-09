@@ -142,8 +142,15 @@ def scan_document(document_id:str,repo=Depends(get_db),user=Depends(current_user
     except Exception as exc: raise HTTPException(502,f'Processing failed: {exc}') from exc
     return {'document_id':d.id,'status':'needs_review','model':get_settings().gemini_model,'vector_indexed':True}
 @router.get('/documents')
-def documents(request:Request,repo=Depends(get_db),user=Depends(current_user)):
-    client,clients=client_context(request,repo,user); return page('documents.html',request,user=user,client=client,clients=clients,documents=fr(repo).documents(client.id))
+def documents(request:Request,page_num:int=1,repo=Depends(get_db),user=Depends(current_user)):
+    client,clients=client_context(request,repo,user); page_num=max(1,page_num); per_page=10
+    count=repo.one(f'SELECT COUNT(*) n FROM `{repo.table("documents")}` WHERE client_id=@client',[__import__('google.cloud.bigquery',fromlist=['ScalarQueryParameter']).ScalarQueryParameter('client','STRING',client.id)]).n
+    return page('documents.html',request,user=user,client=client,clients=clients,documents=fr(repo).documents(client.id,per_page,(page_num-1)*per_page),page_num=page_num,has_next=count>page_num*per_page)
+@router.get('/documents/export.csv')
+def documents_export(repo=Depends(get_db),user=Depends(current_user),request:Request=None):
+    client=active_client(request,repo,user); output=StringIO(); writer=csv.writer(output); writer.writerow(['Client ID','Type','Generated filename','Original filename','Status','Uploaded at'])
+    for d in fr(repo).documents(client.id,1000): writer.writerow([client.id,d.document_type.value,d.client_filename or d.original_filename,d.original_filename,d.status.value,d.uploaded_at])
+    return StreamingResponse(iter([output.getvalue()]),media_type='text/csv',headers={'Content-Disposition':f'attachment; filename="{client.code}_bills_vouchers.csv"'})
 @router.get('/documents/search')
 def document_search(q:str,top_k:int=10,repo=Depends(get_db),user=Depends(current_user)): return {'query':q,'results':EmbeddingService(fr(repo)).search(q,top_k)}
 @router.get('/documents/{document_id}/review')
@@ -157,7 +164,7 @@ def document_file(document_id:str,request:Request,repo=Depends(get_db),user=Depe
     if not d: raise HTTPException(404,'Document not found.')
     return Response(GCSObjectStore(d.bucket_name).download(d.object_path),media_type=d.mime_type,headers={'Content-Disposition':f'inline; filename="{d.client_filename or d.original_filename}"'})
 @router.post('/documents/{document_id}/review')
-def save_review(document_id:str, vendor_name:str=Form(''),invoice_number:str=Form(''),subtotal:str=Form(''),cgst:str=Form(''),sgst:str=Form(''),igst:str=Form(''),total_amount:str=Form(''),repo=Depends(get_db),user=Depends(current_user)):
+def save_review(document_id:str,request:Request, vendor_name:str=Form(''),invoice_number:str=Form(''),subtotal:str=Form(''),cgst:str=Form(''),sgst:str=Form(''),igst:str=Form(''),total_amount:str=Form(''),repo=Depends(get_db),user=Depends(current_user)):
     from google.cloud import bigquery
     if user.role=='viewer': raise HTTPException(403,'Viewer access is read-only.')
     client=active_client(request,repo,user)
