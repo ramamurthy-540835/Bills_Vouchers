@@ -172,6 +172,13 @@ def reports(request:Request,start:date|None=None,end:date|None=None,repo=Depends
     pnl={}; revenue=expenses=profit=Decimal('0'); cash={}
     return page('reports.html',request,user=user,client=client,clients=clients,start=start,end=end,data=data,pnl=pnl,revenue=revenue,expenses=expenses,profit=profit,cash=cash)
 
+@router.get('/powerbi')
+def powerbi_model(request:Request,repo=Depends(get_db),user=Depends(current_user)):
+    client,clients=client_context(request,repo,user)
+    from google.cloud import bigquery
+    rows=repo.query(f'''SELECT month,category,SUM(income) income,SUM(expense) expense,STRING_AGG(DISTINCT data_source) sources FROM `{repo.table("powerbi_finance_dashboard")}` WHERE client_id=@client GROUP BY month,category ORDER BY month,category''',[bigquery.ScalarQueryParameter('client','STRING',client.id)])
+    chart_data=[{'month':str(x.month),'category':x.category,'income':float(x.income or 0),'expense':float(x.expense or 0),'sources':x.sources} for x in rows]
+    return page('powerbi.html',request,user=user,client=client,clients=clients,rows=rows,chart_data=chart_data)
 @router.get('/audit-logs')
 def audit_logs(request:Request,page_num:int=1,repo=Depends(get_db),user=Depends(current_user)):
     if user.role!='admin': raise HTTPException(403,'Admin access is required.')

@@ -1,0 +1,9 @@
+month,client_id,category,income,expense
+2026-06,client_demo_001,Consulting,62000,0
+2026-06,client_demo_001,Travel,0,6500
+2026-07,client_demo_001,Consulting,69000,0
+2026-07,client_demo_001,Office Supplies,0,2800
+2026-08,client_demo_001,Consulting,72000,0
+2026-08,client_demo_001,Software,0,4999
+2026-09,client_demo_001,Consulting,75000,0
+2026-09,client_demo_001,Marketing,0,12000
