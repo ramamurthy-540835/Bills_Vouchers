@@ -151,6 +151,18 @@ def documents_export(repo=Depends(get_db),user=Depends(current_user),request:Req
     client=active_client(request,repo,user); output=StringIO(); writer=csv.writer(output); writer.writerow(['Client ID','Type','Generated filename','Original filename','Status','Uploaded at'])
     for d in fr(repo).documents(client.id,1000): writer.writerow([client.id,d.document_type.value,d.client_filename or d.original_filename,d.original_filename,d.status.value,d.uploaded_at])
     return StreamingResponse(iter([output.getvalue()]),media_type='text/csv',headers={'Content-Disposition':f'attachment; filename="{client.code}_bills_vouchers.csv"'})
+@router.post('/documents/bulk-delete')
+def documents_bulk_delete(request:Request,document_ids:list[str]=Form(...),repo=Depends(get_db),user=Depends(current_user)):
+    if user.role=='viewer': raise HTTPException(403,'Viewer access is read-only.')
+    client=active_client(request,repo,user)
+    from google.cloud import bigquery
+    for document_id in document_ids:
+        if fr(repo).document(document_id,client.id):
+            repo.query(f'DELETE FROM `{repo.table("document_line_items")}` WHERE extraction_id=@id',[bigquery.ScalarQueryParameter('id','STRING',document_id)])
+            repo.query(f'DELETE FROM `{repo.table("document_extractions")}` WHERE document_id=@id',[bigquery.ScalarQueryParameter('id','STRING',document_id)])
+            repo.query(f'DELETE FROM `{repo.table("documents")}` WHERE id=@id AND client_id=@client',[bigquery.ScalarQueryParameter('id','STRING',document_id),bigquery.ScalarQueryParameter('client','STRING',client.id)])
+            fr(repo).audit(user.id,'delete','document',document_id,client.id)
+    return RedirectResponse('/documents',303)
 @router.get('/documents/search')
 def document_search(q:str,top_k:int=10,repo=Depends(get_db),user=Depends(current_user)): return {'query':q,'results':EmbeddingService(fr(repo)).search(q,top_k)}
 @router.get('/documents/{document_id}/review')
