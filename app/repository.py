@@ -34,10 +34,10 @@ class FinanceRepository:
         params=[bigquery.ScalarQueryParameter('id','STRING',str(aid))]; scope=''
         if client_id: scope=' AND client_id=@client'; params.append(bigquery.ScalarQueryParameter('client','STRING',str(client_id)))
         r=self.bq.one(f'SELECT * FROM `{self.bq.table("accounts")}` WHERE id=@id{scope}',params); return ns(**self.d(r)) if r else None
-    def documents(self,client_id,limit=100,offset=0):
+    def documents(self,client_id,limit=100,offset=0,include_extraction=False):
         rows=self.bq.query(f'SELECT * FROM `{self.bq.table("documents")}` WHERE client_id=@client ORDER BY uploaded_at DESC LIMIT @n OFFSET @offset',[bigquery.ScalarQueryParameter('client','STRING',str(client_id)),bigquery.ScalarQueryParameter('n','INT64',limit),bigquery.ScalarQueryParameter('offset','INT64',offset)]); out=[]
         for r in rows:
-            d=ns(**self.d(r)); d.document_type=ns(value=d.document_type); d.status=ns(value=d.status); d.extraction=self.extraction(d.id); out.append(d)
+            d=ns(**self.d(r)); d.document_type=ns(value=d.document_type); d.status=ns(value=d.status); d.extraction=self.extraction(d.id) if include_extraction else None; out.append(d)
         return out
     def document(self,did,client_id=None):
         params=[bigquery.ScalarQueryParameter('id','STRING',did)]; scope=''
