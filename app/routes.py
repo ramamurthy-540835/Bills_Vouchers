@@ -69,7 +69,8 @@ def dashboard(request:Request,repo=Depends(get_db),user=Depends(current_user)):
     client,clients=client_context(request,repo,user); accounts=fr(repo).accounts(client.id); entries=fr(repo).recent_entries(client.id)
     monthly=repo.query(f'''SELECT FORMAT_DATE('%Y-%m', entry_date) period, SUM(IF(a.account_type='income',l.credit-l.debit,0)) income, SUM(IF(a.account_type='expense',l.debit-l.credit,0)) expenses FROM `{repo.table('journal_entries')}` e JOIN `{repo.table('journal_lines')}` l ON e.id=l.journal_entry_id JOIN `{repo.table('accounts')}` a ON a.id=l.account_id WHERE e.client_id=@client AND entry_date >= DATE_SUB(CURRENT_DATE(),INTERVAL 12 MONTH) GROUP BY period ORDER BY period DESC''',[__import__('google.cloud.bigquery',fromlist=['ScalarQueryParameter']).ScalarQueryParameter('client','STRING',client.id)])
     yearly=repo.query(f'''SELECT EXTRACT(YEAR FROM entry_date) year, SUM(IF(a.account_type='income',l.credit-l.debit,0)) income, SUM(IF(a.account_type='expense',l.debit-l.credit,0)) expenses FROM `{repo.table('journal_entries')}` e JOIN `{repo.table('journal_lines')}` l ON e.id=l.journal_entry_id JOIN `{repo.table('accounts')}` a ON a.id=l.account_id WHERE e.client_id=@client GROUP BY year ORDER BY year DESC''',[__import__('google.cloud.bigquery',fromlist=['ScalarQueryParameter']).ScalarQueryParameter('client','STRING',client.id)])
-    return page('dashboard.html',request,user=user,client=client,clients=clients,accounts=accounts,recent=entries,monthly=monthly,yearly=yearly)
+    monthly_chart=[{'period':str(r.period),'income':float(r.income or 0),'expenses':float(r.expenses or 0)} for r in monthly]
+    return page('dashboard.html',request,user=user,client=client,clients=clients,accounts=accounts,recent=entries,monthly=monthly,monthly_chart=monthly_chart,yearly=yearly)
 @router.get('/accounts')
 def accounts(request:Request,repo=Depends(get_db),user=Depends(current_user)):
     client,clients=client_context(request,repo,user); rows=fr(repo).accounts(client.id); return page('accounts.html',request,user=user,client=client,clients=clients,accounts=rows,types=list(AccountType))
@@ -94,10 +95,16 @@ def create_transaction(reference:str=Form(...),description:str=Form(...),amount:
     for aid,debit,credit in [(debit_account_id,value,Decimal(0)),(credit_account_id,Decimal(0),value)]: repo.insert('journal_lines',{'id':str(uuid4()),'journal_entry_id':eid,'account_id':aid,'debit':str(debit),'credit':str(credit)},str(uuid4()))
     fr(repo).audit(user.id,'post','journal_entry',eid,client.id); return RedirectResponse('/transactions',303)
 @router.get('/expenses')
-def expenses(request:Request,repo=Depends(get_db),user=Depends(current_user)):
+def expenses(request:Request,start:date|None=None,end:date|None=None,category:str|None=None,repo=Depends(get_db),user=Depends(current_user)):
     client,clients=client_context(request,repo,user); accounts=fr(repo).accounts(client.id,True)
-    rows=repo.query(f"SELECT * FROM `{repo.table('journal_entries')}` WHERE client_id=@client AND source='expense' ORDER BY created_at DESC LIMIT 100",[__import__('google.cloud.bigquery',fromlist=['ScalarQueryParameter']).ScalarQueryParameter('client','STRING',client.id)])
-    return page('expenses.html',request,user=user,client=client,clients=clients,accounts=accounts,entries=rows)
+    from google.cloud import bigquery
+    params=[bigquery.ScalarQueryParameter('client','STRING',client.id),bigquery.ScalarQueryParameter('start','DATE',start),bigquery.ScalarQueryParameter('end','DATE',end),bigquery.ScalarQueryParameter('category','STRING',category or None)]
+    sql=f'''SELECT e.entry_date,e.reference,e.description,a.name category,l.debit amount FROM `{repo.table('journal_entries')}` e JOIN `{repo.table('journal_lines')}` l ON e.id=l.journal_entry_id JOIN `{repo.table('accounts')}` a ON a.id=l.account_id WHERE e.client_id=@client AND e.source='expense' AND a.account_type='expense' AND (@start IS NULL OR e.entry_date>=@start) AND (@end IS NULL OR e.entry_date<=@end) AND (@category IS NULL OR a.name=@category) ORDER BY e.entry_date DESC LIMIT 100'''
+    rows=repo.query(sql,params)
+    categories=repo.query(f"SELECT name FROM `{repo.table('accounts')}` WHERE client_id=@client AND account_type='expense' ORDER BY name",[bigquery.ScalarQueryParameter('client','STRING',client.id)])
+    chart_rows=repo.query(f'''SELECT a.name category,SUM(l.debit) amount FROM `{repo.table('journal_entries')}` e JOIN `{repo.table('journal_lines')}` l ON e.id=l.journal_entry_id JOIN `{repo.table('accounts')}` a ON a.id=l.account_id WHERE e.client_id=@client AND e.source='expense' AND a.account_type='expense' AND (@start IS NULL OR e.entry_date>=@start) AND (@end IS NULL OR e.entry_date<=@end) GROUP BY category ORDER BY amount DESC''',params[:3])
+    chart_data=[{'category':r.category,'amount':float(r.amount or 0)} for r in chart_rows]
+    return page('expenses.html',request,user=user,client=client,clients=clients,accounts=accounts,entries=rows,categories=categories,chart_rows=chart_data,start=start,end=end,category=category)
 @router.post('/expenses')
 def create_expense(reference:str=Form(...),description:str=Form(...),amount:str=Form(...),expense_account_id:str=Form(...),payment_account_id:str=Form(...),entry_date:date=Form(...),repo=Depends(get_db),user=Depends(current_user)):
     try: value=Decimal(amount)
