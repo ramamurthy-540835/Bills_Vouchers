@@ -21,15 +21,18 @@ async def validate_upload(upload:UploadFile):
     if len(data)>get_settings().max_upload_mb*1024*1024: raise HTTPException(413,'The document exceeds the maximum upload size.')
     if not any(data.startswith(x) for x in MAGIC[mime]): raise HTTPException(400,'The file contents do not match its declared type.')
     return data,filename,mime
-def create_document(repo,user,document_type,filename,mime,payload,store):
+def create_document(repo,user,client,document_type,filename,mime,payload,store):
     from google.cloud import bigquery
     from uuid import uuid4
     checksum=hashlib.sha256(payload).hexdigest()
     if repo.document_by_checksum(checksum): raise HTTPException(409,'This document has already been uploaded.')
     s=get_settings()
     if not s.gcs_bucket_name: raise HTTPException(503,'GCS_BUCKET_NAME must be configured.')
-    now=datetime.now(timezone.utc); did=str(uuid4()); path=f'finance-documents/{now:%Y/%m}/{did}/original{Path(filename).suffix.lower()}'
+    now=datetime.now(timezone.utc); did=str(uuid4()); ext=Path(filename).suffix.lower()
+    safe_type=document_type.value.replace(' ','_')
+    generated_name=f'{client.code}_{safe_type}_{now:%Y%m%d_%H%M%S}{ext}'
+    path=f'finance-documents/{client.code}/{now:%Y/%m}/{did}/{generated_name}'
     try: uri=store.upload(path,payload,mime)
     except Exception as exc: raise HTTPException(502,f'Document storage failed: {exc}') from exc
-    repo.bq.insert('documents',{'id':did,'document_type':document_type.value,'status':DocumentStatus.UPLOADED.value,'original_filename':filename,'mime_type':mime,'file_size':len(payload),'checksum_sha256':checksum,'bucket_name':s.gcs_bucket_name,'object_path':path,'gcs_uri':uri,'uploaded_by_id':str(user.id),'uploaded_at':now.isoformat(),'processing_error':None},did)
+    repo.bq.insert('documents',{'id':did,'client_id':str(client.id),'document_type':document_type.value,'status':DocumentStatus.UPLOADED.value,'original_filename':filename,'client_filename':generated_name,'mime_type':mime,'file_size':len(payload),'checksum_sha256':checksum,'bucket_name':s.gcs_bucket_name,'object_path':path,'gcs_uri':uri,'uploaded_by_id':str(user.id),'uploaded_at':now.isoformat(),'processing_error':None},did)
     return repo.document(did)

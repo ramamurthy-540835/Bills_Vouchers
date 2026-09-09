@@ -15,6 +15,8 @@ resource "google_storage_bucket" "documents" { name=var.bucket_name location=var
 resource "google_bigquery_dataset" "finance" { dataset_id="finance_analytics" location=var.region }
 locals {
   tables={
+    clients=[{name="id",type="STRING",mode="REQUIRED"},{name="code",type="STRING"},{name="name",type="STRING"},{name="gstin",type="STRING"},{name="address",type="STRING"},{name="is_active",type="BOOL"},{name="created_at",type="TIMESTAMP"}],
+    client_memberships=[{name="id",type="STRING",mode="REQUIRED"},{name="client_id",type="STRING"},{name="user_id",type="STRING"},{name="access_role",type="STRING"},{name="is_active",type="BOOL"},{name="created_at",type="TIMESTAMP"}],
     users=[{name="id",type="STRING",mode="REQUIRED"},{name="email",type="STRING"},{name="password_hash",type="STRING"},{name="full_name",type="STRING"},{name="role",type="STRING"},{name="is_active",type="BOOL"},{name="created_at",type="TIMESTAMP"}],
     accounts=[{name="id",type="STRING",mode="REQUIRED"},{name="code",type="STRING"},{name="name",type="STRING"},{name="account_type",type="STRING"},{name="is_active",type="BOOL"},{name="created_at",type="TIMESTAMP"}],
     journal_entries=[{name="id",type="STRING",mode="REQUIRED"},{name="entry_date",type="DATE"},{name="reference",type="STRING"},{name="description",type="STRING"},{name="source",type="STRING"},{name="status",type="STRING"},{name="created_at",type="TIMESTAMP"}],
