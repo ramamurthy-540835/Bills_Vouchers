@@ -22,10 +22,12 @@ class FinanceRepository:
         r=self.bq.one(f'SELECT * FROM `{self.bq.table("clients")}` WHERE id=@id AND is_active=TRUE',[bigquery.ScalarQueryParameter('id','STRING',str(client_id))]); return ns(**self.d(r)) if r else None
     def can_access_client(self,user_id,client_id):
         return bool(self.bq.one(f'SELECT 1 FROM `{self.bq.table("client_memberships")}` WHERE user_id=@u AND client_id=@c AND is_active=TRUE LIMIT 1',[bigquery.ScalarQueryParameter('u','STRING',str(user_id)),bigquery.ScalarQueryParameter('c','STRING',str(client_id))]))
-    def accounts(self,client_id,active=False):
+    def accounts(self,client_id,active=False,limit=None,offset=0):
         where='AND a.is_active=TRUE' if active else ''
         sql=f'''SELECT a.*, COALESCE(b.current_balance,0) current_balance FROM `{self.bq.table("accounts")}` a LEFT JOIN `{self.bq.table("account_balances")}` b ON a.id=b.account_id WHERE a.client_id=@client {where} ORDER BY a.code'''
-        return [self._account(r) for r in self.bq.query(sql,[bigquery.ScalarQueryParameter('client','STRING',str(client_id))])]
+        params=[bigquery.ScalarQueryParameter('client','STRING',str(client_id))]
+        if limit is not None: sql+=' LIMIT @limit OFFSET @offset'; params += [bigquery.ScalarQueryParameter('limit','INT64',limit),bigquery.ScalarQueryParameter('offset','INT64',offset)]
+        return [self._account(r) for r in self.bq.query(sql,params)]
     def _account(self,r):
         a=ns(**self.d(r)); a.account_type=ns(value=a.account_type); return a
     def account(self,aid,client_id=None):

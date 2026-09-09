@@ -73,16 +73,21 @@ def dashboard(request:Request,repo=Depends(get_db),user=Depends(current_user)):
     monthly_chart=[{'period':str(r.month),'income':float(r.income or 0),'expenses':float(r.expenses or 0)} for r in powerbi_rows]
     return page('dashboard.html',request,user=user,client=client,clients=clients,accounts=accounts,recent=entries,monthly=monthly,monthly_chart=monthly_chart,yearly=yearly)
 @router.get('/accounts')
-def accounts(request:Request,repo=Depends(get_db),user=Depends(current_user)):
-    client,clients=client_context(request,repo,user); rows=fr(repo).accounts(client.id); return page('accounts.html',request,user=user,client=client,clients=clients,accounts=rows,types=list(AccountType))
+def accounts(request:Request,page_num:int=1,repo=Depends(get_db),user=Depends(current_user)):
+    client,clients=client_context(request,repo,user); page_num=max(1,page_num); per_page=10
+    total=repo.one(f'SELECT COUNT(*) n FROM `{repo.table("accounts")}` WHERE client_id=@client',[__import__('google.cloud.bigquery',fromlist=['ScalarQueryParameter']).ScalarQueryParameter('client','STRING',client.id)]).n
+    rows=fr(repo).accounts(client.id,limit=per_page,offset=(page_num-1)*per_page); return page('accounts.html',request,user=user,client=client,clients=clients,accounts=rows,types=list(AccountType),page_num=page_num,has_next=total>page_num*per_page)
 @router.post('/accounts')
 def create_account(code:str=Form(...),name:str=Form(...),account_type:AccountType=Form(...),repo=Depends(get_db),user=Depends(current_user)):
     if user.role=='viewer': raise HTTPException(403,'Viewer access is read-only.')
     from uuid import uuid4
     client=active_client(request,repo,user); repo.insert('accounts',{'id':str(uuid4()),'client_id':client.id,'code':code.strip(),'name':name.strip(),'account_type':account_type.value,'is_active':True,'created_at':datetime.now(timezone.utc).isoformat()},str(uuid4())); fr(repo).audit(user.id,'create','account',code.strip(),client.id); return RedirectResponse('/accounts',303)
 @router.get('/transactions')
-def transactions(request:Request,repo=Depends(get_db),user=Depends(current_user)):
-    client,clients=client_context(request,repo,user); return page('transactions.html',request,user=user,client=client,clients=clients,accounts=fr(repo).accounts(client.id,True),entries=fr(repo).recent_entries(client.id,100))
+def transactions(request:Request,page_num:int=1,repo=Depends(get_db),user=Depends(current_user)):
+    client,clients=client_context(request,repo,user); page_num=max(1,page_num); per_page=10
+    total=repo.one(f'SELECT COUNT(*) n FROM `{repo.table("journal_entries")}` WHERE client_id=@client',[__import__('google.cloud.bigquery',fromlist=['ScalarQueryParameter']).ScalarQueryParameter('client','STRING',client.id)]).n
+    entries=fr(repo).recent_entries(client.id,1000)[(page_num-1)*per_page:page_num*per_page]
+    return page('transactions.html',request,user=user,client=client,clients=clients,accounts=fr(repo).accounts(client.id,True),entries=entries,page_num=page_num,has_next=total>page_num*per_page)
 @router.post('/transactions')
 def create_transaction(reference:str=Form(...),description:str=Form(...),amount:str=Form(...),debit_account_id:str=Form(...),credit_account_id:str=Form(...),entry_date:date=Form(...),repo=Depends(get_db),user=Depends(current_user)):
     if user.role=='viewer': raise HTTPException(403,'Viewer access is read-only.')
