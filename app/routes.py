@@ -127,14 +127,14 @@ def create_expense(reference:str=Form(...),description:str=Form(...),amount:str=
 def upload_document_page(request:Request,repo=Depends(get_db),user=Depends(current_user)):
     client,clients=client_context(request,repo,user); return page('document_upload.html',request,user=user,client=client,clients=clients,types=list(DocumentType))
 @router.post('/documents/upload')
-async def upload_document(document_type:DocumentType=Form(...),file:UploadFile=File(...),repo=Depends(get_db),user=Depends(current_user)):
+async def upload_document(request:Request,document_type:DocumentType=Form(...),file:UploadFile=File(...),repo=Depends(get_db),user=Depends(current_user)):
     if user.role=='viewer': raise HTTPException(403,'Viewer access is read-only.')
     client=active_client(request,repo,user); payload,filename,mime=await validate_upload(file); d=create_document(fr(repo),user,client,document_type,filename,mime,payload,GCSObjectStore(get_settings().gcs_bucket_name))
     try: extract_upload(repo,d,payload)
     except Exception as exc: return JSONResponse(status_code=202,content={'document_id':d.id,'status':'File stored in GCS and metadata stored in BigQuery. Extraction is pending.','gcs_uri':d.gcs_uri,'processing_error':str(exc)[:500]})
     return {'document_id':d.id,'status':'File stored in GCS and extracted details stored in BigQuery.','gcs_uri':d.gcs_uri}
 @router.post('/documents/{document_id}/scan')
-def scan_document(document_id:str,repo=Depends(get_db),user=Depends(current_user)):
+def scan_document(document_id:str,request:Request,repo=Depends(get_db),user=Depends(current_user)):
     if user.role=='viewer': raise HTTPException(403,'Viewer access is read-only.')
     client=active_client(request,repo,user); d=fr(repo).document(document_id,client.id)
     if not d: raise HTTPException(404,'Document not found.')
@@ -263,7 +263,7 @@ def api_documents(request:Request,repo=Depends(get_db),user=Depends(current_user
 def api_document_search(q:str,top_k:int=10,repo=Depends(get_db),user=Depends(current_user)): return {'query':q,'results':EmbeddingService(fr(repo)).search(q,top_k)}
 
 @router.post('/api/documents/upload')
-async def api_upload(document_type:DocumentType=Form(...),file:UploadFile=File(...),repo=Depends(get_db),user=Depends(current_user)):
+async def api_upload(request:Request,document_type:DocumentType=Form(...),file:UploadFile=File(...),repo=Depends(get_db),user=Depends(current_user)):
     if user.role=='viewer': raise HTTPException(403,'Viewer access is read-only.')
     client=active_client(request,repo,user); payload,filename,mime=await validate_upload(file); d=create_document(fr(repo),user,client,document_type,filename,mime,payload,GCSObjectStore(get_settings().gcs_bucket_name))
     try: extract_upload(repo,d,payload)
@@ -271,7 +271,7 @@ async def api_upload(document_type:DocumentType=Form(...),file:UploadFile=File(.
     return _doc_json(fr(repo).document(d.id))
 
 @router.post('/api/documents/{document_id}/scan')
-def api_scan(document_id:str,repo=Depends(get_db),user=Depends(current_user)): return scan_document(document_id,repo,user)
+def api_scan(document_id:str,request:Request,repo=Depends(get_db),user=Depends(current_user)): return scan_document(document_id,request,repo,user)
 
 @router.get('/api/documents/{document_id}')
 def api_document(document_id:str,repo=Depends(get_db),user=Depends(current_user)):
