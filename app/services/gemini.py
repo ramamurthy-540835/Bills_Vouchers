@@ -1,40 +1,207 @@
 import json
 from datetime import date
-from .ocr import decimal_or_none
-from ..models import ns
+from typing import Any
+
 from google.cloud import bigquery
-FIELDS=['vendor_name','vendor_address','invoice_number','invoice_date','due_date','gstin','subtotal','tax_amount','cgst','sgst','igst','discount_amount','total_amount','currency','payment_method','ocr_text']
-SCHEMA={'type':'OBJECT','properties':{k:{'type':'STRING'} for k in FIELDS}}
-SCHEMA['properties']['line_items']={'type':'ARRAY','items':{'type':'OBJECT','properties':{k:{'type':'STRING'} for k in ['item_name','description','quantity','unit','unit_price','tax','discount','total']}}}
-def scan_document(document,payload):
+
+from .gst import normalize_invoice_number, validate_document
+from .ocr import decimal_or_none
+
+FIELDS = [
+    "vendor_name",
+    "vendor_address",
+    "invoice_number",
+    "invoice_date",
+    "due_date",
+    "gstin",
+    "subtotal",
+    "tax_amount",
+    "cgst",
+    "sgst",
+    "igst",
+    "discount_amount",
+    "total_amount",
+    "currency",
+    "payment_method",
+    "ocr_text",
+    "classification",
+    "reverse_charge",
+    "irn",
+    "acknowledgement_number",
+    "acknowledgement_date",
+    "signed_qr_detected",
+]
+SCHEMA: dict[str, Any] = {"type": "OBJECT", "properties": {k: {"type": "STRING"} for k in FIELDS}}
+SCHEMA["properties"]["line_items"] = {
+    "type": "ARRAY",
+    "items": {
+        "type": "OBJECT",
+        "properties": {
+            k: {"type": "STRING"}
+            for k in ["item_name", "description", "quantity", "unit", "unit_price", "taxable_value", "rate", "tax", "discount", "total", "hsn", "sac"]
+        },
+    },
+}
+
+
+def scan_document(document, payload):
     from google import genai
     from google.genai import types
-    s=__import__('app.config',fromlist=['get_settings']).get_settings(); c=genai.Client(api_key=s.gemini_api_key) if s.gemini_api_key else genai.Client(vertexai=True,project=s.gcp_project_id,location=s.gcp_region)
-    prompt='''Extract this Indian bill or voucher exactly as structured JSON. Inspect the entire image, including the bottom of a long receipt. The final payable TOTAL / GRAND TOTAL is mandatory whenever a visible rupee amount exists; do not leave total_amount blank. Capture subtotal before round-off when shown, and use the final amount after round-off as total_amount. For non-GST grocery receipts, set CGST, SGST and IGST to 0 when no tax lines are printed. Extract all visible line items and preserve useful receipt text in ocr_text. Never invent a number that is not visible.'''
-    r=c.models.generate_content(model=s.gemini_model,contents=[types.Part.from_bytes(data=payload,mime_type=document.mime_type),prompt],config=types.GenerateContentConfig(response_mime_type='application/json',response_schema=SCHEMA,temperature=0))
-    try: return json.loads(r.text)
-    except Exception as exc: raise RuntimeError('Gemini returned invalid structured output.') from exc
-def process_with_gemini(repo,document,payload):
-    def update_status(set_sql):
-        try: repo.bq.update('documents',set_sql,'id=@id',[bigquery.ScalarQueryParameter('id','STRING',document.id)])
-        except Exception as exc:
-            if 'streaming buffer' not in str(exc).lower(): raise
-    update_status("status='processing', processing_error=NULL")
-    try: data=scan_document(document,payload)
+
+    s = __import__("app.config", fromlist=["get_settings"]).get_settings()
+    c = (
+        genai.Client(api_key=s.gemini_api_key)
+        if s.gemini_api_key
+        else genai.Client(vertexai=True, project=s.gcp_project_id, location=s.gcp_region)
+    )
+    prompt = """Extract this Indian bill or voucher exactly as structured JSON. Inspect the entire image, including the bottom of a long receipt. The final payable TOTAL / GRAND TOTAL is mandatory whenever a visible rupee amount exists; do not leave total_amount blank. Capture subtotal before round-off when shown, and use the final amount after round-off as total_amount. For non-GST grocery receipts, set CGST, SGST and IGST to 0 when no tax lines are printed. Extract all visible line items and preserve useful receipt text in ocr_text. Never invent a number that is not visible."""
+    r = c.models.generate_content(
+        model=s.gemini_model,
+        contents=[types.Part.from_bytes(data=payload, mime_type=document.mime_type), prompt],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json", response_schema=SCHEMA, temperature=0
+        ),
+    )
+    try:
+        if not r.text:
+            raise ValueError("empty response")
+        return json.loads(r.text)
     except Exception as exc:
-        try: repo.bq.update('documents',"status='failed', processing_error=@err",'id=@id',[bigquery.ScalarQueryParameter('id','STRING',document.id),bigquery.ScalarQueryParameter('err','STRING',str(exc)[:2000])])
+        raise RuntimeError("Gemini returned invalid structured output.") from exc
+
+
+def process_with_gemini(repo, document, payload):
+    def update_status(set_sql):
+        try:
+            repo.bq.update("documents", set_sql, "id=@id", [bigquery.ScalarQueryParameter("id", "STRING", document.id)])
+        except Exception as exc:
+            if "streaming buffer" not in str(exc).lower():
+                raise
+
+    update_status("status='processing', processing_error=NULL")
+    try:
+        data = scan_document(document, payload)
+    except Exception as exc:
+        try:
+            repo.bq.update(
+                "documents",
+                "status='scan_failed', processing_error=@err",
+                "id=@id",
+                [
+                    bigquery.ScalarQueryParameter("id", "STRING", document.id),
+                    bigquery.ScalarQueryParameter("err", "STRING", str(exc)[:2000]),
+                ],
+            )
         except Exception as update_exc:
-            if 'streaming buffer' not in str(update_exc).lower(): raise
+            if "streaming buffer" not in str(update_exc).lower():
+                raise
         raise
+
     def dt(x):
-        try: return date.fromisoformat(str(x)[:10]).isoformat() if x else None
-        except ValueError: return None
+        try:
+            return date.fromisoformat(str(x)[:10]).isoformat() if x else None
+        except ValueError:
+            return None
+
     def numeric(value):
-        parsed=decimal_or_none(value)
+        parsed = decimal_or_none(value)
         return str(parsed) if parsed is not None else None
-    row={'id':document.id,'document_id':document.id,**{k:data.get(k) for k in ['vendor_name','vendor_address','invoice_number','gstin','currency','payment_method','ocr_text']},'invoice_date':dt(data.get('invoice_date')),'due_date':dt(data.get('due_date')),'subtotal':numeric(data.get('subtotal')),'tax_amount':numeric(data.get('tax_amount')),'cgst':numeric(data.get('cgst')),'sgst':numeric(data.get('sgst')),'igst':numeric(data.get('igst')),'discount_amount':numeric(data.get('discount_amount')),'total_amount':numeric(data.get('total_amount')),'ocr_confidence':None,'created_at':str(document.uploaded_at)}
-    repo.bq.query(f'DELETE FROM `{repo.bq.table("document_extractions")}` WHERE document_id=@id',[bigquery.ScalarQueryParameter('id','STRING',document.id)]); repo.bq.insert('document_extractions',row,document.id)
-    repo.bq.query(f'DELETE FROM `{repo.bq.table("document_line_items")}` WHERE extraction_id=@id',[bigquery.ScalarQueryParameter('id','STRING',document.id)])
-    for i,x in enumerate(data.get('line_items') or []): repo.bq.insert('document_line_items',{'id':f'{document.id}-{i}','extraction_id':document.id,'line_number':i,**{k:x.get(k) for k in ['item_name','description','unit']},'quantity':numeric(x.get('quantity')),'unit_price':numeric(x.get('unit_price')),'tax':numeric(x.get('tax')),'discount':numeric(x.get('discount')),'total':numeric(x.get('total'))},f'{document.id}-{i}')
+
+    invoice_date = dt(data.get("invoice_date"))
+    invoice_date_obj = date.fromisoformat(invoice_date) if invoice_date else None
+    normalized_invoice = normalize_invoice_number(data.get("invoice_number"))
+    duplicate = False
+    if data.get("gstin") and normalized_invoice and invoice_date_obj:
+        fy_start_year = invoice_date_obj.year if invoice_date_obj.month >= 4 else invoice_date_obj.year - 1
+        duplicate = repo.bq.one(
+            f"""SELECT 1 FROM `{repo.bq.table('document_extractions')}` e
+            JOIN `{repo.bq.table('documents')}` d ON d.id=e.document_id
+            WHERE e.document_id != @document_id AND UPPER(e.gstin)=@gstin
+              AND REGEXP_REPLACE(UPPER(e.invoice_number), r'[^A-Z0-9]', '')=@invoice
+              AND e.invoice_date BETWEEN @fy_start AND @fy_end LIMIT 1""",
+            [
+                bigquery.ScalarQueryParameter("document_id", "STRING", document.id),
+                bigquery.ScalarQueryParameter("gstin", "STRING", str(data["gstin"]).strip().upper()),
+                bigquery.ScalarQueryParameter("invoice", "STRING", normalized_invoice),
+                bigquery.ScalarQueryParameter("fy_start", "DATE", date(fy_start_year, 4, 1)),
+                bigquery.ScalarQueryParameter("fy_end", "DATE", date(fy_start_year + 1, 3, 31)),
+            ],
+        ) is not None
+    validation = validate_document(data, duplicate=duplicate)
+    row = {
+        "id": document.id,
+        "document_id": document.id,
+        **{
+            k: data.get(k)
+            for k in [
+                "vendor_name",
+                "vendor_address",
+                "invoice_number",
+                "gstin",
+        "supplier_gstin",
+        "recipient_gstin",
+        "supplier_state_code",
+        "place_of_supply",
+        "b2b",
+                "currency",
+                "payment_method",
+                "ocr_text",
+                "classification",
+                "reverse_charge",
+                "irn",
+                "acknowledgement_number",
+                "signed_qr_detected",
+            ]
+        },
+        "invoice_date": invoice_date,
+        "due_date": dt(data.get("due_date")),
+        "acknowledgement_date": dt(data.get("acknowledgement_date")),
+        "subtotal": numeric(data.get("subtotal")),
+        "tax_amount": numeric(data.get("tax_amount")),
+        "cgst": numeric(data.get("cgst")),
+        "sgst": numeric(data.get("sgst")),
+        "igst": numeric(data.get("igst")),
+        "discount_amount": numeric(data.get("discount_amount")),
+        "total_amount": numeric(data.get("total_amount")),
+        "ocr_confidence": None,
+        "validation_report": json.dumps(validation, separators=(",", ":")),
+        "created_at": str(document.uploaded_at),
+    }
+    repo.bq.query(
+        f"DELETE FROM `{repo.bq.table('document_extractions')}` WHERE document_id=@id",
+        [bigquery.ScalarQueryParameter("id", "STRING", document.id)],
+    )
+    repo.bq.insert("document_extractions", row, document.id)
+    repo.bq.query(
+        f"DELETE FROM `{repo.bq.table('document_line_items')}` WHERE extraction_id=@id",
+        [bigquery.ScalarQueryParameter("id", "STRING", document.id)],
+    )
+    for i, x in enumerate(data.get("line_items") or []):
+        repo.bq.insert(
+            "document_line_items",
+            {
+                "id": f"{document.id}-{i}",
+                "extraction_id": document.id,
+                "line_number": i,
+                **{k: x.get(k) for k in ["item_name", "description", "unit", "hsn", "sac"]},
+                "quantity": numeric(x.get("quantity")),
+                "unit_price": numeric(x.get("unit_price")),
+                "taxable_value": numeric(x.get("taxable_value")),
+                "rate": numeric(x.get("rate")),
+                "tax": numeric(x.get("tax")),
+                "discount": numeric(x.get("discount")),
+                "total": numeric(x.get("total")),
+            },
+            f"{document.id}-{i}",
+        )
+    repo.bq.update(
+        "documents",
+        "validation_status=@status",
+        "id=@id",
+        [
+            bigquery.ScalarQueryParameter("status", "STRING", validation["validation_status"]),
+            bigquery.ScalarQueryParameter("id", "STRING", document.id),
+        ],
+    )
     update_status("status='needs_review', processing_error=NULL")
     return repo.extraction(document.id)

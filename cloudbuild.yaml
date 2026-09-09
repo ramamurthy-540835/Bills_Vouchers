@@ -3,3 +3,7 @@ steps:
     args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher:$COMMIT_SHA", "."]
 images: ["${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher:$COMMIT_SHA"]
 substitutions: { _REGION: asia-south1 }
+options:
+  machineType: E2_HIGHCPU_8
+  diskSizeGb: 100
+  logging: CLOUD_LOGGING_ONLY

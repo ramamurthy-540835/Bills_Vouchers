@@ -16,5 +16,6 @@ alembic.ini
 frontend/node_modules/
 frontend/.next/
 frontend/out/
+frontend/tsconfig.tsbuildinfo
 
 frontend/.env.local

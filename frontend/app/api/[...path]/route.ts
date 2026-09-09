@@ -8,7 +8,9 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   headers.delete('host')
   headers.delete('content-length')
   const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.arrayBuffer()
-  const response = await fetch(url, { method: request.method, headers, body, redirect: 'manual' })
+  let response: Response
+  try { response = await fetch(url, { method: request.method, headers, body, redirect: 'manual' }) }
+  catch { return NextResponse.json({ detail: 'Finance backend is unavailable.' }, { status: 503 }) }
   const out = new NextResponse(response.body, { status: response.status, headers: response.headers })
   const cookie = response.headers.get('set-cookie')
   if (cookie) out.headers.set('set-cookie', cookie)
