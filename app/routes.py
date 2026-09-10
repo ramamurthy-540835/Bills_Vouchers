@@ -503,7 +503,7 @@ def run_scan_job(document_id, repo, user_id, client_id):
         try:
             repo.bq.update(
                 "documents",
-                "status='failed', processing_error=@err",
+                "status='scan_failed', processing_error=@err",
                 "id=@id",
                 [
                     bigquery.ScalarQueryParameter("err", "STRING", str(exc)[:2000]),
@@ -1015,6 +1015,14 @@ def _doc_json(d):
                 "vendor_name": e.vendor_name,
                 "invoice_number": e.invoice_number,
                 "gstin": e.gstin,
+                "supplier_gstin": getattr(e, "supplier_gstin", None),
+                "recipient_gstin": getattr(e, "recipient_gstin", None),
+                "classification": getattr(e, "classification", None),
+                "reverse_charge": getattr(e, "reverse_charge", None),
+                "irn": getattr(e, "irn", None),
+                "acknowledgement_number": getattr(e, "acknowledgement_number", None),
+                "acknowledgement_date": str(getattr(e, "acknowledgement_date", None)) if getattr(e, "acknowledgement_date", None) else None,
+                "signed_qr_detected": getattr(e, "signed_qr_detected", None),
                 "subtotal": str(e.subtotal) if e.subtotal is not None else None,
                 "cgst": str(e.cgst) if e.cgst is not None else None,
                 "sgst": str(e.sgst) if e.sgst is not None else None,
@@ -1027,6 +1035,10 @@ def _doc_json(d):
                         for k in (
                             "item_name",
                             "description",
+                            "hsn",
+                            "sac",
+                            "taxable_value",
+                            "rate",
                             "quantity",
                             "unit",
                             "unit_price",
