@@ -2,7 +2,7 @@
 
 ## Current status
 
-The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`12 passed`). This repository is not yet approved for unattended production deployment.
+The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`13 passed`). This repository is not yet approved for unattended production deployment.
 
 ## Implemented
 
@@ -18,6 +18,8 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - Client-scoped document access and viewer write protection.
 - Scan requests return `202` and expose a scan-status endpoint with a local background fallback; failures use `scan_failed`.
 - Versioned `/api/v1` health, document-list, and semantic-search compatibility endpoints are available.
+- Approved-document GST register exports are available at `/api/reports/gstr` and `/reports/gstr.csv`.
+- Review clients can request a five-minute signed GCS URL without exposing bucket paths.
 - Session max-age/idle expiry, security headers, same-origin browser-write checks, and bounded login throttling are enabled.
 - BigQuery queries enforce configurable maximum bytes billed and timeouts.
 - Cloud Build worker sizing and smaller Docker contexts.
@@ -29,6 +31,7 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - The migration is a reviewed SQL artifact and is not applied automatically.
 - GCS deletion remains metadata-controlled; permanent object deletion should be a separate retention-approved operation.
 - The existing application still needs token-based CSRF protection; same-origin checks and login throttling are currently in place.
+- The local async worker is not a durable queue; Cloud Tasks integration remains required for production retries.
 - Cloud Run Terraform resources are now represented, but the secret version and ingress/IAM policy still require an environment-specific review.
 
 ## Go-live blockers, ranked

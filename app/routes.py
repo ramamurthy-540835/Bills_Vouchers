@@ -460,6 +460,7 @@ def upload_document_page(request: Request, repo=Depends(get_db), user=Depends(cu
 @router.post("/documents/upload")
 async def upload_document(
     request: Request,
+    background_tasks: BackgroundTasks,
     document_type: DocumentType = Form(...),
     file: UploadFile = File(...),
     repo=Depends(get_db),
@@ -472,23 +473,13 @@ async def upload_document(
     d = create_document(
         fr(repo), user, client, document_type, filename, mime, payload, GCSObjectStore(get_settings().gcs_bucket_name)
     )
-    try:
-        extract_upload(repo, d, payload)
-    except Exception as exc:
-        return JSONResponse(
-            status_code=202,
-            content={
-                "document_id": d.id,
-                "status": "File stored in GCS and metadata stored in BigQuery. Extraction is pending.",
-                "gcs_uri": d.gcs_uri,
-                "processing_error": str(exc)[:500],
-            },
-        )
-    return {
+    background_tasks.add_task(run_scan_job, d.id, repo, user.id, client.id)
+    return JSONResponse(status_code=202, content={
         "document_id": d.id,
-        "status": "File stored in GCS and extracted details stored in BigQuery.",
+        "status": "File stored in GCS and scanning has been queued.",
+        "scan_status_url": f"/api/documents/{d.id}/scan-status",
         "gcs_uri": d.gcs_uri,
-    }
+    })
 
 
 def run_scan_job(document_id, repo, user_id, client_id):

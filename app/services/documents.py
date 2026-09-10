@@ -29,6 +29,9 @@ class GCSObjectStore:
     def download(self, object_path):
         return self._bucket().blob(object_path).download_as_bytes()
 
+    def signed_url(self, object_path, minutes: int = 5):
+        return self._bucket().blob(object_path).generate_signed_url(version="v4", expiration=minutes * 60, method="GET")
+
 
 async def validate_upload(upload: UploadFile):
     filename = Path(upload.filename or "").name

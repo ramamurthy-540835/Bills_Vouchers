@@ -9,6 +9,7 @@ from .config import get_settings
 from .db import get_repository
 from .repository import FinanceRepository
 from .routes import router, v1_router
+from .services.gst.routes import router as gst_router
 from .security import hash_password
 
 
@@ -77,6 +78,7 @@ def create_app():
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
     app.include_router(router)
     app.include_router(v1_router)
+    app.include_router(gst_router)
 
     @app.on_event("startup")
     def startup():
