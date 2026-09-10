@@ -59,6 +59,8 @@ def validate_document(data: dict[str, Any], *, duplicate: bool = False) -> dict[
         _issue(
             errors, "empty_invoice_number", "invoice_number", "Invoice number contains no usable characters.", "error"
         )
+    if data.get("irn") and len(str(data["irn"]).strip()) != 64:
+        _issue(errors, "invalid_irn", "irn", "IRN must be a 64-character hash.", "error")
     rate = data.get("gst_rate")
     if rate is not None:
         try:

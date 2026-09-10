@@ -1,4 +1,6 @@
-from app.services.gst.validation import normalize_invoice_number, valid_gstin, validate_document
+from datetime import date
+
+from app.services.gst.validation import indian_financial_year, normalize_invoice_number, valid_gstin, validate_document
 
 
 def test_gstin_checksum_and_normalization():
@@ -32,3 +34,14 @@ def test_rate_hsn_duplicate_and_totals():
     )
     codes = {x["code"] for x in result["errors"]} | {x["code"] for x in result["warnings"]}
     assert {"unsupported_gst_rate", "invalid_hsn_sac", "duplicate_invoice", "line_total_mismatch"} <= codes
+
+
+def test_line_tax_rounding_and_irn_validation():
+    result = validate_document({"line_items": [{"taxable_value": "100", "rate": "18", "tax": "17"}], "irn": "short"})
+    codes = {item["code"] for item in result["errors"]}
+    assert {"line_tax_mismatch", "invalid_irn"} <= codes
+
+
+def test_indian_financial_year_boundary():
+    assert indian_financial_year(date(2026, 3, 31)) == "2025-26"
+    assert indian_financial_year(date(2026, 4, 1)) == "2026-27"

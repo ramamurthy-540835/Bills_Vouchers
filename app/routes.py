@@ -1192,7 +1192,11 @@ def healthz():
 @router.get("/readyz")
 def readyz(repo=Depends(get_db)):
     repo.one("SELECT 1 AS ready")
-    return {"status": "ready", "persistence": "bigquery"}
+    settings = get_settings()
+    if settings.gcs_bucket_name:
+        from google.cloud import storage  # type: ignore[attr-defined]
+        storage.Client(project=settings.gcp_project_id).get_bucket(settings.gcs_bucket_name, timeout=3)
+    return {"status": "ready", "persistence": "bigquery", "gcs": bool(settings.gcs_bucket_name)}
 
 
 @v1_router.get("/health")

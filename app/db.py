@@ -1,8 +1,13 @@
 from functools import lru_cache
+import json
+import logging
 
 from fastapi import Depends
 
 from .config import get_settings
+
+
+logger = logging.getLogger("bills_voucher.bigquery")
 
 
 class BigQueryRepository:
@@ -24,7 +29,10 @@ class BigQueryRepository:
 
         s = self.settings
         config = bigquery.QueryJobConfig(query_parameters=params or [], maximum_bytes_billed=s.max_query_bytes)
-        return list(self.client.query(sql, job_config=config).result(timeout=s.query_timeout_seconds))
+        job = self.client.query(sql, job_config=config)
+        rows = list(job.result(timeout=s.query_timeout_seconds))
+        logger.debug(json.dumps({"event": "bigquery_query", "bytes_billed": getattr(job, "total_bytes_billed", None), "rows": len(rows)}))
+        return rows
 
     def insert(self, table, row, row_id=None):
         errors = self.client.insert_rows_json(self.table(table), [row], row_ids=[row_id] if row_id else None)

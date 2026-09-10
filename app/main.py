@@ -1,3 +1,5 @@
+import json
+import logging
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
@@ -11,6 +13,8 @@ from .repository import FinanceRepository
 from .routes import router, v1_router
 from .services.gst.routes import router as gst_router
 from .security import hash_password
+
+logger = logging.getLogger("bills_voucher")
 
 
 def create_app():
@@ -45,6 +49,7 @@ def create_app():
                     status_code=403,
                 )
         response = await call_next(request)
+        logger.info(json.dumps({"event": "http_request", "request_id": request.state.request_id, "method": request.method, "path": request.url.path, "status": response.status_code, "document_id": request.path_params.get("document_id")}))
         response.headers["x-request-id"] = request.state.request_id
         response.headers["x-content-type-options"] = "nosniff"
         response.headers["x-frame-options"] = "DENY"
