@@ -1035,6 +1035,7 @@ def _doc_json(d):
                 "igst": str(e.igst) if e.igst is not None else None,
                 "total_amount": str(e.total_amount) if e.total_amount is not None else None,
                 "validation_report": getattr(e, "validation_report", None),
+                "field_confidence": getattr(e, "field_confidence", None),
                 "line_items": [
                     {
                         k: getattr(x, k, None)

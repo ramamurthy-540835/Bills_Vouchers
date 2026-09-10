@@ -31,8 +31,10 @@ FIELDS = [
     "acknowledgement_number",
     "acknowledgement_date",
     "signed_qr_detected",
+    "field_confidence",
 ]
 SCHEMA: dict[str, Any] = {"type": "OBJECT", "properties": {k: {"type": "STRING"} for k in FIELDS}}
+SCHEMA["properties"]["field_confidence"] = {"type": "OBJECT", "additionalProperties": {"type": "STRING"}}
 SCHEMA["properties"]["line_items"] = {
     "type": "ARRAY",
     "items": {
@@ -143,7 +145,7 @@ def process_with_gemini(repo, document, payload):
                 bigquery.ScalarQueryParameter("fy_end", "DATE", date(fy_start_year + 1, 3, 31)),
             ],
         ) is not None
-    validation = validate_document(data, duplicate=duplicate)
+    validation = validate_document(data, duplicate=duplicate, confidence_threshold=__import__("app.config", fromlist=["get_settings"]).get_settings().extraction_confidence_threshold)
     row = {
         "id": document.id,
         "document_id": document.id,
@@ -180,6 +182,7 @@ def process_with_gemini(repo, document, payload):
         "discount_amount": numeric(data.get("discount_amount")),
         "total_amount": numeric(data.get("total_amount")),
         "ocr_confidence": None,
+        "field_confidence": json.dumps(data.get("field_confidence") or {}, separators=(",", ":")),
         "validation_report": json.dumps(validation, separators=(",", ":")),
         "created_at": str(document.uploaded_at),
     }

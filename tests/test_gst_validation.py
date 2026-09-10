@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from app.services.gst.validation import indian_financial_year, normalize_invoice_number, valid_gstin, validate_document
 
@@ -45,6 +46,11 @@ def test_line_tax_rounding_and_irn_validation():
 def test_indian_financial_year_boundary():
     assert indian_financial_year(date(2026, 3, 31)) == "2025-26"
     assert indian_financial_year(date(2026, 4, 1)) == "2026-27"
+
+
+def test_low_confidence_fields_are_reported():
+    result = validate_document({"field_confidence": {"invoice_number": "0.40", "total_amount": "0.90"}}, confidence_threshold=Decimal("0.75"))
+    assert [item["field"] for item in result["warnings"] if item["code"] == "low_extraction_confidence"] == ["invoice_number"]
 
 
 def test_line_rate_and_invoice_tax_total_checks():

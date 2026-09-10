@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 768
     gemini_api_key: str = ""
     gemini_enabled: bool = True
+    extraction_confidence_threshold: float = 0.75
     cloud_tasks_queue: str = ""
     cloud_tasks_service_url: str = ""
     cloud_tasks_service_account: str = ""

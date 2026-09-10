@@ -2,14 +2,14 @@
 
 ## Current status
 
-The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`18 passed`). This repository is not yet approved for unattended production deployment.
+The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`20 passed`). This repository is not yet approved for unattended production deployment.
 
 ## Implemented
 
 - GST validation module at `app/services/gst/validation.py`.
 - GSTIN checksum and structure validation.
 - Intra-state/inter-state CGST, SGST, and IGST checks.
-- Configured GST rate-slab warnings.
+- Configured GST rate-slab warnings and a configurable per-field extraction-confidence threshold.
 - HSN/SAC format checks and invoice-number normalization.
 - Duplicate and e-invoice-gap validation flags.
 - Structured validation report persisted with extraction rows after the schema migration is applied.

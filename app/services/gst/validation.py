@@ -39,7 +39,7 @@ def _issue(bucket: list[dict[str, Any]], code: str, field: str, message: str, se
     bucket.append({"code": code, "field": field, "message": message, "severity": severity})
 
 
-def validate_document(data: dict[str, Any], *, duplicate: bool = False) -> dict[str, Any]:
+def validate_document(data: dict[str, Any], *, duplicate: bool = False, confidence_threshold: Decimal | None = None) -> dict[str, Any]:
     errors: list[dict[str, Any]] = []
     warnings: list[dict[str, Any]] = []
     for field in ("supplier_gstin", "recipient_gstin", "gstin"):
@@ -102,6 +102,15 @@ def validate_document(data: dict[str, Any], *, duplicate: bool = False) -> dict[
             _issue(
                 errors, "inter_state_tax_mismatch", "tax", "Inter-state supply requires IGST and no CGST/SGST.", "error"
             )
+    confidence = data.get("field_confidence") or {}
+    if confidence_threshold is not None and isinstance(confidence, dict):
+        for field, value in confidence.items():
+            try:
+                score = Decimal(str(value))
+            except (InvalidOperation, ValueError):
+                continue
+            if score < confidence_threshold:
+                _issue(warnings, "low_extraction_confidence", str(field), f"Extraction confidence {score:.2f} is below the configured threshold {confidence_threshold:.2f}.", "warning")
     lines = data.get("line_items") or []
     for index, line in enumerate(lines):
         line_rate = line.get("rate")
