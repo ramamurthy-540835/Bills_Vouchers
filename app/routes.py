@@ -129,6 +129,7 @@ def signup(
             "id": user_id,
             "email": email,
             "password_hash": hash_password(password),
+            "must_change_password": False,
             "full_name": full_name or email,
             "role": "admin",
             "is_active": True,
@@ -924,6 +925,9 @@ def update_settings(
         )
     client = active_client(request, repo, user)
     fr(repo).audit(user.id, "update", "profile", user.id, client.id)
+    if new_password:
+        request.session.clear()
+        return RedirectResponse("/login", 303)
     return RedirectResponse("/settings", 303)
 
 
@@ -1072,7 +1076,7 @@ async def api_login(request: Request, repo=Depends(get_db)):
     record_login_success(key)
     request.session["user_id"] = user.id
     fr(repo).audit(user.id, "login", "user", user.id)
-    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role}
+    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False))}
 
 
 @router.get("/api/auth/csrf")
@@ -1092,7 +1096,7 @@ def api_logout(request: Request):
 
 @router.get("/api/auth/me")
 def api_me(user=Depends(current_user)):
-    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role}
+    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False))}
 
 
 @router.get("/api/dashboard")

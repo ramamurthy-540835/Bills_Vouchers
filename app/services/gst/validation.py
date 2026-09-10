@@ -104,6 +104,14 @@ def validate_document(data: dict[str, Any], *, duplicate: bool = False) -> dict[
             )
     lines = data.get("line_items") or []
     for index, line in enumerate(lines):
+        line_rate = line.get("rate")
+        if line_rate is not None:
+            try:
+                parsed_line_rate = Decimal(str(line_rate))
+            except (InvalidOperation, ValueError):
+                parsed_line_rate = None
+            if parsed_line_rate is None or parsed_line_rate not in ALLOWED_GST_RATES:
+                _issue(warnings, "unsupported_gst_rate", f"line_items[{index}].rate", "Line GST rate is outside the configured rate slabs.", "warning")
         for field, length in (("hsn", (4, 6, 8)), ("sac", (6,))):
             value = line.get(field)
             if value and (not str(value).isdigit() or len(str(value)) not in length):
@@ -131,6 +139,13 @@ def validate_document(data: dict[str, Any], *, duplicate: bool = False) -> dict[
                 )
         except (InvalidOperation, TypeError):
             _issue(errors, "invalid_tax_math", "line_items", "Line amounts must be numeric.", "error")
+    if stated is not None and data.get("subtotal") is not None:
+        try:
+            expected_invoice = Decimal(str(data["subtotal"])) + sum((Decimal(str(data.get(k) or 0)) for k in ("cgst", "sgst", "igst")), Decimal(0))
+            if abs(expected_invoice - Decimal(str(stated))) > Decimal("0.50"):
+                _issue(errors, "invoice_tax_total_mismatch", "total_amount", "Invoice total does not match subtotal plus tax heads.", "error")
+        except (InvalidOperation, TypeError):
+            _issue(errors, "invalid_tax_math", "total_amount", "Invoice totals must be numeric.", "error")
     if data.get("classification") in {"tax_invoice", "debit_note"} and data.get("b2b") and not data.get("irn"):
         _issue(warnings, "possible_einvoice_gap", "irn", "B2B document has no IRN.", "warning")
     return {

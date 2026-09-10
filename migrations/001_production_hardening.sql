@@ -32,3 +32,4 @@ CREATE TABLE IF NOT EXISTS `PROJECT_ID.finance_analytics.document_corrections` (
 )
 PARTITION BY DATE(created_at)
 CLUSTER BY client_id, document_id;
+ALTER TABLE `PROJECT_ID.finance_analytics.users` ADD COLUMN IF NOT EXISTS must_change_password BOOL;

@@ -112,17 +112,17 @@ def process_with_gemini(repo, document, payload):
     invoice_date_obj = date.fromisoformat(invoice_date) if invoice_date else None
     normalized_invoice = normalize_invoice_number(data.get("invoice_number"))
     duplicate = False
-    if data.get("gstin") and normalized_invoice and invoice_date_obj:
+    if (data.get("supplier_gstin") or data.get("gstin")) and normalized_invoice and invoice_date_obj:
         fy_start_year = invoice_date_obj.year if invoice_date_obj.month >= 4 else invoice_date_obj.year - 1
         duplicate = repo.bq.one(
             f"""SELECT 1 FROM `{repo.bq.table('document_extractions')}` e
             JOIN `{repo.bq.table('documents')}` d ON d.id=e.document_id
-            WHERE e.document_id != @document_id AND UPPER(e.gstin)=@gstin
+            WHERE e.document_id != @document_id AND UPPER(COALESCE(e.supplier_gstin, e.gstin))=@gstin
               AND REGEXP_REPLACE(UPPER(e.invoice_number), r'[^A-Z0-9]', '')=@invoice
               AND e.invoice_date BETWEEN @fy_start AND @fy_end LIMIT 1""",
             [
                 bigquery.ScalarQueryParameter("document_id", "STRING", document.id),
-                bigquery.ScalarQueryParameter("gstin", "STRING", str(data["gstin"]).strip().upper()),
+                bigquery.ScalarQueryParameter("gstin", "STRING", str(data.get("supplier_gstin") or data.get("gstin")).strip().upper()),
                 bigquery.ScalarQueryParameter("invoice", "STRING", normalized_invoice),
                 bigquery.ScalarQueryParameter("fy_start", "DATE", date(fy_start_year, 4, 1)),
                 bigquery.ScalarQueryParameter("fy_end", "DATE", date(fy_start_year + 1, 3, 31)),

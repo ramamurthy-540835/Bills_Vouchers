@@ -45,3 +45,9 @@ def test_line_tax_rounding_and_irn_validation():
 def test_indian_financial_year_boundary():
     assert indian_financial_year(date(2026, 3, 31)) == "2025-26"
     assert indian_financial_year(date(2026, 4, 1)) == "2026-27"
+
+
+def test_line_rate_and_invoice_tax_total_checks():
+    result = validate_document({"line_items": [{"taxable_value": "100", "rate": "17", "tax": "17", "total": "117"}], "subtotal": "100", "cgst": "9", "sgst": "9", "igst": "0", "total_amount": "117"})
+    codes = {item["code"] for item in result["errors"]} | {item["code"] for item in result["warnings"]}
+    assert {"unsupported_gst_rate", "invoice_tax_total_mismatch"} <= codes

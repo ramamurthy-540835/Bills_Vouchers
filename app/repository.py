@@ -39,6 +39,7 @@ class FinanceRepository:
                     "id": rid,
                     "email": email.lower(),
                     "password_hash": password_hash,
+                    "must_change_password": True,
                     "full_name": "Stephenraj",
                     "role": "admin",
                     "is_active": True,
