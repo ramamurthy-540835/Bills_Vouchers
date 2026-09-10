@@ -32,6 +32,11 @@ def document_review_url(document_id: str, request: Request, repo=Depends(get_db)
     return {"document_id": document_id, "url": url}
 
 
+@router.get("/api/v1/reports/gstr")
+def v1_gstr_report(request: Request, start: date | None = None, end: date | None = None, repo=Depends(get_db), user=Depends(current_user)):
+    return api_gstr_report(request, start, end, repo, user)
+
+
 @router.get("/reports/gstr.csv")
 def gstr_report_csv(request: Request, start: date | None = None, end: date | None = None, repo=Depends(get_db), user=Depends(current_user)):
     client = active_client(request, repo, user)
