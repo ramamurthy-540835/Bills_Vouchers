@@ -14,7 +14,7 @@
 
 - Apply `migrations/001_production_hardening.sql` after reviewing the existing BigQuery schemas.
 - Configure a Cloud Run service account and grant only the documented GCS, BigQuery, and Vertex AI roles.
-- Cloud Tasks is still required for durable asynchronous scans; the current implementation uses FastAPI `BackgroundTasks` as a local/dev fallback and exposes scan-status polling.
+- Cloud Tasks API and the `scan` queue are now present in `aidirac-503309`; the deployed service still needs its queue URL/service-account environment variables and a new revision.
 - CSRF tokens, bounded login throttling, idle session expiry, request IDs, and structured request logging are implemented; verify production HTTPS and alert routing during deployment.
 - Maximum-bytes-billed, request labels, and query timeouts are implemented; verify partition/clustering and budget thresholds in the target dataset.
 - CI now includes Ruff substantive checks, mypy, pytest coverage, Docker builds, Trivy, pip-audit, and private-key detection; full style cleanup remains separate.
