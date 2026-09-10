@@ -16,6 +16,7 @@ from .security import hash_password, login_allowed, record_login_failure, record
 from .services.documents import GCSObjectStore, create_document, validate_upload
 from .services.embeddings import EmbeddingService
 from .services.gemini import process_with_gemini
+from .services.tasks import dispatch_scan
 from .services.ocr import decimal_or_none
 
 templates = Jinja2Templates(directory="app/templates")
@@ -473,7 +474,7 @@ async def upload_document(
     d = create_document(
         fr(repo), user, client, document_type, filename, mime, payload, GCSObjectStore(get_settings().gcs_bucket_name)
     )
-    background_tasks.add_task(run_scan_job, d.id, repo, user.id, client.id)
+    dispatch_scan(background_tasks, run_scan_job, d.id, repo, user.id, client.id)
     return JSONResponse(status_code=202, content={
         "document_id": d.id,
         "status": "File stored in GCS and scanning has been queued.",
@@ -529,7 +530,7 @@ def scan_document(
         "id=@id",
         [bigquery.ScalarQueryParameter("id", "STRING", document_id)],
     )
-    background_tasks.add_task(run_scan_job, document_id, repo, user.id, client.id)
+    dispatch_scan(background_tasks, run_scan_job, document_id, repo, user.id, client.id)
     return JSONResponse(
         status_code=202,
         content={

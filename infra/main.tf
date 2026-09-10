@@ -9,9 +9,10 @@ variable "frontend_service" { type=string default="bills-voucher-web" }
 variable "backend_image" { type=string }
 variable "frontend_image" { type=string }
 variable "app_secret_name" { type=string default="bills-voucher-app-secret" }
+variable "cloud_tasks_queue" { type=string default="scan" }
 provider "google" { project=var.project_id region=var.region }
 resource "google_project_service" "apis" {
-  for_each=toset(["run.googleapis.com","artifactregistry.googleapis.com","secretmanager.googleapis.com","storage.googleapis.com","bigquery.googleapis.com","logging.googleapis.com","aiplatform.googleapis.com"])
+  for_each=toset(["run.googleapis.com","artifactregistry.googleapis.com","secretmanager.googleapis.com","storage.googleapis.com","bigquery.googleapis.com","logging.googleapis.com","aiplatform.googleapis.com","cloudtasks.googleapis.com"])
   service=each.value
   disable_on_destroy=false
 }
@@ -44,6 +45,19 @@ resource "google_project_iam_member" "storage_writer" { project=var.project_id r
 resource "google_project_iam_member" "bq_editor" { project=var.project_id role="roles/bigquery.dataEditor" member="serviceAccount:${google_service_account.app.email}" }
 resource "google_project_iam_member" "bq_job_user" { project=var.project_id role="roles/bigquery.jobUser" member="serviceAccount:${google_service_account.app.email}" }
 resource "google_project_iam_member" "vertex_ai" { project=var.project_id role="roles/aiplatform.user" member="serviceAccount:${google_service_account.app.email}" }
+resource "google_cloud_tasks_queue" "scan" {
+  name = var.cloud_tasks_queue
+  location = var.region
+  retry_config { max_attempts = 5 max_retry_duration = "3600s" max_backoff = "300s" }
+}
+resource "google_project_iam_member" "tasks_enqueuer" { project=var.project_id role="roles/cloudtasks.enqueuer" member="serviceAccount:${google_service_account.app.email}" }
+resource "google_cloud_run_service_iam_member" "tasks_invoker" {
+  project=var.project_id
+  location=var.region
+  service=var.cloud_run_service
+  role="roles/run.invoker"
+  member="serviceAccount:${google_service_account.app.email}"
+}
 resource "google_secret_manager_secret" "app_secret" {
   secret_id = var.app_secret_name
   replication { auto {} }
@@ -69,6 +83,9 @@ resource "google_cloud_run_v2_service" "backend" {
       env { name = "GCP_REGION" value = "global" }
       env { name = "GCS_BUCKET_NAME" value = var.bucket_name }
       env { name = "BIGQUERY_DATASET" value = "finance_analytics" }
+      env { name = "CLOUD_TASKS_QUEUE" value = "projects/${var.project_id}/locations/${var.region}/queues/${var.cloud_tasks_queue}" }
+      env { name = "CLOUD_TASKS_SERVICE_URL" value = google_cloud_run_v2_service.backend.uri }
+      env { name = "CLOUD_TASKS_SERVICE_ACCOUNT" value = google_service_account.app.email }
       env { name = "APP_SECRET_KEY" value_source { secret_key_ref { secret = google_secret_manager_secret.app_secret.secret_id version = "latest" } } }
     }
   }

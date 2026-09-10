@@ -2,11 +2,12 @@ import csv
 from datetime import date
 from io import StringIO
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import StreamingResponse
 
 from ...db import get_db
 from ...routes import active_client, current_user
+from ...config import get_settings
 from ...repository import FinanceRepository
 from ...services.documents import GCSObjectStore
 from .reporting import gstr_rows
@@ -41,3 +42,16 @@ def gstr_report_csv(request: Request, start: date | None = None, end: date | Non
     for row in gstr_rows(repo, client.id, start, end):
         writer.writerow({key: row.get(key) for key in columns})
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{client.code}_gstr_register.csv"'})
+
+
+@router.post("/internal/tasks/scan")
+async def internal_scan_task(request: Request):
+    settings = get_settings()
+    queue_header = request.headers.get("x-cloudtasks-queuename", "")
+    if not settings.cloud_tasks_queue or queue_header != settings.cloud_tasks_queue.rsplit("/", 1)[-1]:
+        raise HTTPException(403, "Cloud Tasks authentication required.")
+    body = await request.json()
+    from ...routes import run_scan_job
+    from ...db import get_repository
+    run_scan_job(str(body["document_id"]), get_repository(), str(body.get("user_id", "")), str(body["client_id"]))
+    return {"ok": True}
