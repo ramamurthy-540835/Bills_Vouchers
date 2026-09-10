@@ -122,6 +122,20 @@ class FinanceRepository:
             out.append(d)
         return out
 
+    def review_documents(self, client_id, limit=50, offset=0):
+        rows = self.bq.query(
+            f"SELECT * FROM `{self.bq.table('documents')}` WHERE client_id= AND status='needs_review' ORDER BY uploaded_at ASC LIMIT  OFFSET ",
+            [bigquery.ScalarQueryParameter('client', 'STRING', str(client_id)), bigquery.ScalarQueryParameter('limit', 'INT64', limit), bigquery.ScalarQueryParameter('offset', 'INT64', offset)],
+        )
+        out = []
+        for row in rows:
+            document = ns(**self.d(row))
+            document.document_type = ns(value=document.document_type)
+            document.status = ns(value=document.status)
+            document.extraction = self.extraction(document.id)
+            out.append(document)
+        return out
+
     def document(self, did, client_id=None):
         params = [bigquery.ScalarQueryParameter("id", "STRING", did)]
         scope = ""

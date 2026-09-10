@@ -20,7 +20,7 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - Versioned `/api/v1` health, document-list, and semantic-search compatibility endpoints are available.
 - Approved-document GST register exports are available at `/api/reports/gstr` and `/reports/gstr.csv`.
 - Review clients can request a five-minute signed GCS URL without exposing bucket paths.
-- Human review edits are append-only correction rows merged at read time; original Gemini extraction rows remain unchanged.
+- Human review edits are append-only correction rows merged at read time; original Gemini extraction rows remain unchanged. JSON review queue, detail, correction, approval, rejection, and signed-evidence endpoints are available.
 - Session max-age/idle expiry, security headers, same-origin browser-write checks, and bounded login throttling are enabled.
 - BigQuery queries enforce configurable maximum bytes billed and timeouts.
 - Cloud Build worker sizing and smaller Docker contexts.

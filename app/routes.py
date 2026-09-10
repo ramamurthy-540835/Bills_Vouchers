@@ -1003,6 +1003,33 @@ def create_client(
     return RedirectResponse("/settings", 303)
 
 
+def _review_values(payload):
+    fields = {'vendor_name', 'invoice_number', 'gstin', 'subtotal', 'cgst', 'sgst', 'igst', 'total_amount'}
+    return {key: payload[key] for key in fields if key in payload}
+
+
+def _append_review_corrections(repo, document_id, client_id, user_id, payload):
+    original = fr(repo).extraction(document_id)
+    if not original:
+        raise HTTPException(409, "Extraction has not completed.")
+    numeric = {'subtotal', 'cgst', 'sgst', 'igst', 'total_amount'}
+    corrections = _review_values(payload)
+    amounts = {field: decimal_or_none(str(value)) for field, value in corrections.items() if field in {"subtotal", "cgst", "sgst", "igst", "total_amount"}}
+    if any(value is None and str(corrections[field]).strip() for field, value in amounts.items()):
+        raise HTTPException(400, "Amounts must be numeric.")
+    if "total_amount" in amounts and amounts["total_amount"] is not None:
+        expected = sum((amounts.get(field) or Decimal("0") for field in ("subtotal", "cgst", "sgst", "igst")), Decimal("0"))
+        if abs(expected - amounts["total_amount"]) > Decimal("0.01"):
+            raise HTTPException(400, f"Total must equal subtotal plus GST ({expected:.2f}).")
+    for field, raw_value in corrections.items():
+        value = decimal_or_none(str(raw_value)) if field in numeric else str(raw_value).strip() or None
+        if field in numeric and str(raw_value).strip() and value is None:
+            raise HTTPException(400, f"{field} must be numeric.")
+        old_value = getattr(original, field, None)
+        if str(old_value) != str(value):
+            repo.insert("document_corrections", {"id": str(uuid4()), "document_id": document_id, "extraction_id": original.id, "client_id": client_id, "user_id": user_id, "field_name": field, "old_value": str(old_value) if old_value is not None else None, "new_value": str(value) if value is not None else None, "source": "human", "created_at": datetime.now(timezone.utc).isoformat()}, str(uuid4()))
+
+
 def _doc_json(d):
     e = d.extraction
     return {
@@ -1114,6 +1141,52 @@ async def api_change_password(request: Request, repo=Depends(get_db), user=Depen
     request.session.clear()
     return {"ok": True}
 
+
+@router.get("/api/review/queue")
+def api_review_queue(request: Request, limit: int = 50, page_token: str | None = None, repo=Depends(get_db), user=Depends(current_user)):
+    client = active_client(request, repo, user)
+    limit = min(max(limit, 1), 100)
+    try:
+        offset = max(int(page_token or "0"), 0)
+    except ValueError:
+        raise HTTPException(400, "Invalid page token.")
+    items = fr(repo).review_documents(client.id, limit, offset)
+    return {"items": [_doc_json(item) for item in items], "next_page_token": str(offset + limit) if len(items) == limit else None}
+
+@router.get("/api/review/{document_id}")
+def api_review_detail(document_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    client = active_client(request, repo, user)
+    document = fr(repo).document(document_id, client.id)
+    if not document:
+        raise HTTPException(404, "Document not found.")
+    result = _doc_json(document)
+    result["evidence_url"] = GCSObjectStore(document.bucket_name).signed_url(document.object_path)
+    return result
+
+@router.patch("/api/review/{document_id}")
+async def api_review_correction(document_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    if user.role == "viewer":
+        raise HTTPException(403, "Viewer access is read-only.")
+    client = active_client(request, repo, user)
+    if not fr(repo).document(document_id, client.id):
+        raise HTTPException(404, "Document not found.")
+    payload = await request.json()
+    if not isinstance(payload, dict):
+        raise HTTPException(400, "Correction payload must be an object.")
+    _append_review_corrections(repo, document_id, client.id, user.id, payload)
+    fr(repo).audit(user.id, "review", "document", document_id, client.id)
+    return _doc_json(fr(repo).document(document_id, client.id))
+
+@router.post("/api/review/{document_id}/approve")
+def api_review_approve(document_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    return transition_document(document_id, request, "approved", "", repo, user)
+
+@router.post("/api/review/{document_id}/reject")
+async def api_review_reject(document_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    payload = await request.json()
+    if not isinstance(payload, dict):
+        raise HTTPException(400, "Rejection payload must be an object.")
+    return transition_document(document_id, request, "rejected", str(payload.get("reason", "")), repo, user)
 
 @router.get("/api/dashboard")
 def api_dashboard(repo=Depends(get_db), user=Depends(current_user)):
