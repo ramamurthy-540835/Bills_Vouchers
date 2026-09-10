@@ -1,4 +1,5 @@
 import csv
+import logging
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from io import StringIO
@@ -21,6 +22,7 @@ from .services.ocr import decimal_or_none
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
 v1_router = APIRouter(prefix="/api/v1", tags=["v1"])
+logger = logging.getLogger(__name__)
 
 
 def current_user(request: Request, repo=Depends(get_db)):
@@ -475,11 +477,12 @@ async def upload_document(
     try:
         extract_upload(repo, d, payload)
     except Exception as exc:
+        logger.exception("Automatic extraction failed document_id=%s", d.id)
         return JSONResponse(
             status_code=202,
             content={
                 "document_id": d.id,
-                "status": "File stored in GCS and metadata stored in BigQuery. Extraction is pending.",
+                "status": "File uploaded successfully. It is stored in GCS and its metadata is in BigQuery. Extraction is pending.",
                 "gcs_uri": d.gcs_uri,
                 "processing_error": str(exc)[:500],
             },
@@ -502,6 +505,7 @@ def run_scan_job(document_id, repo, user_id, client_id):
         EmbeddingService(fr(repo)).index(d, e)
         fr(repo).audit(user_id, "scan", "document", d.id, client_id)
     except Exception as exc:
+        logger.exception("Document extraction failed document_id=%s", document_id)
         try:
             repo.bq.update(
                 "documents",
@@ -513,7 +517,7 @@ def run_scan_job(document_id, repo, user_id, client_id):
                 ],
             )
         except Exception:
-            pass
+            logger.exception("Could not persist extraction failure document_id=%s", document_id)
 
 
 @router.post("/documents/{document_id}/scan")
@@ -530,23 +534,15 @@ def scan_document(
     d = fr(repo).document(document_id, client.id)
     if not d:
         raise HTTPException(404, "Document not found.")
-    from google.cloud import bigquery
-
-    repo.bq.update(
-        "documents",
-        "status='processing', processing_error=NULL",
-        "id=@id",
-        [bigquery.ScalarQueryParameter("id", "STRING", document_id)],
-    )
-    background_tasks.add_task(run_scan_job, document_id, repo, user.id, client.id)
-    return JSONResponse(
-        status_code=202,
-        content={
-            "document_id": document_id,
-            "status": "processing",
-            "status_url": f"/api/documents/{document_id}/scan-status",
-        },
-    )
+    try:
+        extraction = extract_upload(repo, d, GCSObjectStore(d.bucket_name).download(d.object_path))
+        fr(repo).audit(user.id, "scan", "document", d.id, client.id)
+    except Exception as exc:
+        logger.exception("Document extraction retry failed document_id=%s", document_id)
+        raise HTTPException(502, "Document extraction failed. Please check the server logs using the request ID.") from exc
+    if "text/html" in request.headers.get("accept", ""):
+        return RedirectResponse(f"/documents/{document_id}/review", status_code=303)
+    return {"document_id": document_id, "status": "needs_review", "extraction": bool(extraction)}
 
 
 @router.get("/documents")

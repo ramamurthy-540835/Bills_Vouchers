@@ -1,3 +1,4 @@
+import logging
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
@@ -9,7 +10,9 @@ from .config import get_settings
 from .db import get_repository
 from .repository import FinanceRepository
 from .routes import router, v1_router
-from .security import hash_password
+from .security import hash_password, same_origin
+
+logger = logging.getLogger(__name__)
 
 
 def create_app():
@@ -32,7 +35,10 @@ def create_app():
             and not request.url.path.startswith("/api/")
         ):
             origin = request.headers.get("origin") or request.headers.get("referer")
-            if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+            allowed_origins = [str(request.base_url)] + [
+                value.strip() for value in s.allowed_origins.split(",") if value.strip()
+            ]
+            if origin and not any(same_origin(origin, allowed) for allowed in allowed_origins):
                 return JSONResponse(
                     {
                         "error": {
@@ -49,7 +55,7 @@ def create_app():
         response.headers["x-frame-options"] = "DENY"
         response.headers["referrer-policy"] = "strict-origin-when-cross-origin"
         response.headers["content-security-policy"] = (
-            "default-src 'self'; img-src 'self' data:; frame-src 'self'; style-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline'; connect-src 'self'"
+            "default-src 'self'; img-src 'self' data:; frame-src 'self'; style-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self'"
         )
         return response
 
@@ -63,6 +69,12 @@ def create_app():
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception):
+        logger.exception(
+            "Unhandled request error request_id=%s method=%s path=%s",
+            getattr(request.state, "request_id", "unknown"),
+            request.method,
+            request.url.path,
+        )
         return JSONResponse(
             {
                 "error": {

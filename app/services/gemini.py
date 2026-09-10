@@ -71,14 +71,19 @@ def scan_document(document, payload):
 
 
 def process_with_gemini(repo, document, payload):
-    def update_status(set_sql):
+    def update_document(set_sql, params=None):
         try:
-            repo.bq.update("documents", set_sql, "id=@id", [bigquery.ScalarQueryParameter("id", "STRING", document.id)])
+            repo.bq.update(
+                "documents",
+                set_sql,
+                "id=@id",
+                (params or []) + [bigquery.ScalarQueryParameter("id", "STRING", document.id)],
+            )
         except Exception as exc:
             if "streaming buffer" not in str(exc).lower():
                 raise
 
-    update_status("status='processing', processing_error=NULL")
+    update_document("status='processing', processing_error=NULL")
     try:
         data = scan_document(document, payload)
     except Exception as exc:
@@ -106,6 +111,16 @@ def process_with_gemini(repo, document, payload):
     def numeric(value):
         parsed = decimal_or_none(value)
         return str(parsed) if parsed is not None else None
+
+    def boolean(value):
+        if isinstance(value, bool):
+            return value
+        normalized = str(value or "").strip().lower()
+        if normalized in {"true", "yes", "1"}:
+            return True
+        if normalized in {"false", "no", "0"}:
+            return False
+        return None
 
     invoice_date = dt(data.get("invoice_date"))
     invoice_date_obj = date.fromisoformat(invoice_date) if invoice_date else None
@@ -138,21 +153,21 @@ def process_with_gemini(repo, document, payload):
                 "vendor_address",
                 "invoice_number",
                 "gstin",
-        "supplier_gstin",
-        "recipient_gstin",
-        "supplier_state_code",
-        "place_of_supply",
-        "b2b",
+                "supplier_gstin",
+                "recipient_gstin",
+                "supplier_state_code",
+                "place_of_supply",
                 "currency",
                 "payment_method",
                 "ocr_text",
                 "classification",
-                "reverse_charge",
                 "irn",
                 "acknowledgement_number",
-                "signed_qr_detected",
             ]
         },
+        "b2b": boolean(data.get("b2b")),
+        "reverse_charge": boolean(data.get("reverse_charge")),
+        "signed_qr_detected": boolean(data.get("signed_qr_detected")),
         "invoice_date": invoice_date,
         "due_date": dt(data.get("due_date")),
         "acknowledgement_date": dt(data.get("acknowledgement_date")),
@@ -194,14 +209,9 @@ def process_with_gemini(repo, document, payload):
             },
             f"{document.id}-{i}",
         )
-    repo.bq.update(
-        "documents",
+    update_document(
         "validation_status=@status",
-        "id=@id",
-        [
-            bigquery.ScalarQueryParameter("status", "STRING", validation["validation_status"]),
-            bigquery.ScalarQueryParameter("id", "STRING", document.id),
-        ],
+        [bigquery.ScalarQueryParameter("status", "STRING", validation["validation_status"])],
     )
-    update_status("status='needs_review', processing_error=NULL")
+    update_document("status='needs_review', processing_error=NULL")
     return repo.extraction(document.id)

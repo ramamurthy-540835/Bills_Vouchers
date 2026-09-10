@@ -1,6 +1,7 @@
 from collections import defaultdict
 from threading import Lock
 from time import monotonic
+from urllib.parse import urlsplit
 
 from passlib.context import CryptContext
 
@@ -34,3 +35,13 @@ def record_login_failure(key: str) -> None:
 def record_login_success(key: str) -> None:
     with _login_lock:
         _login_failures.pop(key, None)
+
+
+def same_origin(origin_or_referer: str, expected_origin: str) -> bool:
+    """Accept an Origin header or a full Referer URL from the same site."""
+    value = origin_or_referer.strip()
+    expected = urlsplit(expected_origin)
+    supplied = urlsplit(value)
+    if not supplied.scheme or not supplied.netloc:
+        return False
+    return (supplied.scheme, supplied.netloc) == (expected.scheme, expected.netloc)
