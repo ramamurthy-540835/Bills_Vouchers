@@ -17,7 +17,7 @@ jobs:
       - run: pip-audit -r requirements.txt --strict
       - run: ruff check app tests
       - run: mypy app
-      - run: pytest -q --cov=app.services.gst --cov=app.services.accounting --cov=app.services.ocr --cov=app.services.razorpay --cov=app.security --cov-report=term-missing --cov-fail-under=70
+      - run: pytest -q --cov=app.services.gst.validation --cov=app.services.accounting --cov=app.services.ocr --cov=app.services.razorpay --cov=app.security --cov-report=term-missing --cov-fail-under=70
       - run: docker build -t bills-voucher-backend:ci .
       - run: docker build -t bills-voucher-frontend:ci frontend
       - uses: aquasecurity/trivy-action@0.28.0
