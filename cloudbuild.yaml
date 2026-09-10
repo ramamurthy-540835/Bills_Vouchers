@@ -1,8 +1,17 @@
 steps:
-  - name: gcr.io/cloud-builders/docker
-    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher:$COMMIT_SHA", "."]
-images: ["${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher:$COMMIT_SHA"]
-substitutions: { _REGION: asia-south1 }
+  - id: backend
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher:${_TAG}", "."]
+  - id: frontend
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher-web:${_TAG}", "frontend"]
+images:
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher:${_TAG}"
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/finance/bills-voucher-web:${_TAG}"
+substitutions:
+  _REGION: asia-south1
+  _TAG: manual
 options:
   machineType: E2_HIGHCPU_8
   diskSizeGb: 100
