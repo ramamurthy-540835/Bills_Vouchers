@@ -20,6 +20,7 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - Versioned `/api/v1` health, document-list, and semantic-search compatibility endpoints are available.
 - Approved-document GST register exports are available at `/api/reports/gstr` and `/reports/gstr.csv`.
 - Review clients can request a five-minute signed GCS URL without exposing bucket paths.
+- Human review edits are append-only correction rows merged at read time; original Gemini extraction rows remain unchanged.
 - Session max-age/idle expiry, security headers, same-origin browser-write checks, and bounded login throttling are enabled.
 - BigQuery queries enforce configurable maximum bytes billed and timeouts.
 - Cloud Build worker sizing and smaller Docker contexts.
@@ -27,11 +28,10 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 
 ## Deliberate deviations
 
-- Scanning uses a local background fallback; Cloud Tasks, durable retry state, and jittered external-call retries need to be added before high-volume use.
+- Scanning uses Cloud Tasks when configured, with a local background fallback for development; production must configure authenticated Cloud Run ingress and the queue service account.
 - The migration is a reviewed SQL artifact and is not applied automatically.
 - GCS deletion remains metadata-controlled; permanent object deletion should be a separate retention-approved operation.
 - The existing application still needs token-based CSRF protection; same-origin checks and login throttling are currently in place.
-- The local async worker is not a durable queue; Cloud Tasks integration remains required for production retries.
 - Cloud Run Terraform resources are now represented, but the secret version and ingress/IAM policy still require an environment-specific review.
 
 ## Go-live blockers, ranked
