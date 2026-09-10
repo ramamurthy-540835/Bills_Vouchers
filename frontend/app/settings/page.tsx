@@ -1,0 +1,8 @@
+"use client"
+import {FormEvent, useState} from "react"
+import {useRouter} from "next/navigation"
+export default function Settings(){
+ const router=useRouter(); const [password,setPassword]=useState(""); const [confirm,setConfirm]=useState(""); const [error,setError]=useState(""); const [busy,setBusy]=useState(false)
+ async function submit(e:FormEvent){e.preventDefault();setError("");if(password!==confirm){setError("Passwords do not match.");return}setBusy(true);try{const c=await fetch("/api/auth/csrf");const ct=c.ok?(await c.json()).token:"";const r=await fetch("/api/auth/password",{method:"POST",headers:{"content-type":"application/json","x-csrf-token":ct},body:JSON.stringify({password})});const text=await r.text();let data:any={};try{data=text?JSON.parse(text):{}}catch{}if(!r.ok){setError(data.error?.message||data.detail||"Could not update password.");return}router.push("/login")}catch{setError("Finance backend is unavailable.")}finally{setBusy(false)}}
+ return <main className="auth"><div className="auth-card"><div className="brand-mark">BV</div><p className="eyebrow">SECURITY REQUIRED</p><h1>Change your password</h1><p className="muted">Set a new password before entering the finance workspace.</p><form onSubmit={submit}><label>New password<input type="password" minLength={12} required value={password} onChange={e=>setPassword(e.target.value)} /></label><label>Confirm password<input type="password" minLength={12} required value={confirm} onChange={e=>setConfirm(e.target.value)} /></label>{error&&<div className="error">{error}</div>}<button disabled={busy}>{busy?"Saving…":"Save password"}</button></form><small>Use at least 12 characters with upper, lower, and numeric characters.</small></div></main>
+}

@@ -14,7 +14,7 @@ from .config import get_settings
 from .db import get_db
 from .models import AccountType, DocumentType, Role
 from .repository import FinanceRepository
-from .security import hash_password, login_allowed, record_login_failure, record_login_success, verify_password
+from .security import hash_password, login_allowed, password_is_strong, record_login_failure, record_login_success, verify_password
 from .services.documents import GCSObjectStore, create_document, validate_upload
 from .services.embeddings import EmbeddingService
 from .services.gemini import process_with_gemini
@@ -34,6 +34,8 @@ def current_user(request: Request, repo=Depends(get_db)):
     user = FinanceRepository(repo).user_by_id(request.session.get("user_id"))
     if not user:
         raise HTTPException(401, "Please log in.")
+    if getattr(user, "must_change_password", False) and request.url.path not in {"/settings", "/api/auth/me", "/api/auth/csrf", "/api/auth/password", "/logout", "/api/auth/logout"}:
+        raise HTTPException(403, {"code": "password_change_required", "message": "Change your password before continuing."})
     request.session["last_seen"] = str(time())
     return user
 
@@ -116,8 +118,8 @@ def signup(
 ):
     email = email.strip().lower()
     full_name = full_name.strip()
-    if len(password) < 8:
-        return page("signup.html", request, status_code=400, error="Use a password with at least 8 characters.")
+    if not password_is_strong(password):
+        return page("signup.html", request, status_code=400, error="Use a password with at least 12 characters including upper, lower, and numeric characters.")
     if fr(repo).user_by_email(email):
         return page("signup.html", request, status_code=400, error="An account already exists for this email.")
     from uuid import uuid4
@@ -902,13 +904,13 @@ def update_settings(
 ):
     if new_password and len(new_password) < 8:
         return page(
-            "settings.html", request, status_code=400, user=user, error="Use a password with at least 8 characters."
+            "settings.html", request, status_code=400, user=user, error="Use a password with at least 12 characters including upper, lower, and numeric characters."
         )
     from google.cloud import bigquery
 
     if new_password:
         repo.query(
-            f"UPDATE `{repo.table('users')}` SET full_name=@name,password_hash=@password WHERE id=@id",
+            f"UPDATE `{repo.table('users')}` SET full_name=@name,password_hash=@password,must_change_password=FALSE WHERE id=@id",
             [
                 bigquery.ScalarQueryParameter("name", "STRING", full_name.strip()),
                 bigquery.ScalarQueryParameter("password", "STRING", hash_password(new_password)),
@@ -1097,6 +1099,19 @@ def api_logout(request: Request):
 @router.get("/api/auth/me")
 def api_me(user=Depends(current_user)):
     return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False))}
+
+
+@router.post("/api/auth/password")
+async def api_change_password(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    body = await request.json()
+    password = str(body.get("password", ""))
+    if not password_is_strong(password):
+        raise HTTPException(400, "Password must be at least 12 characters and include upper, lower, and numeric characters.")
+    from google.cloud import bigquery
+    repo.query(f"UPDATE `{repo.table('users')}` SET password_hash=@password,must_change_password=FALSE WHERE id=@id", [bigquery.ScalarQueryParameter("password", "STRING", hash_password(password)), bigquery.ScalarQueryParameter("id", "STRING", user.id)])
+    fr(repo).audit(user.id, "password_change", "user", user.id)
+    request.session.clear()
+    return {"ok": True}
 
 
 @router.get("/api/dashboard")

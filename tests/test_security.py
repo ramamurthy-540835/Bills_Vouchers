@@ -1,4 +1,10 @@
-from app.security import hash_password, login_allowed, record_login_failure, record_login_success, verify_password
+from app.security import hash_password, login_allowed, password_is_strong, record_login_failure, record_login_success, verify_password
+
+
+def test_password_policy():
+    assert password_is_strong("Strong-password-123")
+    assert not password_is_strong("short1A")
+    assert not password_is_strong("lowercase-password-1")
 
 
 def test_passwords_are_hashed_and_verified():

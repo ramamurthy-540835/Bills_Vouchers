@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from .config import get_settings
-from .db import get_repository
+from .db import get_repository, request_id_context
 from .repository import FinanceRepository
 from .routes import router, v1_router
 from .services.gst.routes import router as gst_router
@@ -32,12 +32,14 @@ def create_app():
     @app.middleware("http")
     async def security_middleware(request: Request, call_next):
         request.state.request_id = request.headers.get("x-request-id", str(uuid4()))
+        request_id_token = request_id_context.set(request.state.request_id)
         if (
             s.app_env == "production"
             and request.method in {"POST", "PUT", "PATCH", "DELETE"}
         ):
             origin = request.headers.get("origin") or request.headers.get("referer")
             if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+                request_id_context.reset(request_id_token)
                 return JSONResponse(
                     {
                         "error": {
@@ -55,8 +57,12 @@ def create_app():
                     form = await request.form()
                     supplied = str(form.get("csrf_token", ""))
                 if not expected or not supplied or not compare_digest(str(expected), supplied):
+                    request_id_context.reset(request_id_token)
                     return JSONResponse({"error": {"code": "csrf_token", "message": "CSRF validation failed.", "request_id": request.state.request_id}}, status_code=403)
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        finally:
+            request_id_context.reset(request_id_token)
         session = request.scope.get("session", {})
         if session.get("csrf_token") and not request.cookies.get("csrf_token"):
             response.set_cookie("csrf_token", str(session["csrf_token"]), httponly=False, secure=s.app_env == "production", samesite="lax", max_age=s.session_max_age)
@@ -74,8 +80,10 @@ def create_app():
     async def authentication_redirect(request: Request, exc: HTTPException):
         if exc.status_code == 401 and not request.url.path.startswith("/api/"):
             return RedirectResponse("/login", status_code=303)
+        if request.url.path.startswith("/api/"):
+            detail: dict[str, object] = exc.detail if isinstance(exc.detail, dict) else {}
+            return JSONResponse({"error": {"code": str(detail.get("code", f"http_{exc.status_code}")), "message": str(detail.get("message", exc.detail)), "request_id": getattr(request.state, "request_id", "unknown")}}, status_code=exc.status_code)
         from fastapi.exception_handlers import http_exception_handler
-
         return await http_exception_handler(request, exc)
 
     @app.exception_handler(Exception)

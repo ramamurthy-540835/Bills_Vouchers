@@ -11,6 +11,10 @@ _WINDOW_SECONDS = 300
 _MAX_FAILURES = 5
 
 
+def password_is_strong(password: str) -> bool:
+    return len(password) >= 12 and any(c.isupper() for c in password) and any(c.islower() for c in password) and any(c.isdigit() for c in password)
+
+
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
