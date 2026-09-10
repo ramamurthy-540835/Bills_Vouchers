@@ -31,7 +31,7 @@ class FinanceRepository:
         return ns(**self.d(r)) if r else None
 
     def ensure_admin(self, password_hash, email="admin@local"):
-        if not self.bq.one(f"SELECT id FROM `{self.bq.table('users')}` LIMIT 1"):
+        if not self.bq.one(f"SELECT id FROM `{self.bq.table('users')}` WHERE email=@email LIMIT 1", [bigquery.ScalarQueryParameter("email", "STRING", email.lower())]):
             rid = str(uuid4())
             self.bq.insert(
                 "users",
