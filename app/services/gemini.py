@@ -86,7 +86,7 @@ def process_with_gemini(repo, document, payload):
             if "streaming buffer" not in str(exc).lower():
                 raise
 
-    update_document("status='processing', processing_error=NULL")
+    update_document("status='scanning', processing_error=NULL")
     try:
         data = scan_document(document, payload)
     except Exception as exc:

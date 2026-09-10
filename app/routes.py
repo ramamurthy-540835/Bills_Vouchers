@@ -535,7 +535,7 @@ def scan_document(
 
     repo.bq.update(
         "documents",
-        "status='processing', processing_error=NULL",
+        "status='scanning', processing_error=NULL",
         "id=@id",
         [bigquery.ScalarQueryParameter("id", "STRING", document_id)],
     )
@@ -544,7 +544,7 @@ def scan_document(
         status_code=202,
         content={
             "document_id": document_id,
-            "status": "processing",
+            "status": "scanning",
             "status_url": f"/api/documents/{document_id}/scan-status",
         },
     )

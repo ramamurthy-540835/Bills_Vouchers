@@ -24,6 +24,7 @@ class DocumentType(str, Enum):
 
 class DocumentStatus(str, Enum):
     UPLOADED = "uploaded"
+    SCANNING = "scanning"
     PROCESSING = "processing"
     OCR_COMPLETED = "ocr_completed"
     NEEDS_REVIEW = "needs_review"
