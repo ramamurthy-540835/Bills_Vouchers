@@ -31,7 +31,7 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - Scanning uses Cloud Tasks when configured, with a local background fallback for development; production must configure authenticated Cloud Run ingress and the queue service account.
 - The migration is a reviewed SQL artifact and is not applied automatically.
 - GCS deletion remains metadata-controlled; permanent object deletion should be a separate retention-approved operation.
-- The existing application still needs token-based CSRF protection; same-origin checks and login throttling are currently in place.
+- Token-based CSRF protection, same-origin checks, and login throttling are enabled for browser writes; API clients must send `X-CSRF-Token`.
 - Cloud Run Terraform resources are now represented, but the secret version and ingress/IAM policy still require an environment-specific review.
 
 ## Go-live blockers, ranked
@@ -39,7 +39,7 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 1. Apply and verify the BigQuery schema migration in a non-production dataset.
 2. Configure Cloud Run service accounts, Secret Manager values, and IAM using least privilege.
 3. Move scanning to Cloud Tasks with bounded retries, idempotency, and scan-status polling.
-4. Add CSRF, session expiry/invalidation, login throttling, and security headers.
+4. Configure production HTTPS, CSRF token propagation for API clients, session expiry/invalidation, login throttling, and security headers.
 5. Add maximum-bytes-billed, query labels, structured logs, readiness checks, and alerts.
 6. Add CI quality/security gates and run a Terraform plan review.
 7. Load-test upload, scan, review, delete, and vector-search flows with representative documents.

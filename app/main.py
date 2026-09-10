@@ -1,5 +1,6 @@
 import json
 import logging
+from hmac import compare_digest
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
@@ -48,7 +49,18 @@ def create_app():
                     },
                     status_code=403,
                 )
+            if request.url.path not in {"/login", "/signup"}:
+                expected = request.cookies.get("csrf_token")
+                supplied = request.headers.get("x-csrf-token")
+                if not supplied:
+                    form = await request.form()
+                    supplied = str(form.get("csrf_token", ""))
+                if not expected or not supplied or not compare_digest(str(expected), supplied):
+                    return JSONResponse({"error": {"code": "csrf_token", "message": "CSRF validation failed.", "request_id": request.state.request_id}}, status_code=403)
         response = await call_next(request)
+        session = request.scope.get("session", {})
+        if session.get("csrf_token") and not request.cookies.get("csrf_token"):
+            response.set_cookie("csrf_token", str(session["csrf_token"]), httponly=False, secure=s.app_env == "production", samesite="lax", max_age=s.session_max_age)
         logger.info(json.dumps({"event": "http_request", "request_id": request.state.request_id, "method": request.method, "path": request.url.path, "status": response.status_code, "document_id": request.path_params.get("document_id")}))
         response.headers["x-request-id"] = request.state.request_id
         response.headers["x-content-type-options"] = "nosniff"

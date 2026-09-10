@@ -1,4 +1,5 @@
 import csv
+import secrets
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from io import StringIO
@@ -38,7 +39,11 @@ def current_user(request: Request, repo=Depends(get_db)):
 
 
 def ctx(request, **kwargs):
-    return {"request": request, **kwargs}
+    token = request.session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        request.session["csrf_token"] = token
+    return {"request": request, "csrf_token": token, **kwargs}
 
 
 def page(name, request, status_code=200, **kwargs):
