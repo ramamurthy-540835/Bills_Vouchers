@@ -32,7 +32,7 @@ Copy-Item .env.example .env
 docker compose up --build
 ```
 
-Open http://localhost:8000 and sign in with `admin@local` / `ChangeMe123!`. Change this bootstrap password before deployment.
+Open http://localhost:8000 and sign in with the configured bootstrap identity and password from your secret-managed environment. Rotate it on first login.
 
 For non-Docker local development, use Python 3.12, create a virtual environment, run `pip install -e ".[test]"`, configure Application Default Credentials and run `uvicorn app.main:app --reload`.
 

@@ -902,7 +902,7 @@ def update_settings(
     repo=Depends(get_db),
     user=Depends(current_user),
 ):
-    if new_password and len(new_password) < 8:
+    if new_password and not password_is_strong(new_password):
         return page(
             "settings.html", request, status_code=400, user=user, error="Use a password with at least 12 characters including upper, lower, and numeric characters."
         )
