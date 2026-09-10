@@ -2,7 +2,7 @@
 
 ## Current status
 
-The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`15 passed`). This repository is not yet approved for unattended production deployment.
+The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`17 passed`). This repository is not yet approved for unattended production deployment.
 
 ## Implemented
 

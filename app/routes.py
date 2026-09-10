@@ -199,7 +199,7 @@ def dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)
         ],
     )
     monthly_chart = [
-        {"period": str(r.month), "income": float(r.income or 0), "expenses": float(r.expenses or 0)}
+        {"period": str(r.month), "income": str(r.income or Decimal("0")), "expenses": str(r.expenses or Decimal("0"))}
         for r in powerbi_rows
     ]
     return page(
@@ -387,7 +387,7 @@ def expenses(
         f"""SELECT a.name category,SUM(l.debit) amount FROM `{repo.table("journal_entries")}` e JOIN `{repo.table("journal_lines")}` l ON e.id=l.journal_entry_id JOIN `{repo.table("accounts")}` a ON a.id=l.account_id WHERE e.client_id=@client AND e.source='expense' AND a.account_type='expense' AND (@start IS NULL OR e.entry_date>=@start) AND (@end IS NULL OR e.entry_date<=@end) GROUP BY category ORDER BY amount DESC""",
         params[:3],
     )
-    chart_data = [{"category": r.category, "amount": float(r.amount or 0)} for r in chart_rows]
+    chart_data = [{"category": r.category, "amount": str(r.amount or Decimal("0"))} for r in chart_rows]
     return page(
         "expenses.html",
         request,
@@ -804,8 +804,8 @@ def powerbi_model(request: Request, repo=Depends(get_db), user=Depends(current_u
         {
             "month": str(x.month),
             "category": x.category,
-            "income": float(x.income or 0),
-            "expense": float(x.expense or 0),
+            "income": str(x.income or Decimal("0")),
+            "expense": str(x.expense or Decimal("0")),
             "sources": x.sources,
         }
         for x in rows
@@ -1240,8 +1240,15 @@ def v1_health():
 
 
 @v1_router.get("/documents")
-def v1_documents(request: Request, repo=Depends(get_db), user=Depends(current_user)):
-    return api_documents(request, repo, user)
+def v1_documents(request: Request, limit: int = 50, page_token: str | None = None, repo=Depends(get_db), user=Depends(current_user)):
+    client = active_client(request, repo, user)
+    limit = min(max(limit, 1), 100)
+    try:
+        offset = max(int(page_token or "0"), 0)
+    except ValueError:
+        raise HTTPException(400, "Invalid page token.")
+    items = fr(repo).documents(client.id, limit, offset)
+    return {"items": [_doc_json(item) for item in items], "next_page_token": str(offset + limit) if len(items) == limit else None}
 
 
 @v1_router.get("/documents/search")
