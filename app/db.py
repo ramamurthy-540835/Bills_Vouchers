@@ -5,6 +5,7 @@ import logging
 from fastapi import Depends
 
 from .config import get_settings
+from .services.retry import retry_call
 
 
 logger = logging.getLogger("bills_voucher.bigquery")
@@ -29,8 +30,8 @@ class BigQueryRepository:
 
         s = self.settings
         config = bigquery.QueryJobConfig(query_parameters=params or [], maximum_bytes_billed=s.max_query_bytes)
-        job = self.client.query(sql, job_config=config)
-        rows = list(job.result(timeout=s.query_timeout_seconds))
+        job = retry_call(lambda: self.client.query(sql, job_config=config))
+        rows = list(retry_call(lambda: job.result(timeout=s.query_timeout_seconds)))
         logger.debug(json.dumps({"event": "bigquery_query", "bytes_billed": getattr(job, "total_bytes_billed", None), "rows": len(rows)}))
         return rows
 

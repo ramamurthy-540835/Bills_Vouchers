@@ -6,6 +6,7 @@ from google.cloud import bigquery
 
 from .gst import normalize_invoice_number, validate_document
 from .ocr import decimal_or_none
+from .retry import retry_call
 
 FIELDS = [
     "vendor_name",
@@ -55,13 +56,13 @@ def scan_document(document, payload):
         else genai.Client(vertexai=True, project=s.gcp_project_id, location=s.gcp_region)
     )
     prompt = """Extract this Indian bill or voucher exactly as structured JSON. Inspect the entire image, including the bottom of a long receipt. The final payable TOTAL / GRAND TOTAL is mandatory whenever a visible rupee amount exists; do not leave total_amount blank. Capture subtotal before round-off when shown, and use the final amount after round-off as total_amount. For non-GST grocery receipts, set CGST, SGST and IGST to 0 when no tax lines are printed. Extract all visible line items and preserve useful receipt text in ocr_text. Never invent a number that is not visible."""
-    r = c.models.generate_content(
+    r = retry_call(lambda: c.models.generate_content(
         model=s.gemini_model,
         contents=[types.Part.from_bytes(data=payload, mime_type=document.mime_type), prompt],
         config=types.GenerateContentConfig(
             response_mime_type="application/json", response_schema=SCHEMA, temperature=0
         ),
-    )
+    ))
     try:
         if not r.text:
             raise ValueError("empty response")

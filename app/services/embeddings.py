@@ -1,6 +1,7 @@
 from google.cloud import bigquery
 
 from ..config import get_settings
+from .retry import retry_call
 
 
 class EmbeddingService:
@@ -17,11 +18,11 @@ class EmbeddingService:
             if s.gemini_api_key
             else genai.Client(vertexai=True, project=s.gcp_project_id, location=s.gcp_region)
         )
-        r = c.models.embed_content(
+        r = retry_call(lambda: c.models.embed_content(
             model=s.embedding_model,
             contents=[text[:12000]],
             config=EmbedContentConfig(task_type=task, output_dimensionality=s.embedding_dimensions),
-        )
+        ))
         if not r.embeddings or r.embeddings[0].values is None:
             raise RuntimeError("Embedding service returned no vector.")
         return list(r.embeddings[0].values)
