@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 from uuid import uuid4
 
 from google.cloud import bigquery
@@ -149,6 +150,15 @@ class FinanceRepository:
         if not r:
             return None
         e = ns(**self.d(r))
+        corrections = self.bq.query(
+            f"SELECT field_name,new_value FROM `{self.bq.table('document_corrections')}` WHERE document_id=@id ORDER BY created_at",
+            [bigquery.ScalarQueryParameter("id", "STRING", did)],
+        )
+        numeric_fields = {"subtotal", "cgst", "sgst", "igst", "total_amount"}
+        for correction in corrections:
+            field = str(correction.field_name)
+            value = correction.new_value
+            setattr(e, field, value if field not in numeric_fields else Decimal(str(value)))
         rows = self.bq.query(
             f"SELECT * FROM `{self.bq.table('document_line_items')}` WHERE extraction_id=@id ORDER BY line_number",
             [bigquery.ScalarQueryParameter("id", "STRING", str(e.id))],

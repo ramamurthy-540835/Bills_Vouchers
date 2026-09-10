@@ -3,6 +3,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from io import StringIO
 from time import time
+from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
@@ -673,8 +674,6 @@ def save_review(
     repo=Depends(get_db),
     user=Depends(current_user),
 ):
-    from google.cloud import bigquery
-
     if user.role == "viewer":
         raise HTTPException(403, "Viewer access is read-only.")
     client = active_client(request, repo, user)
@@ -686,18 +685,24 @@ def save_review(
     computed = sum((values[x] or Decimal("0") for x in ("subtotal", "cgst", "sgst", "igst")), Decimal("0"))
     if values["total_amount"] is not None and abs(computed - values["total_amount"]) > Decimal("0.01"):
         raise HTTPException(400, f"Total must equal subtotal plus GST ({computed:.2f}).")
-    sets = "vendor_name=@vendor, invoice_number=@invoice, gstin=@gstin, subtotal=@subtotal, cgst=@cgst, sgst=@sgst, igst=@igst, total_amount=@total"
-    params = [
-        bigquery.ScalarQueryParameter("vendor", "STRING", vendor_name.strip() or None),
-        bigquery.ScalarQueryParameter("invoice", "STRING", invoice_number.strip() or None),
-        bigquery.ScalarQueryParameter("gstin", "STRING", gstin.strip().upper() or None),
-    ]
-    for n in ("subtotal", "cgst", "sgst", "igst", "total_amount"):
-        params.append(bigquery.ScalarQueryParameter(n if n != "total_amount" else "total", "NUMERIC", str(values[n] or Decimal("0"))))
-    repo.query(
-        f"UPDATE `{repo.table('document_extractions')}` SET {sets} WHERE document_id=@id",
-        params + [bigquery.ScalarQueryParameter("id", "STRING", document_id)],
-    )
+    original = fr(repo).extraction(document_id)
+    corrections = {
+        "vendor_name": vendor_name.strip() or None,
+        "invoice_number": invoice_number.strip() or None,
+        "gstin": gstin.strip().upper() or None,
+        **{name: values[name] or Decimal("0") for name in ("subtotal", "cgst", "sgst", "igst", "total_amount")},
+    }
+    if original:
+        for field, new_value in corrections.items():
+            old_value = getattr(original, field, None)
+            if str(old_value) != str(new_value):
+                repo.insert("document_corrections", {
+                    "id": str(uuid4()), "document_id": document_id, "extraction_id": original.id,
+                    "client_id": client.id, "user_id": user.id, "field_name": field,
+                    "old_value": str(old_value) if old_value is not None else None,
+                    "new_value": str(new_value) if new_value is not None else None,
+                    "source": "human", "created_at": datetime.now(timezone.utc).isoformat(),
+                }, str(uuid4()))
     fr(repo).audit(user.id, "review", "document", document_id, client.id)
     return RedirectResponse(f"/documents/{document_id}/review", 303)
 
