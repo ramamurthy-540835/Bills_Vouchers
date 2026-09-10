@@ -3,7 +3,7 @@ Run: python -m app.services.mcp_server
 """
 
 from google.cloud import bigquery
-from mcp.server.fastmcp import FastMCP  # type: ignore[attr-defined]
+from mcp.server.fastmcp import FastMCP
 
 from ..db import get_repository
 from .embeddings import EmbeddingService
@@ -18,11 +18,20 @@ def search_documents(query: str, top_k: int = 10) -> list[dict]:
 
 
 @mcp.tool()
+def validate_read_only_sql(sql: str) -> str:
+    statement = sql.strip()
+    if statement.endswith(";"):
+        statement = statement[:-1].rstrip()
+    if not statement or ";" in statement or not statement.lower().startswith(("select", "with")):
+        raise ValueError("Only one SELECT/WITH query is allowed.")
+    if __import__("re").search(r"\b(insert|update|delete|merge|create|alter|drop|truncate|call|execute)\b", statement, __import__("re").IGNORECASE):
+        raise ValueError("Write and procedural SQL statements are not allowed.")
+    return statement
+
+
 def query_bigquery(sql: str, max_rows: int = 100) -> list[dict]:
     """Run a bounded read-only SELECT or WITH query against BigQuery."""
-    if not sql.lstrip().lower().startswith(("select", "with")):
-        raise ValueError("Only SELECT/WITH queries are allowed.")
-    rows = get_repository().query(sql)
+    rows = get_repository().query(validate_read_only_sql(sql))
     return [dict(r.items()) for r in rows[: max(1, min(max_rows, 1000))]]
 
 

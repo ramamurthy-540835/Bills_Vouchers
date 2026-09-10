@@ -26,3 +26,16 @@ def test_login_throttle_resets_after_success():
 def test_same_origin_accepts_full_referer_path():
     assert same_origin("https://bills-voucher.example/documents/upload", "https://bills-voucher.example/")
     assert not same_origin("https://untrusted.example/documents/upload", "https://bills-voucher.example/")
+
+
+
+def test_mcp_sql_guard_rejects_writes():
+    from app.services.mcp_server import validate_read_only_sql
+    assert validate_read_only_sql("SELECT 1;") == "SELECT 1"
+    for statement in ("SELECT 1; DELETE FROM t", "WITH x AS (SELECT 1) DELETE FROM t", "UPDATE t SET x=1"):
+        try:
+            validate_read_only_sql(statement)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("write query was accepted")
