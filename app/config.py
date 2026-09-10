@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_env: str = "development"
     app_secret_key: str = "development-only-change-me"
+    allowed_origins: str = ""
     max_upload_mb: int = 15
     bootstrap_admin_email: str = "stephenraj040899@gmail.com"
     bootstrap_admin_password: str = ""

@@ -13,7 +13,7 @@ from .db import get_repository, request_id_context
 from .repository import FinanceRepository
 from .routes import router, v1_router
 from .services.gst.routes import router as gst_router
-from .security import hash_password
+from .security import hash_password, same_origin
 
 logger = logging.getLogger("bills_voucher")
 
@@ -38,7 +38,8 @@ def create_app():
             and request.method in {"POST", "PUT", "PATCH", "DELETE"}
         ):
             origin = request.headers.get("origin") or request.headers.get("referer")
-            if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+            allowed_origins = [str(request.base_url)] + [value.strip() for value in s.allowed_origins.split(",") if value.strip()]
+            if origin and not any(same_origin(origin, allowed) for allowed in allowed_origins):
                 request_id_context.reset(request_id_token)
                 return JSONResponse(
                     {
