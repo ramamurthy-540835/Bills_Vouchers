@@ -1063,6 +1063,15 @@ async def api_login(request: Request, repo=Depends(get_db)):
     return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role}
 
 
+@router.get("/api/auth/csrf")
+def api_csrf(request: Request):
+    token = request.session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        request.session["csrf_token"] = token
+    return {"token": token}
+
+
 @router.post("/api/auth/logout")
 def api_logout(request: Request):
     request.session.clear()

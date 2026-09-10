@@ -35,7 +35,6 @@ def create_app():
         if (
             s.app_env == "production"
             and request.method in {"POST", "PUT", "PATCH", "DELETE"}
-            and not request.url.path.startswith("/api/")
         ):
             origin = request.headers.get("origin") or request.headers.get("referer")
             if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
@@ -49,7 +48,7 @@ def create_app():
                     },
                     status_code=403,
                 )
-            if request.url.path not in {"/login", "/signup"}:
+            if request.url.path not in {"/login", "/signup", "/api/auth/login", "/api/auth/csrf"}:
                 expected = request.cookies.get("csrf_token")
                 supplied = request.headers.get("x-csrf-token")
                 if not supplied:
