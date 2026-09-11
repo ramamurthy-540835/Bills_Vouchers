@@ -293,6 +293,47 @@ def gst_health(request: Request, repo=Depends(get_db), user=Depends(current_user
     return page("gst_health.html", request, user=user, client=client, clients=clients, score=score, returns=returns, pending=pending, overdue=overdue, approvals=approvals)
 
 
+@router.get("/gst/gstr1")
+def gstr1_preparation(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+    client, clients = client_context(request, repo, user)
+    rows = repo.query(f"""SELECT d.id,d.original_filename,e.invoice_number,e.invoice_date,e.gstin,e.classification,e.subtotal,e.igst,e.cgst,e.sgst,e.total_amount
+        FROM `{repo.table('documents')}` d JOIN `{repo.table('document_extractions')}` e ON e.document_id=d.id
+        WHERE d.client_id=@client ORDER BY e.invoice_date DESC""", [bigquery.ScalarQueryParameter("client", "STRING", client.id)])
+    summary = {"turnover": sum(float(r.total_amount or 0) for r in rows), "taxable": sum(float(r.subtotal or 0) for r in rows), "igst": sum(float(r.igst or 0) for r in rows), "cgst": sum(float(r.cgst or 0) for r in rows), "sgst": sum(float(r.sgst or 0) for r in rows)}
+    return page("gst_gstr1.html", request, user=user, client=client, clients=clients, rows=rows, summary=summary)
+
+
+@router.get("/gst/validation")
+def gst_validation_workspace(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+    client, clients = client_context(request, repo, user)
+    rows = repo.query(f"SELECT d.id,d.original_filename,d.validation_status,d.processing_error,e.invoice_number,e.gstin,e.validation_report FROM `{repo.table('documents')}` d LEFT JOIN `{repo.table('document_extractions')}` e ON e.document_id=d.id WHERE d.client_id=@client AND COALESCE(d.validation_status,'needs_review')!='passed' ORDER BY d.uploaded_at DESC", [bigquery.ScalarQueryParameter("client", "STRING", client.id)])
+    return page("gst_validation.html", request, user=user, client=client, clients=clients, rows=rows)
+
+
+@router.get("/gst/reconciliation")
+def gst_reconciliation(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+    client, clients = client_context(request, repo, user)
+    params = [bigquery.ScalarQueryParameter("client", "STRING", client.id)]
+    books = repo.query(f"SELECT * FROM `{repo.table('gst_purchase_invoices')}` WHERE client_id=@client ORDER BY invoice_date DESC", params)
+    two_b = repo.query(f"SELECT * FROM `{repo.table('gstr2b_invoices')}` WHERE client_id=@client ORDER BY invoice_date DESC", params)
+    matches = repo.query(f"SELECT match_status,COUNT(*) count FROM `{repo.table('gst_reconciliation_matches')}` WHERE client_id=@client GROUP BY match_status", params)
+    return page("gst_reconciliation.html", request, user=user, client=client, clients=clients, books=books, two_b=two_b, matches=matches)
+
+
+@router.get("/gst/itc")
+def gst_itc_dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+    client, clients = client_context(request, repo, user)
+    params = [bigquery.ScalarQueryParameter("client", "STRING", client.id)]
+    books = repo.one(f"SELECT COALESCE(SUM(igst),0)+COALESCE(SUM(cgst),0)+COALESCE(SUM(sgst),0)+COALESCE(SUM(cess),0) total FROM `{repo.table('gst_purchase_invoices')}` WHERE client_id=@client AND itc_eligible=TRUE", params)
+    two_b = repo.one(f"SELECT COALESCE(SUM(igst),0)+COALESCE(SUM(cgst),0)+COALESCE(SUM(sgst),0)+COALESCE(SUM(cess),0) total FROM `{repo.table('gstr2b_invoices')}` WHERE client_id=@client AND itc_eligible=TRUE", params)
+    book_total, two_b_total = float(books.total or 0), float(two_b.total or 0)
+    return page("gst_itc.html", request, user=user, client=client, clients=clients, books=book_total, two_b=two_b_total, at_risk=max(0, book_total-two_b_total), potential=max(0, two_b_total-book_total))
+
+
 @router.get("/accounts")
 def accounts(request: Request, page_num: int = 1, repo=Depends(get_db), user=Depends(current_user)):
     client, clients = client_context(request, repo, user)
