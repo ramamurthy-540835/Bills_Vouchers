@@ -38,8 +38,8 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 
 ## Latest artifact verification (2026-09-11)
 
-- Cloud Build `23d858e9-6cbf-4608-a8c4-cd6739a40720` succeeded for commit `a3c86f6` in project `aidirac-503309`.
-- Backend image: `asia-south1-docker.pkg.dev/aidirac-503309/finance/bills-voucher@sha256:268d7c5b1c55b788fbf9d6bb7d6cbaab1843a006e594a52753f6b0fa7c48e9a7`.
+- Cloud Build `2af574dc-13d5-441f-a1e1-27096e6d12e9` succeeded for commit `cc94731` in project `aidirac-503309`.
+- Backend image: `asia-south1-docker.pkg.dev/aidirac-503309/finance/bills-voucher@sha256:c334b07046709166c6943ef37d3d057d1ac99aecd6057d5d3104f15dcf6a7261`.
 - Frontend image was published with the same commit tag. The Cloud Run service was not changed by this build.
 
 ## Live GCP verification (2026-09-10)
