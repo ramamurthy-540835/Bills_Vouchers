@@ -36,6 +36,12 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - Token-based CSRF protection, same-origin checks, and login throttling are enabled for browser writes; API clients must send `X-CSRF-Token`.
 - Cloud Run Terraform resources are now represented, but the secret version and ingress/IAM policy still require an environment-specific review.
 
+## Latest artifact verification (2026-09-11)
+
+- Cloud Build `23d858e9-6cbf-4608-a8c4-cd6739a40720` succeeded for commit `a3c86f6` in project `aidirac-503309`.
+- Backend image: `asia-south1-docker.pkg.dev/aidirac-503309/finance/bills-voucher@sha256:268d7c5b1c55b788fbf9d6bb7d6cbaab1843a006e594a52753f6b0fa7c48e9a7`.
+- Frontend image was published with the same commit tag. The Cloud Run service was not changed by this build.
+
 ## Live GCP verification (2026-09-10)
 
 - Project `aidirac-503309` contains the `finance_analytics` dataset, all core finance tables, and the partitioned/clustered `document_corrections` table.
