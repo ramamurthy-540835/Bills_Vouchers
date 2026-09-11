@@ -18,6 +18,7 @@ from .security import hash_password, login_allowed, password_is_strong, record_l
 from .services.documents import GCSObjectStore, create_document, validate_upload
 from .services.embeddings import EmbeddingService
 from .services.gemini import process_with_gemini
+from .services.gst.validation import validate_document
 from .services.tasks import dispatch_scan
 from .services.ocr import decimal_or_none
 
@@ -34,6 +35,11 @@ def current_user(request: Request, repo=Depends(get_db)):
     user = FinanceRepository(repo).user_by_id(request.session.get("user_id"))
     if not user:
         raise HTTPException(401, "Please log in.")
+    session_version = int(getattr(user, "session_version", 0) or 0)
+    if request.session.get("session_version") is not None and int(str(request.session.get("session_version"))) != session_version:
+        request.session.clear()
+        raise HTTPException(401, "Session expired.")
+    request.session["session_version"] = session_version
     if getattr(user, "must_change_password", False) and request.url.path not in {"/settings", "/api/auth/me", "/api/auth/csrf", "/api/auth/password", "/logout", "/api/auth/logout"}:
         raise HTTPException(403, {"code": "password_change_required", "message": "Change your password before continuing."})
     request.session["last_seen"] = str(time())
@@ -100,6 +106,7 @@ def login(request: Request, email: str = Form(...), password: str = Form(...), r
         return page("login.html", request, status_code=400, error="Invalid email or password")
     record_login_success(key)
     request.session["user_id"] = user.id
+    request.session["session_version"] = int(getattr(user, "session_version", 0) or 0)
     return RedirectResponse("/", 303)
 
 
@@ -132,6 +139,7 @@ def signup(
             "email": email,
             "password_hash": hash_password(password),
             "must_change_password": False,
+            "session_version": 0,
             "full_name": full_name or email,
             "role": "admin",
             "is_active": True,
@@ -728,6 +736,8 @@ def transition_document(document_id: str, request: Request, target: str, reason:
         raise HTTPException(409, "Only documents in review can change state.")
     if target == "rejected" and not reason.strip():
         raise HTTPException(400, "A rejection reason is required.")
+    if target == "approved" and getattr(document, "validation_status", None) != "passed":
+        raise HTTPException(409, "Resolve all GST validation errors before approval.")
     repo.query(
         f"UPDATE `{repo.table('documents')}` SET status=@status, processing_error=@reason WHERE id=@id AND client_id=@client",
         [
@@ -910,7 +920,7 @@ def update_settings(
 
     if new_password:
         repo.query(
-            f"UPDATE `{repo.table('users')}` SET full_name=@name,password_hash=@password,must_change_password=FALSE WHERE id=@id",
+            f"UPDATE `{repo.table('users')}` SET full_name=@name,password_hash=@password,must_change_password=FALSE,session_version=COALESCE(session_version,0)+1 WHERE id=@id",
             [
                 bigquery.ScalarQueryParameter("name", "STRING", full_name.strip()),
                 bigquery.ScalarQueryParameter("password", "STRING", hash_password(new_password)),
@@ -1008,6 +1018,22 @@ def _review_values(payload):
     return {key: payload[key] for key in fields if key in payload}
 
 
+def _review_validation(repo, document_id):
+    extraction = fr(repo).extraction(document_id)
+    if not extraction:
+        return {"validation_status": "needs_review", "passed": False, "warnings": [], "errors": [{"code": "missing_extraction", "field": "document", "message": "Extraction is missing.", "severity": "error"}]}
+    confidence = getattr(extraction, "field_confidence", {}) or {}
+    if isinstance(confidence, str):
+        try:
+            confidence = __import__("json").loads(confidence)
+        except ValueError:
+            confidence = {}
+    data = {field: getattr(extraction, field, None) for field in ("supplier_gstin", "recipient_gstin", "gstin", "invoice_number", "irn", "gst_rate", "hsn", "sac", "supplier_state_code", "place_of_supply", "cgst", "sgst", "igst", "subtotal", "total_amount", "classification", "b2b", "field_confidence")}
+    data["field_confidence"] = confidence
+    data["line_items"] = [{field: getattr(item, field, None) for field in ("taxable_value", "rate", "tax", "total", "hsn", "sac")} for item in getattr(extraction, "line_items", [])]
+    return validate_document(data, confidence_threshold=Decimal(str(get_settings().extraction_confidence_threshold)))
+
+
 def _append_review_corrections(repo, document_id, client_id, user_id, payload):
     original = fr(repo).extraction(document_id)
     if not original:
@@ -1028,6 +1054,16 @@ def _append_review_corrections(repo, document_id, client_id, user_id, payload):
         old_value = getattr(original, field, None)
         if str(old_value) != str(value):
             repo.insert("document_corrections", {"id": str(uuid4()), "document_id": document_id, "extraction_id": original.id, "client_id": client_id, "user_id": user_id, "field_name": field, "old_value": str(old_value) if old_value is not None else None, "new_value": str(value) if value is not None else None, "source": "human", "created_at": datetime.now(timezone.utc).isoformat()}, str(uuid4()))
+    validation = _review_validation(repo, document_id)
+    from google.cloud import bigquery
+    repo.query(
+        f"UPDATE `{repo.table('documents')}` SET validation_status=@status WHERE id=@id AND client_id=@client",
+        [
+            bigquery.ScalarQueryParameter("status", "STRING", validation["validation_status"]),
+            bigquery.ScalarQueryParameter("id", "STRING", document_id),
+            bigquery.ScalarQueryParameter("client", "STRING", client_id),
+        ],
+    )
 
 
 def _doc_json(d):
@@ -1105,6 +1141,7 @@ async def api_login(request: Request, repo=Depends(get_db)):
         raise HTTPException(401, "Invalid email or password.")
     record_login_success(key)
     request.session["user_id"] = user.id
+    request.session["session_version"] = int(getattr(user, "session_version", 0) or 0)
     fr(repo).audit(user.id, "login", "user", user.id)
     return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False))}
 
@@ -1136,7 +1173,7 @@ async def api_change_password(request: Request, repo=Depends(get_db), user=Depen
     if not password_is_strong(password):
         raise HTTPException(400, "Password must be at least 12 characters and include upper, lower, and numeric characters.")
     from google.cloud import bigquery
-    repo.query(f"UPDATE `{repo.table('users')}` SET password_hash=@password,must_change_password=FALSE WHERE id=@id", [bigquery.ScalarQueryParameter("password", "STRING", hash_password(password)), bigquery.ScalarQueryParameter("id", "STRING", user.id)])
+    repo.query(f"UPDATE `{repo.table('users')}` SET password_hash=@password,must_change_password=FALSE,session_version=COALESCE(session_version,0)+1 WHERE id=@id", [bigquery.ScalarQueryParameter("password", "STRING", hash_password(password)), bigquery.ScalarQueryParameter("id", "STRING", user.id)])
     fr(repo).audit(user.id, "password_change", "user", user.id)
     request.session.clear()
     return {"ok": True}

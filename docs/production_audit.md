@@ -5,10 +5,10 @@
 - BigQuery remains the only operational and analytical database.
 - GCS documents remain private and are accessed through the application.
 - GST validation is pure and unit tested for GSTIN checksum, state tax split, rate slabs, HSN/SAC format, duplicate flags, invoice totals, and e-invoice gaps.
-- Document review supports client scoping, viewer protection, audit events, and per-file deletion progress.
+- Document review supports client scoping, viewer protection, audit events, append-only corrections, GST revalidation before approval, and per-file deletion progress.
 - Docker build contexts are reduced and Python dependencies are cached separately from application code.
 - Cloud Build workers are explicitly configured for `E2_HIGHCPU_8`.
-- Login no longer creates a hardcoded bootstrap password. The configured development bootstrap password must be supplied through Secret Manager/environment configuration.
+- Login no longer creates a hardcoded bootstrap password; BigQuery session-version invalidation now revokes older sessions after password changes. The configured development bootstrap password must be supplied through Secret Manager/environment configuration.
 
 ## Gaps requiring deployment action
 

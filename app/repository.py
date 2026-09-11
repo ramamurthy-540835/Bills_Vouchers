@@ -40,6 +40,7 @@ class FinanceRepository:
                     "email": email.lower(),
                     "password_hash": password_hash,
                     "must_change_password": True,
+                    "session_version": 0,
                     "full_name": "Stephenraj",
                     "role": "admin",
                     "is_active": True,
