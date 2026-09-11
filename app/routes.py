@@ -19,6 +19,7 @@ from .services.documents import GCSObjectStore, create_document, validate_upload
 from .services.embeddings import EmbeddingService
 from .services.gemini import process_with_gemini
 from .services.gst.validation import validate_document
+from .services.gst.compliance import RETURN_STATUSES, RETURN_TYPES, gst_health_score
 from .services.tasks import dispatch_scan
 from .services.ocr import decimal_or_none
 
@@ -112,6 +113,8 @@ def login(request: Request, email: str = Form(...), password: str = Form(...), r
 
 @router.get("/signup")
 def signup_page(request: Request):
+    if get_settings().app_env == "production":
+        raise HTTPException(404, "Not found.")
     return page("signup.html", request)
 
 
@@ -123,6 +126,8 @@ def signup(
     password: str = Form(...),
     repo=Depends(get_db),
 ):
+    if get_settings().app_env == "production":
+        raise HTTPException(404, "Not found.")
     email = email.strip().lower()
     full_name = full_name.strip()
     if not password_is_strong(password):
@@ -224,6 +229,131 @@ def dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)
         monthly_chart=monthly_chart,
         yearly=yearly,
     )
+
+
+@router.get("/gst")
+def gst_firm_dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+
+    client, clients = client_context(request, repo, user)
+    ids = [str(c.id) for c in clients]
+    params = [bigquery.ArrayQueryParameter("clients", "STRING", ids)]
+    rows = repo.query(
+        f"""SELECT status, COUNT(*) count, COALESCE(SUM(tax_liability),0) payable, COALESCE(SUM(itc),0) itc
+        FROM `{repo.table('gst_returns')}` WHERE client_id IN UNNEST(@clients) GROUP BY status""",
+        params,
+    )
+    counts = {str(r.status): int(r.count) for r in rows}
+    today = date.today()
+    due = repo.query(
+        f"""SELECT r.*, c.name client_name FROM `{repo.table('gst_returns')}` r
+        JOIN `{repo.table('clients')}` c ON c.id=r.client_id
+        WHERE r.client_id IN UNNEST(@clients) AND r.status != 'filed'
+        ORDER BY r.due_date NULLS LAST LIMIT 24""",
+        params,
+    )
+    overdue = sum(1 for r in due if r.due_date and r.due_date < today)
+    attention = sum(counts.get(s, 0) for s in ("data_pending", "errors_found", "reconciliation_pending", "client_approval_pending"))
+    cards = [
+        ("Total Clients", len(clients), "primary", "/gst/health"),
+        ("Active GSTINs", sum(1 for c in clients if getattr(c, "gstin", None)), "success", "/settings"),
+        ("Returns Due", len(due), "primary", "/gst/returns"),
+        ("Returns Filed", counts.get("filed", 0), "success", "/gst/returns?status=filed"),
+        ("Returns Pending", sum(counts.values()) - counts.get("filed", 0), "warning", "/gst/returns?status=not_started"),
+        ("Overdue Returns", overdue, "danger", "/gst/returns?overdue=1"),
+        ("GSTR-1 Pending", sum(1 for r in due if r.return_type == "GSTR-1"), "warning", "/gst/returns?return_type=GSTR-1"),
+        ("GSTR-3B Pending", sum(1 for r in due if r.return_type == "GSTR-3B"), "warning", "/gst/returns?return_type=GSTR-3B"),
+        ("GST Payable", sum((Decimal(str(r.payable or 0)) for r in rows), Decimal("0")), "danger", "/gst/returns"),
+        ("ITC Available", sum((Decimal(str(r.itc or 0)) for r in rows), Decimal("0")), "success", "/gst/returns"),
+        ("Attention Required", attention, "warning", "/gst/returns?status=errors_found"),
+        ("Tasks Pending", 0, "secondary", "/gst/tasks"),
+    ]
+    return page("gst_dashboard.html", request, user=user, client=client, clients=clients, cards=cards, due=due, today=today)
+
+
+@router.get("/gst/returns")
+def gst_returns(request: Request, status: str = "", return_type: str = "", overdue: int = 0, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+
+    client, clients = client_context(request, repo, user)
+    clauses, params = ["client_id=@client"], [bigquery.ScalarQueryParameter("client", "STRING", client.id)]
+    if status in RETURN_STATUSES:
+        clauses.append("status=@status")
+        params.append(bigquery.ScalarQueryParameter("status", "STRING", status))
+    if return_type in RETURN_TYPES:
+        clauses.append("return_type=@type")
+        params.append(bigquery.ScalarQueryParameter("type", "STRING", return_type))
+    if overdue:
+        clauses.append("due_date<CURRENT_DATE() AND status!='filed'")
+    rows = repo.query(f"SELECT * FROM `{repo.table('gst_returns')}` WHERE {' AND '.join(clauses)} ORDER BY due_date DESC LIMIT 500", params)
+    return page("gst_returns.html", request, user=user, client=client, clients=clients, rows=rows, types=RETURN_TYPES, statuses=RETURN_STATUSES, selected_status=status, selected_type=return_type)
+
+
+@router.post("/gst/returns")
+def create_gst_return(request: Request, return_type: str = Form(...), period: date = Form(...), due_date: date | None = Form(None), repo=Depends(get_db), user=Depends(current_user)):
+    if return_type not in RETURN_TYPES:
+        raise HTTPException(400, "Unsupported return type.")
+    if user.role == "viewer":
+        raise HTTPException(403, "Viewer access is read-only.")
+    client = active_client(request, repo, user)
+    now, rid = datetime.now(timezone.utc).isoformat(), str(uuid4())
+    repo.insert("gst_returns", {"id": rid, "client_id": client.id, "return_type": return_type, "period": period.isoformat(), "due_date": due_date.isoformat() if due_date else None, "status": "not_started", "prepared_by_id": None, "reviewed_by_id": None, "tax_liability": Decimal("0"), "itc": Decimal("0"), "cash_payable": Decimal("0"), "filed_date": None, "arn": None, "workflow_step": "import", "client_approval_status": "pending", "created_at": now, "updated_at": now}, rid)
+    fr(repo).audit(user.id, "create", "gst_return", rid, client.id)
+    return RedirectResponse("/gst/returns", 303)
+
+
+@router.get("/gst/health")
+def gst_health(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+
+    client, clients = client_context(request, repo, user)
+    returns = repo.query(f"SELECT * FROM `{repo.table('gst_returns')}` WHERE client_id=@client LIMIT 500", [bigquery.ScalarQueryParameter("client", "STRING", client.id)])
+    pending = sum(1 for r in returns if r.status != "filed")
+    overdue = sum(1 for r in returns if r.status != "filed" and r.due_date and r.due_date < date.today())
+    approvals = sum(1 for r in returns if r.status == "client_approval_pending")
+    score = gst_health_score(pending_returns=pending, overdue_returns=overdue, mismatch_count=0, itc_at_risk=Decimal("0"), approval_pending=approvals)
+    return page("gst_health.html", request, user=user, client=client, clients=clients, score=score, returns=returns, pending=pending, overdue=overdue, approvals=approvals)
+
+
+@router.get("/gst/gstr1")
+def gstr1_preparation(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+    client, clients = client_context(request, repo, user)
+    rows = repo.query(f"""SELECT d.id,d.original_filename,e.invoice_number,e.invoice_date,e.gstin,e.classification,e.subtotal,e.igst,e.cgst,e.sgst,e.total_amount
+        FROM `{repo.table('documents')}` d JOIN `{repo.table('document_extractions')}` e ON e.document_id=d.id
+        WHERE d.client_id=@client AND d.status='approved' ORDER BY e.invoice_date DESC LIMIT 1000""", [bigquery.ScalarQueryParameter("client", "STRING", client.id)])
+    summary = {"turnover": sum((Decimal(str(r.total_amount or 0)) for r in rows), Decimal("0")), "taxable": sum((Decimal(str(r.subtotal or 0)) for r in rows), Decimal("0")), "igst": sum((Decimal(str(r.igst or 0)) for r in rows), Decimal("0")), "cgst": sum((Decimal(str(r.cgst or 0)) for r in rows), Decimal("0")), "sgst": sum((Decimal(str(r.sgst or 0)) for r in rows), Decimal("0"))}
+    return page("gst_gstr1.html", request, user=user, client=client, clients=clients, rows=rows, summary=summary)
+
+
+@router.get("/gst/validation")
+def gst_validation_workspace(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+    client, clients = client_context(request, repo, user)
+    rows = repo.query(f"SELECT d.id,d.original_filename,d.validation_status,d.processing_error,e.invoice_number,e.gstin,e.validation_report FROM `{repo.table('documents')}` d LEFT JOIN `{repo.table('document_extractions')}` e ON e.document_id=d.id WHERE d.client_id=@client AND COALESCE(d.validation_status,'needs_review')!='passed' ORDER BY d.uploaded_at DESC", [bigquery.ScalarQueryParameter("client", "STRING", client.id)])
+    return page("gst_validation.html", request, user=user, client=client, clients=clients, rows=rows)
+
+
+@router.get("/gst/reconciliation")
+def gst_reconciliation(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+    client, clients = client_context(request, repo, user)
+    params = [bigquery.ScalarQueryParameter("client", "STRING", client.id)]
+    books = repo.query(f"SELECT * FROM `{repo.table('gst_purchase_invoices')}` WHERE client_id=@client ORDER BY invoice_date DESC LIMIT 1000", params)
+    two_b = repo.query(f"SELECT * FROM `{repo.table('gstr2b_invoices')}` WHERE client_id=@client ORDER BY invoice_date DESC LIMIT 1000", params)
+    matches = repo.query(f"SELECT match_status,COUNT(*) count FROM `{repo.table('gst_reconciliation_matches')}` WHERE client_id=@client GROUP BY match_status LIMIT 100", params)
+    return page("gst_reconciliation.html", request, user=user, client=client, clients=clients, books=books, two_b=two_b, matches=matches)
+
+
+@router.get("/gst/itc")
+def gst_itc_dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+    client, clients = client_context(request, repo, user)
+    params = [bigquery.ScalarQueryParameter("client", "STRING", client.id)]
+    books = repo.one(f"SELECT COALESCE(SUM(igst),0)+COALESCE(SUM(cgst),0)+COALESCE(SUM(sgst),0)+COALESCE(SUM(cess),0) total FROM `{repo.table('gst_purchase_invoices')}` WHERE client_id=@client AND itc_eligible=TRUE", params)
+    two_b = repo.one(f"SELECT COALESCE(SUM(igst),0)+COALESCE(SUM(cgst),0)+COALESCE(SUM(sgst),0)+COALESCE(SUM(cess),0) total FROM `{repo.table('gstr2b_invoices')}` WHERE client_id=@client AND itc_eligible=TRUE", params)
+    book_total, two_b_total = Decimal(str(books.total or 0)), Decimal(str(two_b.total or 0))
+    return page("gst_itc.html", request, user=user, client=client, clients=clients, books=book_total, two_b=two_b_total, at_risk=max(Decimal("0"), book_total-two_b_total), potential=max(Decimal("0"), two_b_total-book_total))
 
 
 @router.get("/accounts")
@@ -870,6 +1000,24 @@ def users(request: Request, repo=Depends(get_db), user=Depends(current_user)):
     return page("users.html", request, user=user, client=client, clients=clients, users=rows, roles=list(Role))
 
 
+def assert_not_last_admin(repo, target, requested_role: Role, requested_active: bool) -> None:
+    target_is_admin = str(getattr(target, "role", "")).lower() == Role.ADMIN.value and bool(getattr(target, "is_active", False))
+    losing_admin = target_is_admin and (requested_role != Role.ADMIN or not requested_active)
+    if not losing_admin:
+        return
+    from google.cloud import bigquery
+
+    remaining = repo.one(
+        f"SELECT COUNT(*) n FROM `{repo.table('users')}` WHERE role=@role AND is_active=TRUE AND id!=@id",
+        [
+            bigquery.ScalarQueryParameter("role", "STRING", Role.ADMIN.value),
+            bigquery.ScalarQueryParameter("id", "STRING", str(target.id)),
+        ],
+    )
+    if not remaining or int(remaining.n or 0) == 0:
+        raise HTTPException(400, "Cannot remove or deactivate the last active Admin.")
+
+
 @router.post("/users/{user_id}")
 def update_user(
     request: Request,
@@ -881,8 +1029,20 @@ def update_user(
 ):
     if user.role != "admin":
         raise HTTPException(403, "Admin access is required.")
+    client = active_client(request, repo, user)
+    from google.cloud import bigquery
+    target = repo.one(
+        f"SELECT u.id,u.role,u.is_active FROM `{repo.table('users')}` u JOIN `{repo.table('client_memberships')}` m ON m.user_id=u.id WHERE u.id=@id AND m.client_id=@client AND m.is_active=TRUE LIMIT 1",
+        [
+            bigquery.ScalarQueryParameter("id", "STRING", user_id),
+            bigquery.ScalarQueryParameter("client", "STRING", client.id),
+        ],
+    )
+    if not target:
+        raise HTTPException(404, "User is not a member of the selected client.")
+    assert_not_last_admin(repo, target, role, is_active)
     repo.query(
-        f"UPDATE `{repo.table('users')}` SET role=@role,is_active=@active WHERE id=@id",
+        f"UPDATE `{repo.table('users')}` SET role=@role,is_active=@active,session_version=COALESCE(session_version,0)+1 WHERE id=@id",
         [
             __import__("google.cloud.bigquery", fromlist=["ScalarQueryParameter"]).ScalarQueryParameter(
                 "role", "STRING", role.value
@@ -895,7 +1055,6 @@ def update_user(
             ),
         ],
     )
-    client = active_client(request, repo, user)
     fr(repo).audit(user.id, "update", "user", user_id, client.id)
     return RedirectResponse("/users", 303)
 

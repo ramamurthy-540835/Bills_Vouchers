@@ -39,3 +39,38 @@ def test_mcp_sql_guard_rejects_writes():
             pass
         else:
             raise AssertionError("write query was accepted")
+
+
+def test_last_admin_cannot_be_removed():
+    from fastapi import HTTPException
+    from app.models import Role, ns
+    from app.routes import assert_not_last_admin
+
+    class Repo:
+        def table(self, name):
+            return name
+
+        def one(self, sql, params):
+            return ns(n=0)
+
+    try:
+        assert_not_last_admin(Repo(), ns(id="admin-1", role="admin", is_active=True), Role.ACCOUNTANT, True)
+    except HTTPException as exc:
+        assert exc.status_code == 400
+        assert "last active Admin" in str(exc.detail)
+    else:
+        raise AssertionError("last admin change was accepted")
+
+
+def test_admin_change_allowed_when_another_admin_exists():
+    from app.models import Role, ns
+    from app.routes import assert_not_last_admin
+
+    class Repo:
+        def table(self, name):
+            return name
+
+        def one(self, sql, params):
+            return ns(n=1)
+
+    assert_not_last_admin(Repo(), ns(id="admin-1", role="admin", is_active=True), Role.ACCOUNTANT, True)

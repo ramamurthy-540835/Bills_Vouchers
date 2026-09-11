@@ -23,6 +23,10 @@ locals {
   tables={
     clients=[{name="id",type="STRING",mode="REQUIRED"},{name="code",type="STRING"},{name="name",type="STRING"},{name="gstin",type="STRING"},{name="address",type="STRING"},{name="is_active",type="BOOL"},{name="created_at",type="TIMESTAMP"}],
     client_memberships=[{name="id",type="STRING",mode="REQUIRED"},{name="client_id",type="STRING"},{name="user_id",type="STRING"},{name="access_role",type="STRING"},{name="is_active",type="BOOL"},{name="created_at",type="TIMESTAMP"}],
+    client_gst_profiles=[{name="client_id",type="STRING",mode="REQUIRED"},{name="trade_name",type="STRING"},{name="pan",type="STRING"},{name="state",type="STRING"},{name="registration_type",type="STRING"},{name="filing_frequency",type="STRING"},{name="financial_year",type="STRING"},{name="contact_person",type="STRING"},{name="phone",type="STRING"},{name="email",type="STRING"},{name="assigned_staff_id",type="STRING"},{name="partner_id",type="STRING"},{name="client_status",type="STRING"},{name="updated_at",type="TIMESTAMP"}],
+    gst_returns=[{name="id",type="STRING",mode="REQUIRED"},{name="client_id",type="STRING",mode="REQUIRED"},{name="return_type",type="STRING"},{name="period",type="DATE"},{name="due_date",type="DATE"},{name="status",type="STRING"},{name="prepared_by_id",type="STRING"},{name="reviewed_by_id",type="STRING"},{name="tax_liability",type="NUMERIC"},{name="itc",type="NUMERIC"},{name="cash_payable",type="NUMERIC"},{name="filed_date",type="DATE"},{name="arn",type="STRING"},{name="workflow_step",type="STRING"},{name="client_approval_status",type="STRING"},{name="created_at",type="TIMESTAMP"},{name="updated_at",type="TIMESTAMP"}],
+    gst_tasks=[{name="id",type="STRING",mode="REQUIRED"},{name="client_id",type="STRING",mode="REQUIRED"},{name="return_id",type="STRING"},{name="task",type="STRING"},{name="assigned_staff_id",type="STRING"},{name="due_date",type="DATE"},{name="priority",type="STRING"},{name="status",type="STRING"},{name="remarks",type="STRING"},{name="created_at",type="TIMESTAMP"},{name="updated_at",type="TIMESTAMP"}],
+    client_preferences=[{name="id",type="STRING",mode="REQUIRED"},{name="user_id",type="STRING",mode="REQUIRED"},{name="client_id",type="STRING",mode="REQUIRED"},{name="is_favorite",type="BOOL"},{name="last_used_at",type="TIMESTAMP"},{name="created_at",type="TIMESTAMP"}],
     users=[{name="id",type="STRING",mode="REQUIRED"},{name="email",type="STRING"},{name="password_hash",type="STRING"},{name="must_change_password",type="BOOL"},{name="session_version",type="INT64"},{name="full_name",type="STRING"},{name="role",type="STRING"},{name="is_active",type="BOOL"},{name="created_at",type="TIMESTAMP"}],
     accounts=[{name="id",type="STRING",mode="REQUIRED"},{name="client_id",type="STRING"},{name="code",type="STRING"},{name="name",type="STRING"},{name="account_type",type="STRING"},{name="is_active",type="BOOL"},{name="created_at",type="TIMESTAMP"}],
     journal_entries=[{name="id",type="STRING",mode="REQUIRED"},{name="client_id",type="STRING"},{name="entry_date",type="DATE"},{name="reference",type="STRING"},{name="description",type="STRING"},{name="source",type="STRING"},{name="status",type="STRING"},{name="created_at",type="TIMESTAMP"}],
@@ -43,6 +47,14 @@ locals {
     audit_logs = "created_at"
     document_embeddings = "created_at"
     journal_entries = "created_at"
+    client_gst_profiles = "updated_at"
+    gst_returns = "period"
+    gst_tasks = "created_at"
+    client_preferences = "created_at"
+    gst_purchase_invoices = "invoice_date"
+    gstr2b_invoices = "invoice_date"
+    gst_reconciliation_matches = "created_at"
+    gst_validation_issues = "created_at"
   }
   cluster_fields = {
     documents = ["client_id", "status"]
@@ -51,6 +63,14 @@ locals {
     audit_logs = ["client_id", "entity"]
     document_embeddings = ["document_type", "status"]
     journal_entries = ["client_id", "entry_date"]
+    client_gst_profiles = ["client_id"]
+    gst_returns = ["client_id", "status"]
+    gst_tasks = ["client_id", "status"]
+    client_preferences = ["client_id", "user_id"]
+    gst_purchase_invoices = ["client_id", "supplier_gstin"]
+    gstr2b_invoices = ["client_id", "supplier_gstin"]
+    gst_reconciliation_matches = ["client_id", "match_status"]
+    gst_validation_issues = ["client_id", "status"]
   }
   unpartitioned_tables = { for name, schema in local.tables : name => schema if !contains(keys(local.partition_fields), name) }
   partitioned_tables = { for name, schema in local.tables : name => schema if contains(keys(local.partition_fields), name) }
