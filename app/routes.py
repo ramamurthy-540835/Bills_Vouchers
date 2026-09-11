@@ -17,6 +17,7 @@ from .security import hash_password, login_allowed, record_login_failure, record
 from .services.documents import GCSObjectStore, create_document, validate_upload
 from .services.embeddings import EmbeddingService
 from .services.gemini import process_with_gemini
+from .services.gst.compliance import RETURN_STATUSES, RETURN_TYPES, WORKFLOW_STEPS, gst_health_score
 from .services.ocr import decimal_or_none
 
 templates = Jinja2Templates(directory="app/templates")
@@ -208,6 +209,88 @@ def dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)
         monthly_chart=monthly_chart,
         yearly=yearly,
     )
+
+
+@router.get("/gst")
+def gst_firm_dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+
+    client, clients = client_context(request, repo, user)
+    ids = [str(c.id) for c in clients]
+    params = [bigquery.ArrayQueryParameter("clients", "STRING", ids)]
+    rows = repo.query(
+        f"""SELECT status, COUNT(*) count, COALESCE(SUM(tax_liability),0) payable, COALESCE(SUM(itc),0) itc
+        FROM `{repo.table('gst_returns')}` WHERE client_id IN UNNEST(@clients) GROUP BY status""",
+        params,
+    )
+    counts = {str(r.status): int(r.count) for r in rows}
+    today = date.today()
+    due = repo.query(
+        f"""SELECT r.*, c.name client_name FROM `{repo.table('gst_returns')}` r
+        JOIN `{repo.table('clients')}` c ON c.id=r.client_id
+        WHERE r.client_id IN UNNEST(@clients) AND r.status != 'filed'
+        ORDER BY r.due_date NULLS LAST LIMIT 24""",
+        params,
+    )
+    overdue = sum(1 for r in due if r.due_date and r.due_date < today)
+    attention = sum(counts.get(s, 0) for s in ("data_pending", "errors_found", "reconciliation_pending", "client_approval_pending"))
+    cards = [
+        ("Total Clients", len(clients), "primary", "/gst/health"),
+        ("Active GSTINs", sum(1 for c in clients if getattr(c, "gstin", None)), "success", "/settings"),
+        ("Returns Due", len(due), "primary", "/gst/returns"),
+        ("Returns Filed", counts.get("filed", 0), "success", "/gst/returns?status=filed"),
+        ("Returns Pending", sum(counts.values()) - counts.get("filed", 0), "warning", "/gst/returns?status=not_started"),
+        ("Overdue Returns", overdue, "danger", "/gst/returns?overdue=1"),
+        ("GSTR-1 Pending", sum(1 for r in due if r.return_type == "GSTR-1"), "warning", "/gst/returns?return_type=GSTR-1"),
+        ("GSTR-3B Pending", sum(1 for r in due if r.return_type == "GSTR-3B"), "warning", "/gst/returns?return_type=GSTR-3B"),
+        ("GST Payable", sum(float(r.payable or 0) for r in rows), "danger", "/gst/returns"),
+        ("ITC Available", sum(float(r.itc or 0) for r in rows), "success", "/gst/returns"),
+        ("Attention Required", attention, "warning", "/gst/returns?status=errors_found"),
+        ("Tasks Pending", 0, "secondary", "/gst/tasks"),
+    ]
+    return page("gst_dashboard.html", request, user=user, client=client, clients=clients, cards=cards, due=due, today=today)
+
+
+@router.get("/gst/returns")
+def gst_returns(request: Request, status: str = "", return_type: str = "", overdue: int = 0, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+
+    client, clients = client_context(request, repo, user)
+    clauses, params = ["client_id=@client"], [bigquery.ScalarQueryParameter("client", "STRING", client.id)]
+    if status in RETURN_STATUSES:
+        clauses.append("status=@status")
+        params.append(bigquery.ScalarQueryParameter("status", "STRING", status))
+    if return_type in RETURN_TYPES:
+        clauses.append("return_type=@type")
+        params.append(bigquery.ScalarQueryParameter("type", "STRING", return_type))
+    if overdue:
+        clauses.append("due_date<CURRENT_DATE() AND status!='filed'")
+    rows = repo.query(f"SELECT * FROM `{repo.table('gst_returns')}` WHERE {' AND '.join(clauses)} ORDER BY due_date DESC", params)
+    return page("gst_returns.html", request, user=user, client=client, clients=clients, rows=rows, types=RETURN_TYPES, statuses=RETURN_STATUSES, selected_status=status, selected_type=return_type)
+
+
+@router.post("/gst/returns")
+def create_gst_return(request: Request, return_type: str = Form(...), period: str = Form(...), due_date: str = Form(""), repo=Depends(get_db), user=Depends(current_user)):
+    if return_type not in RETURN_TYPES:
+        raise HTTPException(400, "Unsupported return type.")
+    client = active_client(request, repo, user)
+    now, rid = datetime.now(timezone.utc).isoformat(), str(uuid4())
+    repo.insert("gst_returns", {"id": rid, "client_id": client.id, "return_type": return_type, "period": period, "due_date": due_date or None, "status": "not_started", "prepared_by_id": None, "reviewed_by_id": None, "tax_liability": 0, "itc": 0, "cash_payable": 0, "filed_date": None, "arn": None, "workflow_step": "import", "client_approval_status": "pending", "created_at": now, "updated_at": now}, rid)
+    fr(repo).audit(user.id, "create", "gst_return", rid, client.id)
+    return RedirectResponse("/gst/returns", 303)
+
+
+@router.get("/gst/health")
+def gst_health(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+
+    client, clients = client_context(request, repo, user)
+    returns = repo.query(f"SELECT * FROM `{repo.table('gst_returns')}` WHERE client_id=@client", [bigquery.ScalarQueryParameter("client", "STRING", client.id)])
+    pending = sum(1 for r in returns if r.status != "filed")
+    overdue = sum(1 for r in returns if r.status != "filed" and r.due_date and r.due_date < date.today())
+    approvals = sum(1 for r in returns if r.status == "client_approval_pending")
+    score = gst_health_score(pending_returns=pending, overdue_returns=overdue, mismatch_count=0, itc_at_risk=0, approval_pending=approvals)
+    return page("gst_health.html", request, user=user, client=client, clients=clients, score=score, returns=returns, pending=pending, overdue=overdue, approvals=approvals)
 
 
 @router.get("/accounts")
