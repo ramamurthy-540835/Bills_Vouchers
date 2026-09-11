@@ -2,7 +2,7 @@
 
 ## Current status
 
-The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`22 passed`). This repository is not yet approved for unattended production deployment.
+The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`25 passed`, 86% coverage). This repository is not yet approved for unattended production deployment.
 
 ## Implemented
 
@@ -16,14 +16,16 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - Current document status statistics and per-file deletion progress.
 - Deletion cleanup for extraction, line items, embeddings, and document metadata.
 - Client-scoped document access and viewer write protection.
-- Scan requests return `202` and expose a scan-status endpoint with a local background fallback; failures use `scan_failed`.
+- Scan requests return `202` and expose a scan-status endpoint; Cloud Tasks is required in production and the local background fallback is development-only. Failures use `scan_failed`.
 - Versioned `/api/v1` health, document-list, and semantic-search compatibility endpoints are available.
 - Approved-document GST register exports are available at `/api/reports/gstr` and `/reports/gstr.csv`.
 - Review clients can request a five-minute signed GCS URL without exposing bucket paths.
 - Human review edits are append-only correction rows merged at read time; original Gemini extraction rows remain unchanged. JSON review queue, detail, correction, approval, rejection, and signed-evidence endpoints are available.
 - Session max-age/idle expiry, security headers, same-origin browser-write checks, and bounded login throttling are enabled.
 - BigQuery queries enforce configurable maximum bytes billed and timeouts.
-- Cloud Build worker sizing and smaller Docker contexts.
+- Cloud Build worker sizing and smaller Docker contexts via `.dockerignore`.
+- Cloud Tasks callbacks verify the Google-signed OIDC token and configured service account; forged queue headers are rejected.
+- Local verification: Ruff, mypy, 25 pytest tests, and the configured 70% coverage gate pass (86% measured coverage).
 - Stephenraj login identity is configurable as `BOOTSTRAP_ADMIN_EMAIL`; no password is committed.
 
 ## Deliberate deviations
@@ -44,13 +46,12 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 
 ## Go-live blockers, ranked
 
-1. Apply and verify the BigQuery schema migration in a non-production dataset.
-2. Configure Cloud Run service accounts, Secret Manager values, and IAM using least privilege.
-3. Move scanning to Cloud Tasks with bounded retries, idempotency, and scan-status polling.
+1. Deploy a new Cloud Run revision with the queue URL, queue service account, production Gemini model, and 1Gi backend memory; the live revision remains old.
+2. Configure Cloud Run service accounts, Secret Manager values, ingress, and IAM using least privilege; review the extra live Storage Object Viewer grant.
+3. Build and verify the BigQuery vector index and run a Terraform plan review; do not apply from this workspace.
 4. Configure production HTTPS, CSRF token propagation for API clients, session expiry/invalidation, login throttling, and security headers.
-5. Add maximum-bytes-billed, query labels, structured logs, readiness checks, and alerts.
-6. Add CI quality/security gates and run a Terraform plan review.
-7. Load-test upload, scan, review, delete, and vector-search flows with representative documents.
+5. Configure Cloud Monitoring alerts for scan failures, review queue depth, latency, and BigQuery cost.
+6. Load-test upload, scan, review, delete, and vector-search flows with representative documents.
 
 ## Verification commands
 

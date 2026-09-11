@@ -10,6 +10,7 @@ from ...routes import active_client, current_user
 from ...config import get_settings
 from ...repository import FinanceRepository
 from ...services.documents import GCSObjectStore
+from ...services.tasks import verify_cloud_tasks_request
 from .reporting import gstr_rows
 
 router = APIRouter(tags=["GST reports"])
@@ -53,7 +54,8 @@ def gstr_report_csv(request: Request, start: date | None = None, end: date | Non
 async def internal_scan_task(request: Request):
     settings = get_settings()
     queue_header = request.headers.get("x-cloudtasks-queuename", "")
-    if not settings.cloud_tasks_queue or queue_header != settings.cloud_tasks_queue.rsplit("/", 1)[-1]:
+    expected_queue = settings.cloud_tasks_queue.rsplit("/", 1)[-1] if settings.cloud_tasks_queue else ""
+    if (not settings.cloud_tasks_queue or queue_header != expected_queue or not verify_cloud_tasks_request(request, settings.cloud_tasks_service_url, settings.cloud_tasks_service_account)):
         raise HTTPException(403, "Cloud Tasks authentication required.")
     body = await request.json()
     from ...routes import run_scan_job

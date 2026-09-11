@@ -1,15 +1,1 @@
-.git
-.env
-.env.*
-.venv
-__pycache__
-.pytest_cache
-frontend/node_modules
-frontend/.next
-frontend/tsconfig.tsbuildinfo
-node_modules
-*.log
-postgres_data
-finance.db
-tests
-docs
+.git\n.github\n.venv\n__pycache__\n*.py[cod]\n.env\n.env.*\ntests\ndocs\ninfra\nfrontend/node_modules\n.next\n*.pptx\n

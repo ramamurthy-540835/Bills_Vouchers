@@ -17,5 +17,5 @@
 - Cloud Tasks API and the `scan` queue are now present in `aidirac-503309`; the deployed service still needs its queue URL/service-account environment variables and a new revision.
 - CSRF tokens, bounded login throttling, idle session expiry, request IDs, and structured request logging are implemented; verify production HTTPS and alert routing during deployment.
 - Maximum-bytes-billed, request labels, and query timeouts are implemented; verify partition/clustering and budget thresholds in the target dataset.
-- CI now includes Ruff substantive checks, mypy, pytest coverage, Docker builds, Trivy, pip-audit, and private-key detection; full style cleanup remains separate.
+- CI includes Ruff, mypy, pytest coverage, Docker builds, Trivy, pip-audit, and Gitleaks secret scanning.
 - Do not run Terraform apply from an unreviewed workstation. Review plan output first.
