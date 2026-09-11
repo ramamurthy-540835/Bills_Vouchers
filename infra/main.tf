@@ -75,6 +75,7 @@ resource "google_bigquery_table" "partitioned" {
   clustering = local.cluster_fields[each.key]
 }
 resource "google_project_iam_member" "storage_writer" { project=var.project_id role="roles/storage.objectCreator" member="serviceAccount:${google_service_account.app.email}" }
+resource "google_storage_bucket_iam_member" "storage_reader" { bucket=google_storage_bucket.documents.name role="roles/storage.objectViewer" member="serviceAccount:${google_service_account.app.email}" }
 resource "google_project_iam_member" "bq_editor" { project=var.project_id role="roles/bigquery.dataEditor" member="serviceAccount:${google_service_account.app.email}" }
 resource "google_project_iam_member" "bq_job_user" { project=var.project_id role="roles/bigquery.jobUser" member="serviceAccount:${google_service_account.app.email}" }
 resource "google_project_iam_member" "vertex_ai" { project=var.project_id role="roles/aiplatform.user" member="serviceAccount:${google_service_account.app.email}" }
