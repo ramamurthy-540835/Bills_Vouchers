@@ -221,6 +221,7 @@ def process_with_gemini(repo, document, payload):
             },
             f"{document.id}-{i}",
         )
+    update_document("status='extracted'")
     update_document(
         "validation_status=@status",
         [bigquery.ScalarQueryParameter("status", "STRING", validation["validation_status"])],
