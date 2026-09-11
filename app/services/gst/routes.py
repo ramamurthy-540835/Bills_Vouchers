@@ -60,5 +60,8 @@ async def internal_scan_task(request: Request):
     body = await request.json()
     from ...routes import run_scan_job
     from ...db import get_repository
-    run_scan_job(str(body["document_id"]), get_repository(), str(body.get("user_id", "")), str(body["client_id"]))
+    completed = run_scan_job(str(body["document_id"]), get_repository(), str(body.get("user_id", "")), str(body["client_id"]))
+    if not completed:
+        # A non-2xx response lets Cloud Tasks apply its configured retry policy.
+        raise HTTPException(500, "Scan failed; Cloud Tasks will retry the task.")
     return {"ok": True}

@@ -3,16 +3,37 @@ from typing import Any, Callable
 from ..config import get_settings
 
 
+def _mark_enqueue_failure(repo: Any, document_id: str, error: Exception) -> None:
+    try:
+        from google.cloud import bigquery
+
+        repo.update(
+            "documents",
+            "status='scan_failed', processing_error=@err",
+            "id=@id",
+            [
+                bigquery.ScalarQueryParameter("err", "STRING", str(error)[:2000]),
+                bigquery.ScalarQueryParameter("id", "STRING", document_id),
+            ],
+        )
+    except Exception:
+        # The original enqueue error is still raised; this is best-effort state repair.
+        pass
+
+
 def dispatch_scan(background_tasks: Any, callback: Callable[..., Any], document_id: str, repo: Any, user_id: str, client_id: str) -> str:
     settings = get_settings()
     if settings.cloud_tasks_queue and settings.cloud_tasks_service_url:
         try:
             return enqueue_scan(document_id, settings.cloud_tasks_service_url, settings.cloud_tasks_queue, settings.cloud_tasks_service_account, client_id, user_id)
-        except Exception:
+        except Exception as exc:
             if settings.app_env == "production":
+                _mark_enqueue_failure(repo, document_id, exc)
                 raise
     elif settings.app_env == "production":
-        raise RuntimeError("Cloud Tasks is required in production scan mode.")
+        error = RuntimeError("Cloud Tasks is required in production scan mode.")
+        _mark_enqueue_failure(repo, document_id, error)
+        raise error
     background_tasks.add_task(callback, document_id, repo, user_id, client_id)
     return "local-background"
 

@@ -16,7 +16,7 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - Current document status statistics and per-file deletion progress.
 - Deletion cleanup for extraction, line items, embeddings, and document metadata.
 - Client-scoped document access and viewer write protection.
-- Scan requests return `202` and expose a scan-status endpoint; Cloud Tasks is required in production and the local background fallback is development-only. Failures use `scan_failed`.
+- Scan requests return `202` and expose a scan-status endpoint; Cloud Tasks is required in production and the local background fallback is development-only. Enqueue failures become `scan_failed`, and failed authenticated task callbacks return non-2xx so Cloud Tasks retries within the configured cap.
 - Versioned `/api/v1` health, document-list, and client-scoped semantic-search endpoints are available; VECTOR_SEARCH is configured to use the IVF index when present.
 - Approved-document GST register exports are available at `/api/reports/gstr` and `/reports/gstr.csv`.
 - Review clients can request a five-minute signed GCS URL without exposing bucket paths.

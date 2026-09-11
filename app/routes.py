@@ -500,16 +500,17 @@ async def upload_document(
     })
 
 
-def run_scan_job(document_id, repo, user_id, client_id):
+def run_scan_job(document_id, repo, user_id, client_id) -> bool:
     from google.cloud import bigquery
 
     d = fr(repo).document(document_id, client_id)
     if not d:
-        return
+        return False
     try:
         e = process_with_gemini(fr(repo), d, GCSObjectStore(d.bucket_name).download(d.object_path))
         EmbeddingService(fr(repo)).index(d, e)
         fr(repo).audit(user_id, "scan", "document", d.id, client_id)
+        return True
     except Exception as exc:
         try:
             repo.bq.update(
@@ -523,6 +524,7 @@ def run_scan_job(document_id, repo, user_id, client_id):
             )
         except Exception:
             pass
+        return False
 
 
 @router.post("/documents/{document_id}/scan")
