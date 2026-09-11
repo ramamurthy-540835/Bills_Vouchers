@@ -1,4 +1,5 @@
 from ..config import get_settings
+from .retry import retry_call
 from typing import Any
 
 
@@ -30,6 +31,6 @@ def publish_document(document: Any, extraction: Any) -> None:
         "status": document.status.value,
         "uploaded_at": document.uploaded_at.isoformat(),
     }
-    errors = bigquery.Client(project=settings.gcp_project_id).insert_rows_json(table, [row], row_ids=[document.id])
+    errors = retry_call(lambda: bigquery.Client(project=settings.gcp_project_id).insert_rows_json(table, [row], row_ids=[document.id], timeout=settings.query_timeout_seconds))
     if errors:
         raise RuntimeError(f"BigQuery insert failed: {errors}")

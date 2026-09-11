@@ -40,7 +40,14 @@ class BigQueryRepository:
         return rows
 
     def insert(self, table, row, row_id=None):
-        errors = self.client.insert_rows_json(self.table(table), [row], row_ids=[row_id] if row_id else None)
+        errors = retry_call(
+            lambda: self.client.insert_rows_json(
+                self.table(table),
+                [row],
+                row_ids=[row_id] if row_id else None,
+                timeout=self.settings.query_timeout_seconds,
+            )
+        )
         if errors:
             raise RuntimeError(f"BigQuery insert failed: {errors}")
 

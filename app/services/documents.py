@@ -23,11 +23,11 @@ class GCSObjectStore:
 
     def upload(self, object_path, payload, mime_type):
         b = self._bucket().blob(object_path)
-        b.upload_from_string(payload, content_type=mime_type, checksum="auto")
+        b.upload_from_string(payload, content_type=mime_type, checksum="auto", timeout=get_settings().external_timeout_seconds)
         return f"gs://{self.bucket}/{object_path}"
 
     def download(self, object_path):
-        return self._bucket().blob(object_path).download_as_bytes()
+        return self._bucket().blob(object_path).download_as_bytes(timeout=get_settings().external_timeout_seconds)
 
     def signed_url(self, object_path, minutes: int = 5):
         return self._bucket().blob(object_path).generate_signed_url(version="v4", expiration=minutes * 60, method="GET")

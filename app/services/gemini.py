@@ -61,9 +61,9 @@ def scan_document(document, payload):
 
     s = __import__("app.config", fromlist=["get_settings"]).get_settings()
     c = (
-        genai.Client(api_key=s.gemini_api_key)
+        genai.Client(api_key=s.gemini_api_key, http_options=types.HttpOptions(timeout=s.external_timeout_seconds * 1000))
         if s.gemini_api_key
-        else genai.Client(vertexai=True, project=s.gcp_project_id, location=s.gcp_region)
+        else genai.Client(vertexai=True, project=s.gcp_project_id, location=s.gcp_region, http_options=types.HttpOptions(timeout=s.external_timeout_seconds * 1000))
     )
     prompt = """Extract this Indian bill or voucher exactly as structured JSON. Inspect the entire image, including the bottom of a long receipt. Capture supplier GSTIN, recipient GSTIN, supplier state code, place of supply, B2B flag, GST rate, HSN/SAC and classification when visible. The final payable TOTAL / GRAND TOTAL is mandatory whenever a visible rupee amount exists; do not leave total_amount blank. Capture subtotal before round-off when shown, and use the final amount after round-off as total_amount. For non-GST grocery receipts, set CGST, SGST and IGST to 0 when no tax lines are printed. Extract all visible line items and preserve useful receipt text in ocr_text. Never invent a number that is not visible."""
     r = retry_call(lambda: c.models.generate_content(

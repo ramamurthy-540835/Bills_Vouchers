@@ -10,13 +10,13 @@ class EmbeddingService:
 
     def embed(self, text, task):
         from google import genai
-        from google.genai.types import EmbedContentConfig
+        from google.genai.types import EmbedContentConfig, HttpOptions
 
         s = get_settings()
         c = (
-            genai.Client(api_key=s.gemini_api_key)
+            genai.Client(api_key=s.gemini_api_key, http_options=HttpOptions(timeout=s.external_timeout_seconds * 1000))
             if s.gemini_api_key
-            else genai.Client(vertexai=True, project=s.gcp_project_id, location=s.gcp_region)
+            else genai.Client(vertexai=True, project=s.gcp_project_id, location=s.gcp_region, http_options=HttpOptions(timeout=s.external_timeout_seconds * 1000))
         )
         r = retry_call(lambda: c.models.embed_content(
             model=s.embedding_model,

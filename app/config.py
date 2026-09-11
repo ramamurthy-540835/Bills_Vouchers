@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     session_idle_timeout: int = 1800
     max_query_bytes: int = 100000000
     query_timeout_seconds: int = 60
+    external_timeout_seconds: int = 60
     gcp_project_id: str = ""
     gcp_region: str = "global"
     gcs_bucket_name: str = ""
