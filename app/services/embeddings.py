@@ -35,6 +35,7 @@ class EmbeddingService:
         row = {
             "id": document.id,
             "document_id": document.id,
+            "client_id": getattr(document, "client_id", None),
             "content": text,
             "embedding": self.embed(text, "RETRIEVAL_DOCUMENT"),
             "document_type": document.document_type.value,
@@ -48,16 +49,17 @@ class EmbeddingService:
         }
         self.repo.bq.insert("document_embeddings", row, document.id)
 
-    def search(self, text, top_k=10):
+    def search(self, text, top_k=10, client_id: str | None = None):
         vector = self.embed(text, "RETRIEVAL_QUERY")
         params = [
             bigquery.ArrayQueryParameter("embedding", "FLOAT64", vector),
             bigquery.ScalarQueryParameter("top_k", "INT64", min(max(top_k, 1), 50)),
+            bigquery.ScalarQueryParameter("client", "STRING", client_id),
         ]
         table = self.repo.bq.table("document_embeddings")
         sql = (
-            "SELECT base.document_id,base.content,base.document_type,base.vendor_name,base.invoice_number,base.gstin,base.total_amount,base.gcs_uri,distance FROM VECTOR_SEARCH(TABLE `"
+            "SELECT base.document_id,base.client_id,base.content,base.document_type,base.vendor_name,base.invoice_number,base.gstin,base.total_amount,base.gcs_uri,distance FROM VECTOR_SEARCH(TABLE `"
             + table
-            + "`, 'embedding', query_value=>@embedding, top_k=>@top_k, distance_type=>'COSINE', options=>'{\"use_brute_force\":true}') ORDER BY distance"
+            + "`, 'embedding', query_value=>@embedding, top_k=>@top_k, distance_type=>'COSINE', options=>'{\"use_brute_force\":false}') WHERE (@client IS NULL OR base.client_id=@client) ORDER BY distance"
         )
         return [dict(r.items()) for r in self.repo.bq.query(sql, params)]

@@ -1242,8 +1242,9 @@ def api_documents(request: Request, repo=Depends(get_db), user=Depends(current_u
 
 
 @router.get("/api/documents/search")
-def api_document_search(q: str, top_k: int = 10, repo=Depends(get_db), user=Depends(current_user)):
-    return {"query": q, "results": EmbeddingService(fr(repo)).search(q, top_k)}
+def api_document_search(request: Request, q: str, top_k: int = 10, repo=Depends(get_db), user=Depends(current_user)):
+    client = active_client(request, repo, user)
+    return {"query": q, "client_id": client.id, "results": EmbeddingService(fr(repo)).search(q, top_k, client.id)}
 
 
 @router.post("/api/documents/upload")
@@ -1402,5 +1403,5 @@ def v1_documents(request: Request, limit: int = 50, page_token: str | None = Non
 
 
 @v1_router.get("/documents/search")
-def v1_document_search(q: str, top_k: int = 10, repo=Depends(get_db), user=Depends(current_user)):
-    return api_document_search(q, top_k, repo, user)
+def v1_document_search(request: Request, q: str, top_k: int = 10, repo=Depends(get_db), user=Depends(current_user)):
+    return api_document_search(request, q, top_k, repo, user)

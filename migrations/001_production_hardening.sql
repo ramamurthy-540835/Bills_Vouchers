@@ -35,3 +35,4 @@ PARTITION BY DATE(created_at)
 CLUSTER BY client_id, document_id;
 ALTER TABLE `PROJECT_ID.finance_analytics.users` ADD COLUMN IF NOT EXISTS must_change_password BOOL;
 ALTER TABLE `PROJECT_ID.finance_analytics.users` ADD COLUMN IF NOT EXISTS session_version INT64;
+ALTER TABLE `PROJECT_ID.finance_analytics.document_embeddings` ADD COLUMN IF NOT EXISTS client_id STRING;

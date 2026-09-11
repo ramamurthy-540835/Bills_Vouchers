@@ -17,7 +17,7 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - Deletion cleanup for extraction, line items, embeddings, and document metadata.
 - Client-scoped document access and viewer write protection.
 - Scan requests return `202` and expose a scan-status endpoint; Cloud Tasks is required in production and the local background fallback is development-only. Failures use `scan_failed`.
-- Versioned `/api/v1` health, document-list, and semantic-search compatibility endpoints are available.
+- Versioned `/api/v1` health, document-list, and client-scoped semantic-search endpoints are available; VECTOR_SEARCH is configured to use the IVF index when present.
 - Approved-document GST register exports are available at `/api/reports/gstr` and `/reports/gstr.csv`.
 - Review clients can request a five-minute signed GCS URL without exposing bucket paths.
 - Human review edits are append-only correction rows merged at read time; original Gemini extraction rows remain unchanged. Corrections re-run GST validation, and approval is blocked unless `validation_status=passed`. JSON review queue, detail, correction, approval, rejection, and signed-evidence endpoints are available.
@@ -49,7 +49,7 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 - Cloud Tasks API is enabled and queue `asia-south1/scan` is RUNNING with five attempts and a one-hour retry window.
 - The deployed `bills-voucher-00043-mf7` revision is not the new image: it still has 512Mi memory, `GEMINI_MODEL=gemini-2.5-flash`, and no Cloud Tasks callback environment variables. It must be updated in an approved deployment window.
 - The runtime service account currently has Storage Object Viewer in addition to the documented least-privilege roles; review and remove that extra grant if not required.
-- Live `documents`, `document_extractions`, `audit_logs`, `document_embeddings`, and journal tables are currently unpartitioned/unclustered; Terraform now declares future partitioning/clustering, but a reviewed table migration is still required before high-volume production use.
+- Live `documents`, `document_extractions`, `audit_logs`, `document_embeddings`, and journal tables are currently unpartitioned/unclustered; live embeddings also require the pending `client_id` schema migration for client-scoped vector search; Terraform now declares future partitioning/clustering, but a reviewed table migration is still required before high-volume production use.
 - Live `/healthz` is not yet available because the old revision is active; `/api/v1/health` currently responds successfully.
 
 ## Go-live blockers, ranked

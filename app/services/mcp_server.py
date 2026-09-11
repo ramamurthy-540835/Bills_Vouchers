@@ -12,9 +12,9 @@ mcp = FastMCP("bills-voucher-bigquery")
 
 
 @mcp.tool()
-def search_documents(query: str, top_k: int = 10) -> list[dict]:
-    """Semantic search over GST bills and vouchers using BigQuery VECTOR_SEARCH."""
-    return EmbeddingService(get_repository()).search(query, top_k)
+def search_documents(query: str, client_id: str, top_k: int = 10) -> list[dict]:
+    """Semantic search scoped to one client using BigQuery VECTOR_SEARCH."""
+    return EmbeddingService(get_repository()).search(query, top_k, client_id)
 
 
 @mcp.tool()
