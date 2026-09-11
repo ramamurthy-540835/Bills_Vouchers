@@ -15,7 +15,7 @@ def gstr_rows(repo: Any, client_id: str, start: date | None = None, end: date | 
     if end:
         clauses.append("e.invoice_date<=@end")
         params.append(bigquery.ScalarQueryParameter("end", "DATE", end))
-    sql = f"""SELECT e.gstin supplier_gstin, e.invoice_number, e.invoice_date,
+    sql = f"""SELECT COALESCE(e.supplier_gstin,e.gstin) supplier_gstin, e.invoice_number, e.invoice_date,
         e.subtotal taxable_value, e.cgst, e.sgst, e.igst, e.total_amount,
         e.classification, e.reverse_charge, e.irn
         FROM `{repo.table('document_extractions')}` e

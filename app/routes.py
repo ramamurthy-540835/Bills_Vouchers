@@ -1328,6 +1328,30 @@ def v1_health():
     return {"status": "ok", "persistence": "bigquery", "vector_search": True}
 
 
+@v1_router.get("/review/queue")
+def v1_review_queue(request: Request, limit: int = 50, page_token: str | None = None, repo=Depends(get_db), user=Depends(current_user)):
+    return api_review_queue(request, limit, page_token, repo, user)
+
+@v1_router.get("/review/{document_id}")
+def v1_review_detail(document_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    return api_review_detail(document_id, request, repo, user)
+
+@v1_router.patch("/review/{document_id}")
+async def v1_review_correction(document_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    return await api_review_correction(document_id, request, repo, user)
+
+@v1_router.post("/review/{document_id}/approve")
+def v1_review_approve(document_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    return api_review_approve(document_id, request, repo, user)
+
+@v1_router.post("/review/{document_id}/reject")
+async def v1_review_reject(document_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    return await api_review_reject(document_id, request, repo, user)
+
+@v1_router.get("/documents/{document_id}")
+def v1_document_detail(document_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    return api_document(document_id, request, repo, user)
+
 @v1_router.get("/documents")
 def v1_documents(request: Request, limit: int = 50, page_token: str | None = None, repo=Depends(get_db), user=Depends(current_user)):
     client = active_client(request, repo, user)
