@@ -35,12 +35,44 @@ locals {
     document_embeddings=[{name="id",type="STRING",mode="REQUIRED"},{name="document_id",type="STRING"},{name="content",type="STRING"},{name="embedding",type="FLOAT64",mode="REPEATED"},{name="document_type",type="STRING"},{name="status",type="STRING"},{name="vendor_name",type="STRING"},{name="invoice_number",type="STRING"},{name="gstin",type="STRING"},{name="total_amount",type="NUMERIC"},{name="gcs_uri",type="STRING"},{name="created_at",type="TIMESTAMP"}]
   }
 }
+locals {
+  partition_fields = {
+    documents = "uploaded_at"
+    document_extractions = "created_at"
+    document_corrections = "created_at"
+    audit_logs = "created_at"
+    document_embeddings = "created_at"
+    journal_entries = "created_at"
+  }
+  cluster_fields = {
+    documents = ["client_id", "status"]
+    document_extractions = ["document_id"]
+    document_corrections = ["client_id", "document_id"]
+    audit_logs = ["client_id", "entity"]
+    document_embeddings = ["document_type", "status"]
+    journal_entries = ["client_id", "entry_date"]
+  }
+  unpartitioned_tables = { for name, schema in local.tables : name => schema if !contains(keys(local.partition_fields), name) }
+  partitioned_tables = { for name, schema in local.tables : name => schema if contains(keys(local.partition_fields), name) }
+}
 resource "google_bigquery_table" "app" {
-  for_each=local.tables
+  for_each=local.unpartitioned_tables
   dataset_id=google_bigquery_dataset.finance.dataset_id
   table_id=each.key
   schema=jsonencode(each.value)
   deletion_protection=true
+}
+resource "google_bigquery_table" "partitioned" {
+  for_each = local.partitioned_tables
+  dataset_id = google_bigquery_dataset.finance.dataset_id
+  table_id = each.key
+  schema = jsonencode(each.value)
+  deletion_protection = true
+  time_partitioning {
+    type = "DAY"
+    field = local.partition_fields[each.key]
+  }
+  clustering = local.cluster_fields[each.key]
 }
 resource "google_project_iam_member" "storage_writer" { project=var.project_id role="roles/storage.objectCreator" member="serviceAccount:${google_service_account.app.email}" }
 resource "google_project_iam_member" "bq_editor" { project=var.project_id role="roles/bigquery.dataEditor" member="serviceAccount:${google_service_account.app.email}" }

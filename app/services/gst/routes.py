@@ -55,7 +55,7 @@ async def internal_scan_task(request: Request):
     settings = get_settings()
     queue_header = request.headers.get("x-cloudtasks-queuename", "")
     expected_queue = settings.cloud_tasks_queue.rsplit("/", 1)[-1] if settings.cloud_tasks_queue else ""
-    if (not settings.cloud_tasks_queue or queue_header != expected_queue or not verify_cloud_tasks_request(request, settings.cloud_tasks_service_url, settings.cloud_tasks_service_account)):
+    if (not settings.cloud_tasks_queue or queue_header not in {expected_queue, settings.cloud_tasks_queue} or not verify_cloud_tasks_request(request, settings.cloud_tasks_service_url, settings.cloud_tasks_service_account)):
         raise HTTPException(403, "Cloud Tasks authentication required.")
     body = await request.json()
     from ...routes import run_scan_job
