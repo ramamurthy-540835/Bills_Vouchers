@@ -2,7 +2,7 @@
 
 ## Current status
 
-The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`25 passed`, 86% coverage). This repository is not yet approved for unattended production deployment.
+The application is a BigQuery-only FastAPI/Next.js finance workspace with private GCS evidence storage, Gemini extraction, embeddings, and client-scoped workflows. The current local test suite passes (`27 passed`, 86% coverage). This repository is not yet approved for unattended production deployment.
 
 ## Implemented
 
@@ -38,8 +38,8 @@ The application is a BigQuery-only FastAPI/Next.js finance workspace with privat
 
 ## Latest artifact verification (2026-09-11)
 
-- Cloud Build `2af574dc-13d5-441f-a1e1-27096e6d12e9` succeeded for commit `cc94731` in project `aidirac-503309`.
-- Backend image: `asia-south1-docker.pkg.dev/aidirac-503309/finance/bills-voucher@sha256:c334b07046709166c6943ef37d3d057d1ac99aecd6057d5d3104f15dcf6a7261`.
+- Cloud Build `6d9a0879-a5a1-4967-b6aa-32107616a3c0` succeeded for commit `7f4f6f6` in project `aidirac-503309`.
+- Backend image: `asia-south1-docker.pkg.dev/aidirac-503309/finance/bills-voucher:7f4f6f6 (backend digest sha256:0a3485c0b6dcece2e4ae86df96da125acbfa2afa7c213c8d597b50cb3e4a7aed)`.
 - Frontend image was published with the same commit tag. The Cloud Run service was not changed by this build.
 
 ## Live GCP verification (2026-09-10)
