@@ -1,4 +1,5 @@
 import csv
+import json
 import logging
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -768,8 +769,16 @@ def review_document(document_id: str, request: Request, repo=Depends(get_db), us
     d = fr(repo).document(document_id, client.id)
     if not d:
         raise HTTPException(404, "Document not found.")
+    validation = None
+    raw_report = getattr(d.extraction, "validation_report", None) if d.extraction else None
+    if raw_report:
+        try:
+            validation = json.loads(raw_report)
+        except (TypeError, json.JSONDecodeError):
+            validation = {"errors": [], "warnings": []}
     return page(
-        "document_review.html", request, user=user, client=client, clients=clients, document=d, extraction=d.extraction
+        "document_review.html", request, user=user, client=client, clients=clients, document=d,
+        extraction=d.extraction, validation=validation,
     )
 
 

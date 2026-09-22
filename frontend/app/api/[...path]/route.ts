@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 const backend = () => process.env.BACKEND_URL || 'http://localhost:8000'
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params
-  const url = `${backend()}/api/${path.join('/')}${request.nextUrl.search}`
+  const isEvidenceFile = path.length === 3 && path[0] === 'documents' && path[2] === 'file'
+  const url = `${backend()}${isEvidenceFile ? '' : '/api'}/${path.join('/')}${request.nextUrl.search}`
   const headers = new Headers(request.headers)
   headers.delete('host')
   headers.delete('content-length')
