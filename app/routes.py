@@ -1399,7 +1399,7 @@ def api_dashboard(repo=Depends(get_db), user=Depends(current_user)):
 
 @router.get("/api/documents")
 def api_documents(request: Request, repo=Depends(get_db), user=Depends(current_user)):
-    return [_doc_json(x) for x in fr(repo).documents(active_client(request, repo, user).id)]
+    return [_doc_json(x) for x in fr(repo).documents(active_client(request, repo, user).id, include_extraction=True)]
 
 
 @router.get("/api/documents/search")
