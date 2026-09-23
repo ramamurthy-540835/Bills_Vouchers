@@ -1,0 +1,5 @@
+[
+  {"supplier_gstin":"27AAPFU0939F1ZV","supplier_name":"Demo Office Supplies","invoice_number":"DEMO-001","invoice_date":"2026-09-01","taxable_value":"10000.00","cgst":"900.00","sgst":"900.00","igst":"0.00","filing_status":true},
+  {"supplier_gstin":"27AAPFU0939F1ZV","supplier_name":"Demo Motor Cars","invoice_number":"CAR-017","invoice_date":"2026-09-02","taxable_value":"500000.00","cgst":"45000.00","sgst":"45000.00","igst":"0.00","filing_status":true},
+  {"supplier_gstin":"27AAPFU0939F1ZV","supplier_name":"Demo Catering","invoice_number":"CAT-180","invoice_date":"2026-03-01","taxable_value":"20000.00","cgst":"1800.00","sgst":"1800.00","igst":"0.00","filing_status":true}
+]

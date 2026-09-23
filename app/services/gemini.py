@@ -1,6 +1,7 @@
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 from google.cloud import bigquery
 
@@ -154,8 +155,9 @@ def process_with_gemini(repo, document, payload):
             ],
         ) is not None
     validation = validate_document(data, duplicate=duplicate, confidence_threshold=__import__("app.config", fromlist=["get_settings"]).get_settings().extraction_confidence_threshold)
+    extraction_id = str(uuid4())
     row = {
-        "id": document.id,
+        "id": extraction_id,
         "document_id": document.id,
         **{
             k: data.get(k)
@@ -192,23 +194,19 @@ def process_with_gemini(repo, document, payload):
         "ocr_confidence": None,
         "field_confidence": json.dumps(data.get("field_confidence") or {}, separators=(",", ":")),
         "validation_report": json.dumps(validation, separators=(",", ":")),
-        "created_at": str(document.uploaded_at),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "version": 1,
+        "is_current": True,
     }
-    repo.bq.query(
-        f"DELETE FROM `{repo.bq.table('document_extractions')}` WHERE document_id=@id",
-        [bigquery.ScalarQueryParameter("id", "STRING", document.id)],
-    )
-    repo.bq.insert("document_extractions", row, document.id)
-    repo.bq.query(
-        f"DELETE FROM `{repo.bq.table('document_line_items')}` WHERE extraction_id=@id",
-        [bigquery.ScalarQueryParameter("id", "STRING", document.id)],
-    )
+    # Append a new version instead of deleting/replacing streamed rows. BigQuery forbids
+    # DML against its streaming buffer for up to 90 minutes.
+    repo.bq.insert("document_extractions", row, extraction_id)
     for i, x in enumerate(data.get("line_items") or []):
         repo.bq.insert(
             "document_line_items",
             {
-                "id": f"{document.id}-{i}",
-                "extraction_id": document.id,
+                "id": f"{extraction_id}-{i}",
+                "extraction_id": extraction_id,
                 "line_number": i,
                 **{k: x.get(k) for k in ["item_name", "description", "unit", "hsn", "sac"]},
                 "quantity": numeric(x.get("quantity")),
@@ -219,7 +217,7 @@ def process_with_gemini(repo, document, payload):
                 "discount": numeric(x.get("discount")),
                 "total": numeric(x.get("total")),
             },
-            f"{document.id}-{i}",
+            f"{extraction_id}-{i}",
         )
     update_document("status='extracted'")
     update_document(

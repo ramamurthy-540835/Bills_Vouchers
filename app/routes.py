@@ -671,20 +671,15 @@ def scan_document(
     d = fr(repo).document(document_id, client.id)
     if not d:
         raise HTTPException(404, "Document not found.")
-    from google.cloud import bigquery
-
-    repo.bq.update(
-        "documents",
-        "status='scanning', processing_error=NULL",
-        "id=@id",
-        [bigquery.ScalarQueryParameter("id", "STRING", document_id)],
-    )
+    # Do not UPDATE the Bronze document row here: new BigQuery streamed rows
+    # cannot be mutated.  The background worker appends a Silver extraction,
+    # which is the authoritative completion signal.
     dispatch_scan(background_tasks, run_scan_job, document_id, repo, user.id, client.id)
     return JSONResponse(
         status_code=202,
         content={
             "document_id": document_id,
-            "status": "scanning",
+        "status": "queued",
             "status_url": f"/api/documents/{document_id}/scan-status",
         },
     )
@@ -1235,6 +1230,9 @@ def _doc_json(d):
         "status": d.status.value,
         "validation_status": getattr(d, "validation_status", None),
         "original_filename": d.original_filename,
+        "client_filename": getattr(d, "client_filename", None),
+        "storage_layer": getattr(d, "storage_layer", "BRONZE"),
+        "curated_filename": getattr(d, "curated_filename", None),
         "mime_type": d.mime_type,
         "file_size": d.file_size,
         "gcs_uri": d.gcs_uri,
@@ -1358,7 +1356,15 @@ def api_review_detail(document_id: str, request: Request, repo=Depends(get_db), 
     if not document:
         raise HTTPException(404, "Document not found.")
     result = _doc_json(document)
-    result["evidence_url"] = GCSObjectStore(document.bucket_name).signed_url(document.object_path)
+    # Signed URLs require IAM signing permission.  A missing permission must not
+    # make the whole review record unavailable: the user can still see and
+    # correct all extracted fields, and the UI receives a useful explanation.
+    try:
+        result["evidence_url"] = GCSObjectStore(document.bucket_name).signed_url(document.object_path)
+        result["evidence_error"] = None
+    except Exception:
+        result["evidence_url"] = None
+        result["evidence_error"] = "The original file preview is temporarily unavailable. Document details and extracted GST fields are still available."
     return result
 
 @router.patch("/api/review/{document_id}")
@@ -1458,7 +1464,7 @@ def api_scan_status(document_id: str, request: Request, repo=Depends(get_db), us
         "document_id": d.id,
         "status": d.status.value,
         "processing_error": d.processing_error,
-        "complete": d.status.value in ("needs_review", "approved", "rejected", "failed", "scan_failed"),
+        "complete": bool(d.extraction) or d.status.value in ("needs_review", "approved", "rejected", "failed", "scan_failed"),
     }
 
 

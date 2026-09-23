@@ -1,0 +1,6 @@
+[
+  {"supplier_gstin":"27AAPFU0939F1ZV","supplier_name":"Demo Office Supplies","invoice_number":"DEMO-001","invoice_date":"2026-09-01","taxable_value":"10000.00","cgst":"900.00","sgst":"900.00","igst":"0.00","has_tax_invoice":true,"goods_or_services_received":true,"purpose":"Taxable business stationery"},
+  {"supplier_gstin":"27AAPFU0939F1ZV","supplier_name":"Demo Motor Cars","invoice_number":"CAR-017","invoice_date":"2026-09-02","taxable_value":"500000.00","cgst":"45000.00","sgst":"45000.00","igst":"0.00","has_tax_invoice":true,"goods_or_services_received":true,"blocked_clause":"17(5)(a)","purpose":"Blocked passenger vehicle"},
+  {"supplier_gstin":"29ABCDE1234F1Z5","supplier_name":"Karnataka Software Services","invoice_number":"SVC-2026-09","invoice_date":"2026-09-04","taxable_value":"50000.00","igst":"9000.00","cgst":"0.00","sgst":"0.00","has_tax_invoice":true,"goods_or_services_received":true,"purpose":"2B-missing deferred ITC"},
+  {"supplier_gstin":"27AAPFU0939F1ZV","supplier_name":"Demo Catering","invoice_number":"CAT-180","invoice_date":"2026-03-01","taxable_value":"20000.00","cgst":"1800.00","sgst":"1800.00","igst":"0.00","has_tax_invoice":true,"goods_or_services_received":true,"unpaid_days":185,"purpose":"Rule 37 reversal"}
+]

@@ -1,4 +1,5 @@
 import hashlib
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -53,17 +54,24 @@ def create_document(repo, user, client, document_type, filename, mime, payload, 
     from uuid import uuid4
 
     checksum = hashlib.sha256(payload).hexdigest()
-    if repo.document_by_checksum(checksum):
-        raise HTTPException(409, "This document has already been uploaded.")
+    duplicate = repo.document_by_checksum(checksum, client.id)
+    if duplicate:
+        raise HTTPException(409, {"code": "DUPLICATE_DOCUMENT", "message": "This exact file has already been uploaded for this customer.", "document_id": str(duplicate.id)})
     s = get_settings()
     if not s.gcs_bucket_name:
         raise HTTPException(503, "GCS_BUCKET_NAME must be configured.")
     now = datetime.now(timezone.utc)
     did = str(uuid4())
     ext = Path(filename).suffix.lower()
-    safe_type = document_type.value.replace(" ", "_")
-    generated_name = f"{client.code}_{safe_type}_{now:%Y%m%d_%H%M%S}{ext}"
-    path = f"finance-documents/{client.code}/{now:%Y/%m}/{did}/{generated_name}"
+    # A stable, human-readable file name is kept alongside a UUID.  The UUID
+    # prevents collisions while the SHA-256 check prevents duplicate bills.
+    stem = re.sub(r"[^a-z0-9]+", "-", Path(filename).stem.lower()).strip("-")[:80] or "document"
+    customer_id = str(client.id)
+    safe_type = document_type.value.replace(" ", "-").lower()
+    generated_name = f"{safe_type}_{stem}_{now:%Y%m%dT%H%M%SZ}_{did[:8]}{ext}"
+    # Bronze is immutable source evidence.  Silver/Gold are BigQuery-derived
+    # records, preserving the original file while supporting clean/curated use.
+    path = f"bronze/customer_id={customer_id}/document_type={safe_type}/ingest_date={now:%Y-%m-%d}/{did}/{generated_name}"
     try:
         uri = store.upload(path, payload, mime)
     except Exception as exc:
@@ -77,6 +85,8 @@ def create_document(repo, user, client, document_type, filename, mime, payload, 
             "status": DocumentStatus.UPLOADED.value,
             "original_filename": filename,
             "client_filename": generated_name,
+            "storage_layer": "BRONZE",
+            "curated_filename": generated_name,
             "mime_type": mime,
             "file_size": len(payload),
             "checksum_sha256": checksum,

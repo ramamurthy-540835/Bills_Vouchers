@@ -152,15 +152,20 @@ class FinanceRepository:
         d.extraction = self.extraction(d.id)
         return d
 
-    def document_by_checksum(self, c):
+    def document_by_checksum(self, c, client_id=None):
+        params = [bigquery.ScalarQueryParameter("c", "STRING", c)]
+        scope = ""
+        if client_id is not None:
+            scope = " AND client_id=@client"
+            params.append(bigquery.ScalarQueryParameter("client", "STRING", str(client_id)))
         return self.bq.one(
-            f"SELECT id FROM `{self.bq.table('documents')}` WHERE checksum_sha256=@c LIMIT 1",
-            [bigquery.ScalarQueryParameter("c", "STRING", c)],
+            f"SELECT id FROM `{self.bq.table('documents')}` WHERE checksum_sha256=@c{scope} LIMIT 1",
+            params,
         )
 
     def extraction(self, did):
         r = self.bq.one(
-            f"SELECT * FROM `{self.bq.table('document_extractions')}` WHERE document_id=@id LIMIT 1",
+            f"SELECT * FROM `{self.bq.table('document_extractions')}` WHERE document_id=@id ORDER BY created_at DESC, version DESC LIMIT 1",
             [bigquery.ScalarQueryParameter("id", "STRING", did)],
         )
         if not r:

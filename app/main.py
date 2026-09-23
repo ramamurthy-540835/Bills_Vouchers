@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from hmac import compare_digest
 from uuid import uuid4
 
@@ -51,7 +52,7 @@ def create_app():
                     },
                     status_code=403,
                 )
-            if request.url.path not in {"/login", "/signup", "/api/auth/login", "/api/auth/csrf"}:
+            if request.url.path not in {"/login", "/signup", "/api/auth/login", "/api/auth/csrf", "/api/gst/demo/compute"}:
                 expected = request.cookies.get("csrf_token")
                 supplied = request.headers.get("x-csrf-token")
                 if not supplied:
