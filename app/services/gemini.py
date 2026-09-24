@@ -1,11 +1,14 @@
 import json
-from datetime import date
+import re
+from datetime import date, datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 from google.cloud import bigquery
 
 from .gst import normalize_invoice_number, validate_document
 from .ocr import decimal_or_none
+from .documents import GCSObjectStore
 from .retry import retry_call
 
 FIELDS = [
@@ -40,6 +43,8 @@ FIELDS = [
     "acknowledgement_date",
     "signed_qr_detected",
     "field_confidence",
+    "confidence",
+    "cess",
 ]
 SCHEMA: dict[str, Any] = {"type": "OBJECT", "properties": {k: {"type": "STRING"} for k in FIELDS}}
 SCHEMA["properties"]["field_confidence"] = {"type": "OBJECT", "additionalProperties": {"type": "STRING"}}
@@ -49,7 +54,7 @@ SCHEMA["properties"]["line_items"] = {
         "type": "OBJECT",
         "properties": {
             k: {"type": "STRING"}
-            for k in ["item_name", "description", "quantity", "unit", "unit_price", "taxable_value", "rate", "tax", "discount", "total", "hsn", "sac"]
+            for k in ["item_name", "description", "quantity", "unit", "unit_price", "taxable_value", "rate", "tax", "discount", "total", "hsn", "sac", "igst", "cgst", "sgst", "cess", "itc_category"]
         },
     },
 }
@@ -76,12 +81,16 @@ def scan_document(document, payload):
     try:
         if not r.text:
             raise ValueError("empty response")
-        return json.loads(r.text)
+        from decimal import Decimal
+        return json.loads(r.text, parse_float=Decimal)
     except Exception as exc:
         raise RuntimeError("Gemini returned invalid structured output.") from exc
 
 
 def process_with_gemini(repo, document, payload):
+    def safe_name(value, fallback):
+        cleaned = re.sub(r"[^a-z0-9]+", "-", str(value or "").lower()).strip("-")
+        return cleaned[:80] or fallback
     def update_document(set_sql, params=None):
         try:
             repo.bq.update(
@@ -142,11 +151,13 @@ def process_with_gemini(repo, document, payload):
         duplicate = repo.bq.one(
             f"""SELECT 1 FROM `{repo.bq.table('document_extractions')}` e
             JOIN `{repo.bq.table('documents')}` d ON d.id=e.document_id
-            WHERE e.document_id != @document_id AND UPPER(COALESCE(e.supplier_gstin, e.gstin))=@gstin
+            WHERE e.document_id != @document_id AND d.client_id=@client_id
+              AND UPPER(COALESCE(e.supplier_gstin, e.gstin))=@gstin
               AND REGEXP_REPLACE(UPPER(e.invoice_number), r'[^A-Z0-9]', '')=@invoice
               AND e.invoice_date BETWEEN @fy_start AND @fy_end LIMIT 1""",
             [
                 bigquery.ScalarQueryParameter("document_id", "STRING", document.id),
+                bigquery.ScalarQueryParameter("client_id", "STRING", str(document.client_id)),
                 bigquery.ScalarQueryParameter("gstin", "STRING", str(data.get("supplier_gstin") or data.get("gstin")).strip().upper()),
                 bigquery.ScalarQueryParameter("invoice", "STRING", normalized_invoice),
                 bigquery.ScalarQueryParameter("fy_start", "DATE", date(fy_start_year, 4, 1)),
@@ -154,8 +165,9 @@ def process_with_gemini(repo, document, payload):
             ],
         ) is not None
     validation = validate_document(data, duplicate=duplicate, confidence_threshold=__import__("app.config", fromlist=["get_settings"]).get_settings().extraction_confidence_threshold)
+    extraction_id = str(uuid4())
     row = {
-        "id": document.id,
+        "id": extraction_id,
         "document_id": document.id,
         **{
             k: data.get(k)
@@ -192,23 +204,37 @@ def process_with_gemini(repo, document, payload):
         "ocr_confidence": None,
         "field_confidence": json.dumps(data.get("field_confidence") or {}, separators=(",", ":")),
         "validation_report": json.dumps(validation, separators=(",", ":")),
-        "created_at": str(document.uploaded_at),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "version": 1,
+        "is_current": True,
     }
-    repo.bq.query(
-        f"DELETE FROM `{repo.bq.table('document_extractions')}` WHERE document_id=@id",
-        [bigquery.ScalarQueryParameter("id", "STRING", document.id)],
-    )
-    repo.bq.insert("document_extractions", row, document.id)
-    repo.bq.query(
-        f"DELETE FROM `{repo.bq.table('document_line_items')}` WHERE extraction_id=@id",
-        [bigquery.ScalarQueryParameter("id", "STRING", document.id)],
-    )
+    # Append a new version instead of deleting/replacing streamed rows. BigQuery forbids
+    # DML against its streaming buffer for up to 90 minutes.
+    repo.bq.insert("document_extractions", row, extraction_id)
+    # Keep Bronze immutable and write a content-named Silver copy for clean,
+    # curated use. Its manifest is append-only and traceable to extraction_id.
+    supplier = safe_name(data.get("vendor_name") or data.get("supplier_gstin"), "unknown-supplier")
+    invoice = safe_name(data.get("invoice_number"), "unassigned-invoice")
+    extension = document.original_filename.rsplit(".", 1)[-1].lower() if "." in document.original_filename else "bin"
+    content_filename = f"{supplier}_{invoice}_{document.id[:8]}.{extension}"
+    silver_path = f"silver/customer_id={document.client_id}/supplier={supplier}/invoice={invoice}/{content_filename}"
+    try:
+        silver_uri = GCSObjectStore(document.bucket_name).copy(document.object_path, silver_path)
+        repo.bq.insert("document_storage_manifest", {
+            "id": str(uuid4()), "document_id": document.id, "client_id": str(document.client_id),
+            "layer": "SILVER", "object_path": silver_path, "gcs_uri": silver_uri,
+            "content_filename": content_filename, "source_extraction_id": extraction_id,
+            "status": "ACTIVE", "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        # An archive-copy failure must not discard a valid extraction.
+        pass
     for i, x in enumerate(data.get("line_items") or []):
         repo.bq.insert(
             "document_line_items",
             {
-                "id": f"{document.id}-{i}",
-                "extraction_id": document.id,
+                "id": f"{extraction_id}-{i}",
+                "extraction_id": extraction_id,
                 "line_number": i,
                 **{k: x.get(k) for k in ["item_name", "description", "unit", "hsn", "sac"]},
                 "quantity": numeric(x.get("quantity")),
@@ -219,7 +245,7 @@ def process_with_gemini(repo, document, payload):
                 "discount": numeric(x.get("discount")),
                 "total": numeric(x.get("total")),
             },
-            f"{document.id}-{i}",
+            f"{extraction_id}-{i}",
         )
     update_document("status='extracted'")
     update_document(

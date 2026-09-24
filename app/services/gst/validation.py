@@ -5,7 +5,7 @@ from datetime import date
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
-ALLOWED_GST_RATES = frozenset(Decimal(str(x)) for x in (0, 0.1, 0.25, 1, 1.5, 3, 5, 7.5, 12, 18, 28))
+ALLOWED_GST_RATES = frozenset(Decimal(x) for x in ("0", "0.1", "0.25", "1", "1.5", "3", "5", "7.5", "12", "18", "28"))
 GSTIN_RE = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
 VALID_STATE_CODES = {f"{i:02d}" for i in range(1, 39)} | {"97", "99"}
 BASE36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"

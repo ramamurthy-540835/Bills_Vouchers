@@ -29,6 +29,7 @@ v1_router = APIRouter(prefix="/api/v1", tags=["v1"])
 
 
 def current_user(request: Request, repo=Depends(get_db)):
+    request.state.finance_repo = repo
     last_seen = request.session.get("last_seen")
     if last_seen and time() - float(last_seen) > get_settings().session_idle_timeout:
         request.session.clear()
@@ -44,6 +45,28 @@ def current_user(request: Request, repo=Depends(get_db)):
     if getattr(user, "must_change_password", False) and request.url.path not in {"/settings", "/api/auth/me", "/api/auth/csrf", "/api/auth/password", "/logout", "/api/auth/logout"}:
         raise HTTPException(403, {"code": "password_change_required", "message": "Change your password before continuing."})
     request.session["last_seen"] = str(time())
+    if get_settings().medallion_enabled:
+        from .services.gst.medallion import param
+        clients = FinanceRepository(repo).clients(user.id)
+        if clients:
+            selected = next((c for c in clients if c.id == request.session.get("client_id")), clients[0])
+            request.session["client_id"] = selected.id
+            role = repo.one(f"SELECT role FROM `{repo.table('client_user_role')}` WHERE client_id=@client_id AND email=@email AND is_current=TRUE ORDER BY effective_from DESC LIMIT 1", [param("client_id", selected.id), param("email", user.email.lower())])
+            user.role = str(role.role if role else user.role).lower()
+            if user.role == "accountant":
+                user.role = "tax_admin"
+            if user.role not in {"admin", "tax_admin", "client", "viewer"}:
+                user.role = "viewer"
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/auth/password", "/api/auth/logout", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+            raise HTTPException(403, "Viewer access is read-only.")
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path not in {"/api/auth/password", "/api/auth/logout", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+            from .services.gst.medallion import Medallion, live_only
+            live_only()
+            if clients:
+                Medallion(repo, selected.id, request.query_params.get("period") or request.session.get("period") or date.today().strftime("%Y-%m")).writable()
+        if request.url.path.endswith('.csv') or request.url.path in {'/api/reports/gstr', '/api/v1/reports/gstr'}:
+            from .services.gst.medallion import live_only
+            live_only()
     return user
 
 
@@ -52,6 +75,14 @@ def ctx(request, **kwargs):
     if not token:
         token = secrets.token_urlsafe(32)
         request.session["csrf_token"] = token
+    if get_settings().medallion_enabled and kwargs.get("client") and hasattr(request.state, 'finance_repo'):
+        from .services.gst.medallion import Medallion
+        period = request.query_params.get('period') or request.session.get('period') or date.today().strftime('%Y-%m')
+        profile = Medallion(request.state.finance_repo, kwargs['client'].id, period).profile()
+        kwargs['gst_profile'] = profile
+        kwargs['selected_period'] = period
+        kwargs['demo_fallback'] = get_settings().demo_fallback
+        kwargs['client'].gstin = profile.get('gstin') if profile else None
     return {"request": request, "csrf_token": token, **kwargs}
 
 
@@ -671,20 +702,15 @@ def scan_document(
     d = fr(repo).document(document_id, client.id)
     if not d:
         raise HTTPException(404, "Document not found.")
-    from google.cloud import bigquery
-
-    repo.bq.update(
-        "documents",
-        "status='scanning', processing_error=NULL",
-        "id=@id",
-        [bigquery.ScalarQueryParameter("id", "STRING", document_id)],
-    )
+    # Do not UPDATE the Bronze document row here: new BigQuery streamed rows
+    # cannot be mutated.  The background worker appends a Silver extraction,
+    # which is the authoritative completion signal.
     dispatch_scan(background_tasks, run_scan_job, document_id, repo, user.id, client.id)
     return JSONResponse(
         status_code=202,
         content={
             "document_id": document_id,
-            "status": "scanning",
+        "status": "queued",
             "status_url": f"/api/documents/{document_id}/scan-status",
         },
     )
@@ -1235,6 +1261,9 @@ def _doc_json(d):
         "status": d.status.value,
         "validation_status": getattr(d, "validation_status", None),
         "original_filename": d.original_filename,
+        "client_filename": getattr(d, "client_filename", None),
+        "storage_layer": getattr(d, "storage_layer", "BRONZE"),
+        "curated_filename": getattr(d, "curated_filename", None),
         "mime_type": d.mime_type,
         "file_size": d.file_size,
         "gcs_uri": d.gcs_uri,
@@ -1308,7 +1337,7 @@ async def api_login(request: Request, repo=Depends(get_db)):
 
 
 @router.get("/api/auth/csrf")
-def api_csrf(request: Request):
+def api_csrf(request: Request, user=Depends(current_user)):
     token = request.session.get("csrf_token")
     if not token:
         token = secrets.token_urlsafe(32)
@@ -1317,14 +1346,26 @@ def api_csrf(request: Request):
 
 
 @router.post("/api/auth/logout")
-def api_logout(request: Request):
+def api_logout(request: Request, user=Depends(current_user)):
     request.session.clear()
     return {"ok": True}
 
 
 @router.get("/api/auth/me")
-def api_me(user=Depends(current_user)):
-    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False))}
+def api_me(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+
+    clients = fr(repo).clients(user.id)
+    active = next((client for client in clients if client.id == request.session.get("client_id")), clients[0] if clients else None)
+    active_client_context = None
+    if active:
+        request.session["client_id"] = active.id
+        profile = repo.one(
+            f"SELECT legal_name, trade_name, gstin FROM `{repo.table('gst_client_profile')}` WHERE client_id=@client_id AND is_current=TRUE ORDER BY effective_from DESC LIMIT 1",
+            [bigquery.ScalarQueryParameter("client_id", "STRING", active.id)],
+        )
+        active_client_context = {"id": active.id, "name": (profile.trade_name or profile.legal_name) if profile else active.name, "gstin": profile.gstin if profile else active.gstin}
+    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False)), "active_client": active_client_context}
 
 
 @router.post("/api/auth/password")
@@ -1358,7 +1399,15 @@ def api_review_detail(document_id: str, request: Request, repo=Depends(get_db), 
     if not document:
         raise HTTPException(404, "Document not found.")
     result = _doc_json(document)
-    result["evidence_url"] = GCSObjectStore(document.bucket_name).signed_url(document.object_path)
+    # Signed URLs require IAM signing permission.  A missing permission must not
+    # make the whole review record unavailable: the user can still see and
+    # correct all extracted fields, and the UI receives a useful explanation.
+    try:
+        result["evidence_url"] = GCSObjectStore(document.bucket_name).signed_url(document.object_path)
+        result["evidence_error"] = None
+    except Exception:
+        result["evidence_url"] = None
+        result["evidence_error"] = "The original file preview is temporarily unavailable. Document details and extracted GST fields are still available."
     return result
 
 @router.patch("/api/review/{document_id}")
@@ -1387,8 +1436,8 @@ async def api_review_reject(document_id: str, request: Request, repo=Depends(get
     return transition_document(document_id, request, "rejected", str(payload.get("reason", "")), repo, user)
 
 @router.get("/api/dashboard")
-def api_dashboard(repo=Depends(get_db), user=Depends(current_user)):
-    client = fr(repo).clients(user.id)[0]
+def api_dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    client = active_client(request, repo, user)
     return {
         "client_id": client.id,
         "documents": len(fr(repo).documents(client.id)),
@@ -1458,7 +1507,7 @@ def api_scan_status(document_id: str, request: Request, repo=Depends(get_db), us
         "document_id": d.id,
         "status": d.status.value,
         "processing_error": d.processing_error,
-        "complete": d.status.value in ("needs_review", "approved", "rejected", "failed", "scan_failed"),
+        "complete": bool(d.extraction) or d.status.value in ("needs_review", "approved", "rejected", "failed", "scan_failed"),
     }
 
 
@@ -1503,7 +1552,7 @@ def health():
 
 
 @router.get("/api/health")
-def api_health():
+def api_health(user=Depends(current_user)):
     return {"status": "ok", "persistence": "bigquery", "vector_search": True}
 
 

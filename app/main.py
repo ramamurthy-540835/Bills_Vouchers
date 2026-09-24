@@ -51,7 +51,7 @@ def create_app():
                     },
                     status_code=403,
                 )
-            if request.url.path not in {"/login", "/signup", "/api/auth/login", "/api/auth/csrf"}:
+            if request.url.path not in {"/login", "/signup", "/api/auth/login", "/api/auth/csrf", "/internal/pipeline/document", "/internal/tasks/scan"}:
                 expected = request.cookies.get("csrf_token")
                 supplied = request.headers.get("x-csrf-token")
                 if not supplied:
@@ -104,6 +104,8 @@ def create_app():
     app.include_router(router)
     app.include_router(v1_router)
     app.include_router(gst_router)
+    from .services.gst.workbench import router as workbench_router
+    app.include_router(workbench_router)
 
     @app.on_event("startup")
     def startup():
@@ -111,6 +113,9 @@ def create_app():
             FinanceRepository(get_repository()).ensure_admin(
                 hash_password(s.bootstrap_admin_password), s.bootstrap_admin_email
             )
+        if s.red_taxi_client_bootstrap:
+            from .services.gst.bootstrap import bootstrap
+            bootstrap(get_repository())
 
     return app
 

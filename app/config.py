@@ -10,6 +10,14 @@ class Settings(BaseSettings):
     max_upload_mb: int = 15
     bootstrap_admin_email: str = "stephenraj040899@gmail.com"
     bootstrap_admin_password: str = ""
+    red_taxi_client_bootstrap: str = ""
+    demo_fallback: bool = False
+    medallion_enabled: bool = False
+    document_landed_topic: str = ""
+    pipeline_push_audience: str = ""
+    pipeline_push_service_account: str = ""
+    gst_schema_version: str = "bv-draft-2026-09"
+    document_ai_processor: str = ""
     session_max_age: int = 28800
     session_idle_timeout: int = 1800
     max_query_bytes: int = 100000000

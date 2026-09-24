@@ -1,1 +1,9 @@
-.git\n.github\n.venv\n__pycache__\n*.py[cod]\n.env\n.env.*\ntests\ndocs\ninfra\nfrontend/node_modules\n.next\n*.pptx\n
+.git
+.venv
+__pycache__
+*.pyc
+.env
+.env.*
+frontend/node_modules
+frontend/.next
+artifacts

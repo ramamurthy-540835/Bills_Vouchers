@@ -49,6 +49,27 @@ class FinanceRepository:
                 rid,
             )
 
+    def ensure_client_user(self, email, password_hash, client_name="Red Taxi"):
+        client = self.bq.one(f"SELECT * FROM `{self.bq.table('clients')}` WHERE LOWER(name)=LOWER(@name) LIMIT 1", [bigquery.ScalarQueryParameter("name", "STRING", client_name)])
+        now = datetime.now(timezone.utc).isoformat()
+        if not client:
+            client_id = str(uuid4())
+            self.bq.insert("clients", {"id": client_id, "code": "red-taxi", "name": client_name, "gstin": None, "address": None, "is_active": True, "created_at": now}, client_id)
+        else:
+            client_id = client.id
+        user = self.user_by_email(email)
+        if not user:
+            user_id = str(uuid4())
+            self.bq.insert("users", {"id": user_id, "email": email.lower(), "password_hash": password_hash, "full_name": client_name, "role": "viewer", "is_active": True, "must_change_password": True, "session_version": 0, "created_at": now}, user_id)
+        else:
+            user_id = user.id
+        if not self.can_access_client(user_id, client_id):
+            membership_id = str(uuid4())
+            self.bq.insert("client_memberships", {"id": membership_id, "user_id": user_id, "client_id": client_id, "access_role": "client", "is_active": True, "created_at": now}, membership_id)
+        if not self.bq.one(f"SELECT 1 FROM `{self.bq.table('client_user_role')}` WHERE email=@email AND client_id=@client_id AND is_current=TRUE LIMIT 1", [bigquery.ScalarQueryParameter("email", "STRING", email.lower()), bigquery.ScalarQueryParameter("client_id", "STRING", client_id)]):
+            self.bq.insert("client_user_role", {"email": email.lower(), "client_id": client_id, "role": "client", "effective_from": now, "effective_to": None, "is_current": True}, f"{email.lower()}:{client_id}:client")
+        return client_id
+
     def clients(self, user_id=None):
         if user_id:
             sql = f"""SELECT c.* FROM `{self.bq.table("clients")}` c JOIN `{self.bq.table("client_memberships")}` m ON c.id=m.client_id WHERE m.user_id=@uid AND m.is_active=TRUE AND c.is_active=TRUE ORDER BY c.name"""
@@ -152,15 +173,20 @@ class FinanceRepository:
         d.extraction = self.extraction(d.id)
         return d
 
-    def document_by_checksum(self, c):
+    def document_by_checksum(self, c, client_id=None):
+        params = [bigquery.ScalarQueryParameter("c", "STRING", c)]
+        scope = ""
+        if client_id is not None:
+            scope = " AND client_id=@client"
+            params.append(bigquery.ScalarQueryParameter("client", "STRING", str(client_id)))
         return self.bq.one(
-            f"SELECT id FROM `{self.bq.table('documents')}` WHERE checksum_sha256=@c LIMIT 1",
-            [bigquery.ScalarQueryParameter("c", "STRING", c)],
+            f"SELECT id FROM `{self.bq.table('documents')}` WHERE checksum_sha256=@c{scope} LIMIT 1",
+            params,
         )
 
     def extraction(self, did):
         r = self.bq.one(
-            f"SELECT * FROM `{self.bq.table('document_extractions')}` WHERE document_id=@id LIMIT 1",
+            f"SELECT * FROM `{self.bq.table('document_extractions')}` WHERE document_id=@id ORDER BY created_at DESC, version DESC LIMIT 1",
             [bigquery.ScalarQueryParameter("id", "STRING", did)],
         )
         if not r:

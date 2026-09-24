@@ -19,3 +19,7 @@ frontend/out/
 frontend/tsconfig.tsbuildinfo
 
 frontend/.env.local
+
+artifacts/
+.mypy_cache/
+.ruff_cache/

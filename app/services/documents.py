@@ -1,4 +1,5 @@
 import hashlib
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -23,11 +24,23 @@ class GCSObjectStore:
 
     def upload(self, object_path, payload, mime_type):
         b = self._bucket().blob(object_path)
-        b.upload_from_string(payload, content_type=mime_type, checksum="auto", timeout=get_settings().external_timeout_seconds)
+        from google.api_core.exceptions import PreconditionFailed
+        try:
+            b.upload_from_string(payload, content_type=mime_type, checksum="auto", timeout=get_settings().external_timeout_seconds,
+                                 if_generation_match=0 if object_path.startswith(("bronze/", "gold/")) else None)
+        except PreconditionFailed:
+            if b.download_as_bytes() != payload:
+                raise RuntimeError("Immutable evidence already exists with different content")
         return f"gs://{self.bucket}/{object_path}"
 
     def download(self, object_path):
         return self._bucket().blob(object_path).download_as_bytes(timeout=get_settings().external_timeout_seconds)
+
+    def copy(self, source_path, destination_path):
+        """Create a content-named derived copy without mutating Bronze evidence."""
+        bucket = self._bucket()
+        bucket.copy_blob(bucket.blob(source_path), bucket, new_name=destination_path)
+        return f"gs://{self.bucket}/{destination_path}"
 
     def signed_url(self, object_path, minutes: int = 5):
         return self._bucket().blob(object_path).generate_signed_url(version="v4", expiration=minutes * 60, method="GET")
@@ -53,17 +66,24 @@ def create_document(repo, user, client, document_type, filename, mime, payload, 
     from uuid import uuid4
 
     checksum = hashlib.sha256(payload).hexdigest()
-    if repo.document_by_checksum(checksum):
-        raise HTTPException(409, "This document has already been uploaded.")
+    duplicate = repo.document_by_checksum(checksum, client.id)
+    if duplicate:
+        raise HTTPException(409, {"code": "DUPLICATE_DOCUMENT", "message": "This exact file has already been uploaded for this customer.", "document_id": str(duplicate.id)})
     s = get_settings()
     if not s.gcs_bucket_name:
         raise HTTPException(503, "GCS_BUCKET_NAME must be configured.")
     now = datetime.now(timezone.utc)
     did = str(uuid4())
     ext = Path(filename).suffix.lower()
-    safe_type = document_type.value.replace(" ", "_")
-    generated_name = f"{client.code}_{safe_type}_{now:%Y%m%d_%H%M%S}{ext}"
-    path = f"finance-documents/{client.code}/{now:%Y/%m}/{did}/{generated_name}"
+    # A stable, human-readable file name is kept alongside a UUID.  The UUID
+    # prevents collisions while the SHA-256 check prevents duplicate bills.
+    stem = re.sub(r"[^a-z0-9]+", "-", Path(filename).stem.lower()).strip("-")[:80] or "document"
+    customer_id = str(client.id)
+    safe_type = document_type.value.replace(" ", "-").lower()
+    generated_name = f"{safe_type}_{stem}_{now:%Y%m%dT%H%M%SZ}_{did[:8]}{ext}"
+    # Bronze is immutable source evidence.  Silver/Gold are BigQuery-derived
+    # records, preserving the original file while supporting clean/curated use.
+    path = f"bronze/customer_id={customer_id}/document_type={safe_type}/ingest_date={now:%Y-%m-%d}/{did}/{generated_name}"
     try:
         uri = store.upload(path, payload, mime)
     except Exception as exc:
@@ -77,6 +97,8 @@ def create_document(repo, user, client, document_type, filename, mime, payload, 
             "status": DocumentStatus.UPLOADED.value,
             "original_filename": filename,
             "client_filename": generated_name,
+            "storage_layer": "BRONZE",
+            "curated_filename": generated_name,
             "mime_type": mime,
             "file_size": len(payload),
             "checksum_sha256": checksum,

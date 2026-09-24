@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}GST Filing & ITC{% endblock %}
+{% block content %}<p class="eyebrow">FINANCE CONTROL PLANE</p><h1>GST Filing & ITC</h1><p>Return period {{workspace.period}}</p>
+{% if not workspace.profile or not workspace.profile.gstin %}<div class="notice">GSTIN pending. Upload and review bills now; filing exports require a complete profile.</div>{% endif %}
+<section class="card"><h2>Input credit and output tax</h2>{% if workspace.summary %}<table><thead><tr><th>Head</th><th>Eligible ITC</th><th>Net payable</th></tr></thead><tbody>{% for head in ['igst','cgst','sgst','cess'] %}<tr><td>{{head|upper}}</td><td>{{workspace.summary.eligible_by_head[head]}}</td><td>{{workspace.summary.net_payable_by_head[head]}}</td></tr>{% endfor %}</tbody></table>{% else %}<p>No computed figures for this period. Upload purchase invoices and import GSTR-2B in the web workspace.</p>{% endif %}</section>
+<section class="card"><h2>Filing status</h2><p>{{workspace.filing.state}}</p></section>{% endblock %}

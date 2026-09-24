@@ -11,3 +11,5 @@ itsdangerous>=2.2
 email-validator>=2.2
 bcrypt>=4.0,<4.1
 google-cloud-tasks>=2.16
+google-cloud-pubsub>=2.26
+google-cloud-documentai>=3.0
