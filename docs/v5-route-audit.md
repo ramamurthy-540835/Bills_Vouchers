@@ -4,7 +4,7 @@ Updated 2026-09-24. This table inventories every Python route decorator in the c
 
 ## Resolution chain
 
-Next.js server page -> signed backend session -> users -> active client_memberships -> selected client -> current client_user_role -> gst_client_profile. Workspace queries bind client_id and period. A missing profile produces incomplete-profile chrome; a missing session redirects before rendering. Sample figures live only in frontend/app/sample.ts and require DEMO_FALLBACK from the authenticated workspace response.
+Next.js server page -> signed backend session -> users -> active client_memberships -> selected client -> current client_user_role -> gst_client_profile. Workspace queries bind client_id and period. A missing profile produces incomplete-profile chrome; a missing session redirects before rendering. Legacy illustrations require DEMO_FALLBACK. The explicitly selected /demo workspace uses generated synthetic records from mock_data.py; live Overview has no sample fallback.
 
 D1 was located in the recovered preview frontend/app/page.tsx: its company context used the Umesh GSTIN independently of the resolved user name. That component and the fixture-only filing page have been replaced. Recovery source: Cloud Build f70ce346-7cda-4642-8b8c-c6b2ca829795; the later production build did not contain the complete preview implementation.
 
@@ -16,7 +16,10 @@ D1 was located in the recovered preview frontend/app/page.tsx: its company conte
 | `/documents` | Server proxy + backend session | Workspace identity | Complete shell / empty or error card | Bronze, silver, gold via API | PASS (browser gate) |
 | `/documents/[id]` | Server proxy + backend session | Workspace identity | Complete shell / empty or error card | Bronze, silver, gold via API | PASS (browser gate) |
 | `/gst/filing` | Server proxy + backend session | Workspace identity | Complete shell / empty or error card | Bronze, silver, gold via API | PASS (browser gate) |
+| `/gst/workspace` | Server proxy + backend session | Workspace identity | Complete shell / empty or error card | Bronze, silver, gold via API | PASS (browser gate) |
 | `/search` | Server proxy + backend session | Workspace identity | Complete shell / empty or error card | Bronze, silver, gold via API | PASS (browser gate) |
+| `/assistant` | Server proxy + backend session | Workspace identity | Complete shell / empty or error card | Bronze, silver, gold via API | PASS (browser gate) |
+| `/demo` | Server proxy + backend session | Workspace identity | Complete shell / empty or error card | Bronze, silver, gold via API | PASS (browser gate) |
 | `/login` | Public sign-in | Not yet selected | Sign-in form | Identity | PASS |
 | `/settings` | Server proxy; password API session | Not needed for own password | Password form | Identity | PASS; standalone security flow |
 | `/api/[...path]` | Forwarded cookie, backend authorization | Backend | Structured error | Backend | PASS |
@@ -77,7 +80,7 @@ D1 was located in the recovered preview frontend/app/page.tsx: its company conte
 | `PATCH /api/review/{document_id}` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Legacy scoped tables | PASS |
 | `POST /api/review/{document_id}/approve` | Session dependency | Delegates to scoped handler | Empty response or explicit error; page templates retain shell | Legacy scoped tables | PASS |
 | `POST /api/review/{document_id}/reject` | Session dependency | Delegates to scoped handler | Empty response or explicit error; page templates retain shell | Legacy scoped tables | PASS |
-| `GET /api/dashboard` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Legacy scoped tables | PASS |
+| `GET /api/dashboard` | Session dependency | Delegates to scoped handler | Empty response or explicit error; page templates retain shell | Gold financial data; profile/status metadata | PASS |
 | `GET /api/documents` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Legacy scoped tables | PASS |
 | `GET /api/documents/search` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Legacy scoped tables | PASS |
 | `POST /api/documents/upload` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Legacy scoped tables | PASS |
@@ -126,8 +129,15 @@ D1 was located in the recovered preview frontend/app/page.tsx: its company conte
 | `POST /api/gst/filing/transition` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Medallion (bronze/silver/gold) | PASS |
 | `POST /api/gst/filing/generate/{kind}` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Medallion (bronze/silver/gold) | PASS |
 | `POST /internal/pipeline/document` | OIDC identity | Identity / service scope | Empty response or explicit error; page templates retain shell | Medallion (bronze/silver/gold) | PASS |
+| `GET /api/demo/scenarios` | Session dependency | Explicit demo namespace | Empty response or explicit error; page templates retain shell | Generated synthetic records; no customer financial tables | PASS |
+| `GET /api/demo/data` | Session dependency | Explicit demo namespace | Empty response or explicit error; page templates retain shell | Generated synthetic records; no customer financial tables | PASS |
+| `GET /api/demo/search` | Session dependency | Explicit demo namespace | Empty response or explicit error; page templates retain shell | Generated synthetic records; no customer financial tables | PASS |
+| `POST /api/demo/chat` | Session dependency | Explicit demo namespace | Empty response or explicit error; page templates retain shell | Generated synthetic records; no customer financial tables | PASS |
+| `POST /api/assistant/chat` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Selected client Gold and scoped source evidence; read-only Gemini | PASS |
+| `GET /api/gst/workspace` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | GST profile / gold | PASS |
+| `GET /api/gst/workspace/download` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | GST profile / gold | PASS |
 
-Backend registrations inventoried: **101**.
+Backend registrations inventoried: **108**.
 
 ## Verification limits
 

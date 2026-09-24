@@ -131,3 +131,43 @@ Deferred/incomplete items remain as recorded above: Red Taxi GSTIN, current offi
 After the user-authorised password reset, an actual Chrome sign-in reproduced a redirect back to login despite successful API authentication. SSR forwarded `cookies().toString()`, which percent-encoded base64 padding in the signed session cookie and invalidated its signature. Workspace and document-detail SSR now forward the original incoming Cookie header unchanged. The API-only and temporary-session checks above did not catch this browser flow.
 
 Added padded-session authentication coverage to the local browser matrix; all four modes passed. Production build passed. Cloud Build `7a4ae774-4308-446d-b27f-39d875b8d066` deployed image r5 to preview revision `bills-voucher-web-00030-zil`. Actual Chrome password login, dashboard reload, Documents, Filing and Search all passed against the deployed preview. Production web traffic remains 100% on `bills-voucher-web-00027-67p`. No code was committed or pushed; no password is stored in this report or source files.
+
+### Expired-session sign-in correction — 2026-09-24
+
+Following the authorised push of the preceding changes to `stephenv5` (`2b5d037`), the user reported another login loop. A fresh browser succeeded. Regression tests then reproduced a distinct failure: successful login retained an old session's expired `last_seen`, causing the next authenticated request to return 401. Both HTML and API login now clear the previous session and initialise a fresh idle timestamp after verifying credentials.
+
+Both regression cases failed before the fix; all 45 tests, Ruff and mypy passed after it. Cloud Build `673a0240-3eed-4f1c-9307-1512c62f69b3` succeeded. Backend image r6 deployed to `bills-voucher-00091-law` on `v5-api`. Actual Chrome password login and dashboard reload passed with both a deliberately expired signed test session and a fresh session. Test credentials stayed in memory. Production remains 100% on backend `bills-voucher-00084-5gr`; old `api-preview` is unchanged. This follow-up fix is deployed but not yet committed or pushed.
+
+### Gold-only customer Overview — 2026-09-24
+
+At the user's request, Overview is now a financial dashboard. Python service `app/services/gst/dashboard.py` queries only Gold summary/current-run ledger tables for financial figures. Identity and filing state use their existing metadata tables. Overview shows eligible credit, output tax (including ECO), cash required, input tax and credit adjustments; it excludes the upload control, filenames, raw extracted totals and document pipeline. Documents retains the pipeline and review queue. No sample fallback is permitted on Overview.
+
+Backend gates: 47 tests, Ruff and mypy passed. Tests prove no Bronze/Silver financial reads, no cross-tenant data, current-run selection and Decimal totals. Browser matrix includes empty, viewer, second tenant, sample and populated Gold states on desktop/mobile. A populated mobile table overflow was corrected and the five-state matrix passed. Live verification caught the existing `/api/dashboard` route shadowing the newly registered route; the existing route now delegates to the Gold service, with integrated-router test coverage and a single route registration.
+
+Builds: backend r7 `98588404-6dc7-4946-bc9b-18a90c59ef22`; final web r8 `90e6fa4a-0371-49ce-b85a-12bc61f5ed24`; corrected backend r9 `3babbb21-b3e6-4244-9844-747691d45a04`. Web revision `bills-voucher-web-00031-qoq` serves the preview tag; final backend deployment verification is pending. The user's additional Python-code sentence was truncated; clarification is still pending. These follow-up changes have not been committed or pushed.
+
+Final verification passed: backend `bills-voucher-00093-pez` on `v5-api`, zero production traffic. Actual Chrome login and Overview show the correct tenant and Gold-only financial payload (0 validated invoices for this period), without any FreshKart invoice details, source filenames, review counters or pipeline. Mobile layout passed. Documents still contains the original FreshKart invoice and review queue. Web production remains on `bills-voucher-web-00027-67p`; the preview URL is unchanged.
+
+### Python mock generator, search and conversational assistant — 2026-09-24
+
+Delivered `scripts/generate_mock_data.py` and reusable `app/services/gst/mock_data.py`, producing 15 deterministic synthetic scenarios and portable JSON without cloud writes. Generated all scenarios into ignored `artifacts/mock-data.json`. `/demo` exposes the same generator through Dashboard, Documents, Filing, Search and Assistant tabs, with explicit synthetic labels, no write/filing controls, invoice detail views and pagination. JSON downloads exclude signed-in account metadata. Live Overview remains Gold-only.
+
+Enhanced live and demo search with text terms, review status, decimal amount ranges and pagination. Live search states its latest-500-document bound. `/assistant` provides read-only Gemini answers for the selected customer/period. Demo chat uses only its generated scenario. Both use Gold financial totals, bounded source evidence, bounded conversation history, server-allowlisted citations, input limits, CSRF/authentication and a process-local throttle. No agent write tools or SQL execution exist. Fixed stale CSRF cookie synchronization after session reset and added regression coverage.
+
+Validation: **67 tests passed**, Ruff and mypy passed (38 modules); frontend production build passed. Local browser checks passed for all 15 scenarios, navigation links, read-only controls, pagination, search/no-results, invoice details, cited conversation/follow-ups (stubbed model), and mobile. A separate real Gemini test answered from synthetic Gold facts with a valid source citation.
+
+Cloud Build `807e55ed-3884-4ebe-a4a0-d223627a65c5` (backend r10) and `532238a9-6d96-4e72-a0e4-22ad9bd92d81` (web r11) succeeded. Preview revisions: backend `bills-voucher-00094-zoj`, web `bills-voucher-web-00032-fav`. Actual deployed Chrome checks passed for synthetic-only JSON downloads, mock search, Gemini conversation and citations, separate real-customer assistant context, and unchanged customer document IDs/totals. Production remains 100% on original backend `bills-voucher-00084-5gr` and web `bills-voucher-web-00027-67p`; original API preview tag is unchanged.
+
+Usage and limitations: `docs/mock-data-and-assistant.md`. These follow-up changes remain uncommitted/unpushed on local `stephenv5`.
+
+### Actual-client GST Workspace — 2026-09-25
+
+Replaced the main Demo workspace navigation item with authenticated `/gst/workspace`. Actual-client monthly, quarter and April–March financial-year reports show purchase corrections, ITC decisions and tax-head calculations, reconciliation, sales, GSTR-2B, client configuration and readiness checks. Searches and source-review links operate on the selected customer's records. Gold remains the sole source of financial totals. Consolidated cash adds stored monthly estimates rather than retrospectively offsetting credit across months.
+
+Added scoped report and working-paper ZIP endpoints. Downloads include CSV registers, JSON snapshot, readiness checks, README and SHA-256 manifest, with spreadsheet-formula escaping. Unverified portal JSON, missing registration/frequency, source-review gaps, absent imports and incomplete periods stay explicit. See `docs/gst-workspace.md` for usage and remaining filing boundaries.
+
+Corrected stale Gold after re-review: an accepted invoice that subsequently fails validation now triggers recomputation. Added invoice-total versus taxable-plus-tax validation with rounding tolerance.
+
+Validation: **73 tests passed**, Ruff and mypy passed (40 modules), frontend production build passed. Browser checks passed for monthly/quarterly/year views, every workspace section, searches, correction links, ZIP downloads, mobile layout and existing role-specific pages. Live preview checks passed for password sign-in, actual Red Taxi records, client query-parameter isolation, all three report/download scopes and ZIP integrity. Customer document IDs and amounts were unchanged.
+
+Successful builds: combined r12 `02d23a4d-2c0b-4aeb-a5e2-d23e5f5f4a12`; final backend r13 `f510f4c5-ea08-4251-b6d6-98d2081267ce`. Preview revisions: backend `bills-voucher-00095-pun` (`v5-api`), frontend `bills-voucher-web-00033-haw` (`preview`). Production traffic remains entirely on original backend `bills-voucher-00084-5gr` and web `bills-voucher-web-00027-67p`; old `api-preview` is unchanged. These changes remain uncommitted/unpushed.

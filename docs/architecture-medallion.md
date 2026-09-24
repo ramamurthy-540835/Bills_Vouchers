@@ -53,6 +53,10 @@ Set-off exhausts IGST first, does not cross-use CGST/SGST, and keeps cess separa
 
 Current generated JSON is explicitly a preparer draft (`bv-draft-2026-09`), not an assertion of GST portal compatibility. Configured schema-version mismatch fails. Verified GSTIN and current official portal schemas are prerequisites for upload-ready exports; this preview does not submit returns.
 
+## Customer dashboard
+
+Overview uses `GET /api/dashboard` and the Python service `app/services/gst/dashboard.py`. Financial values come only from `gold_filing_summary` and `gold_itc_ledger`, scoped to the selected tenant, period and current summary run. Profile and filing-status tables supply identity/workflow metadata only. It does not query Bronze/Silver, return document details, compute from unreviewed invoices, or substitute sample figures. Decimal totals are serialized as strings. Without a Gold summary the page explicitly shows no validated figures; it does not present missing data as zero balances. Uploads, pipeline counts and the review queue remain on Documents.
+
 ## Imports
 
 `POST /api/gst/filing/import-2b?period=YYYY-MM` accepts a normalised `invoices` array with `supplier_gstin`, `invoice_no`, ISO `invoice_date`, `taxable_value`, `igst`, `cgst`, `sgst`, `cess` as decimal strings; it also accepts the portal's `data.docdata.b2b[].inv[].items[]` form. Import validates all rows before writing.

@@ -17,6 +17,8 @@ from ..documents import GCSObjectStore, validate_upload
 from .medallion import Medallion, clean, clear_cache, encode, live_only, now, param, period_value
 from .pipeline import land, process_document, publish, silver
 from .rules import HEADS, amount
+from .dashboard import customer_dashboard
+from .evidence_search import search_evidence
 
 router = APIRouter()
 
@@ -29,12 +31,11 @@ async def body_json(request):
 
 
 @router.get("/api/pipeline/search")
-def search(request: Request, q: str, repo=Depends(get_db), user=Depends(current_user)):
+def search(request: Request, q: str = '', status: str = '', minimum: str | None = None, maximum: str | None = None,
+           offset: int = 0, limit: int = 20, repo=Depends(get_db), user=Depends(current_user)):
     store = selected(request, repo, user)
-    query = q.strip().casefold()
-    if not query or len(query) > 250:
-        raise HTTPException(422, "Enter a search between 1 and 250 characters.")
-    return {"results": [d for d in store.workspace()["documents"] if query in (d["original_filename"] + " " + str(d.get("silver") or {})).casefold()]}
+    return {**search_evidence(store.workspace()['documents'], q, status, minimum, maximum, offset, limit),
+            'scope': 'Latest 500 documents for the selected customer and period'}
 
 
 @router.get("/api/pipeline/documents/{doc_id}")
@@ -70,6 +71,13 @@ def workspace(request: Request, repo=Depends(get_db), user=Depends(current_user)
     result["user"] = {"full_name": user.full_name, "email": user.email, "role": user.role}
     result["clients"] = [{"id": c.id, "name": c.name} for c in FinanceRepository(repo).clients(user.id)]
     result["demo_fallback"] = get_settings().demo_fallback
+    return result
+
+
+def dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    result = customer_dashboard(selected(request, repo, user))
+    result['user'] = {'full_name': user.full_name, 'email': user.email, 'role': user.role}
+    result['clients'] = [{'id': c.id, 'name': c.name} for c in FinanceRepository(repo).clients(user.id)]
     return result
 
 

@@ -1,4 +1,66 @@
 from app.security import hash_password, login_allowed, password_is_strong, record_login_failure, record_login_success, same_origin, verify_password
+import pytest
+
+
+def test_csrf_cookie_is_refreshed_after_session_reset(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import create_app
+    from app.routes import current_user
+    app = create_app()
+    app.dependency_overrides[current_user] = lambda: object()
+    client = TestClient(app)
+    client.cookies.set('csrf_token', 'old-session-token', domain='testserver.local', path='/')
+    response = client.get('/api/auth/csrf')
+    assert response.status_code == 200
+    assert response.json()['token'] != 'old-session-token'
+    assert response.cookies['csrf_token'] == response.json()['token']
+
+
+@pytest.mark.parametrize('endpoint', ['/login', '/api/auth/login'])
+def test_login_replaces_expired_session(monkeypatch, endpoint):
+    from time import time
+    from types import SimpleNamespace
+    from fastapi import Depends, FastAPI, Request
+    from fastapi.testclient import TestClient
+    from starlette.middleware.sessions import SessionMiddleware
+    from app import routes
+    from app.db import get_db
+
+    user = SimpleNamespace(id='user-1', email='test@example.test', full_name='Test',
+                           password_hash=hash_password('test-password'), role='client',
+                           session_version=2, must_change_password=False)
+    repo = SimpleNamespace(user_by_email=lambda email: user,
+                           user_by_id=lambda uid: user if uid == user.id else None,
+                           audit=lambda *args: None)
+    monkeypatch.setattr(routes, 'fr', lambda _: repo)
+    monkeypatch.setattr(routes, 'FinanceRepository', lambda _: repo)
+    monkeypatch.setattr(routes, 'get_settings', lambda: SimpleNamespace(
+        session_idle_timeout=1800, medallion_enabled=False))
+    app = FastAPI()
+    app.add_middleware(SessionMiddleware, secret_key='test-only')
+    app.dependency_overrides[get_db] = lambda: repo
+    app.include_router(routes.router)
+
+    @app.get('/seed-old-session')
+    def seed(request: Request):
+        request.session.update(user_id='old-user', last_seen=str(time()-3600),
+                               client_id='old-client', csrf_token='old-token', session_version=1)
+        return {'ok': True}
+
+    @app.get('/check-session')
+    def check(request: Request, current=Depends(routes.current_user)):
+        return {'user': current.id, 'session': dict(request.session)}
+
+    with TestClient(app) as client:
+        client.get('/seed-old-session')
+        credentials = {'email': user.email, 'password': 'test-password'}
+        response = client.post(endpoint, **({'json': credentials} if endpoint.startswith('/api') else {'data': credentials}), follow_redirects=False)
+        assert response.status_code in (200, 303)
+        response = client.get('/check-session')
+        assert response.status_code == 200
+        session = response.json()['session']
+        assert session['user_id'] == user.id and session['session_version'] == 2
+        assert 'client_id' not in session and 'csrf_token' not in session
 
 
 def test_password_policy():

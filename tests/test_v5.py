@@ -13,10 +13,36 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
 from app.db import get_db
-from app.routes import current_user
+from app.routes import current_user, router as legacy_router
 from app.services.gst import medallion, pipeline, workbench
 from app.services.gst.medallion import Medallion, clear_cache, live_only
 from app.services.gst.rules import amount, common_reversal, deadline, rule, set_off
+from app.services.gst.dashboard import customer_dashboard
+
+
+def test_dashboard_excludes_unreviewed_sources_and_other_tenants(repo):
+    repo.tables['bronze_document'] = [Row(client_id='a', period='2026-09', doc_id='unreviewed')]
+    repo.tables['silver_invoice_header'] = [Row(client_id='a', period='2026-09', total='1333.50', validation_status='needs_review')]
+    repo.tables['gold_filing_summary'] = [Row(client_id='b', period='2026-09', run_id='other', cash_required='999')]
+    result = customer_dashboard(Medallion(repo, 'a', '2026-09'))
+    assert result['summary'] is None and result['totals'] is None
+    assert result['validated_invoices'] == 0
+    assert 'documents' not in result and 'pipeline' not in result
+    assert all('bronze_' not in sql and 'silver_' not in sql for sql, _ in repo.queries)
+
+
+def test_dashboard_uses_current_gold_run_and_decimal_totals(repo):
+    repo.tables['gold_filing_summary'] = [Row(client_id='a', period='2026-09', run_id='current',
+        input_by_head={'cgst': '100.10', 'sgst': '100.10'}, eligible_by_head={'cgst': '50.05', 'sgst': '50.05'},
+        output_by_head={'igst': '200.20'}, eco_by_head={'cgst': '10.10'}, cash_required='110.20')]
+    repo.tables['gold_itc_ledger'] = [Row(client_id='a', period='2026-09', run_id=run, doc_id=run, deferred_cgst=value)
+        for run, value in [('current', '50.05'), ('obsolete', '999.99')]]
+    result = customer_dashboard(Medallion(repo, 'a', '2026-09'))
+    assert result['totals']['input_tax'] == '200.20'
+    assert result['totals']['eligible_credit'] == '100.10'
+    assert result['totals']['output_tax'] == '210.30'
+    assert result['totals']['deferred'] == '50.05'
+    assert result['validated_invoices'] == 1
 
 
 class Row(dict):
@@ -142,6 +168,17 @@ def test_eligibility_flip_and_decimal_exactness():
     assert deadline("2025-04-01") == date(2026, 11, 30)
 
 
+def test_review_correction_removes_stale_gold(repo):
+    store, doc = seed(repo, 'a')
+    assert store.workspace()['counts']['posted'] == 1
+    result = pipeline.silver(store, doc, invoice(total_amount='9999'), actor='reviewer')
+    assert 'INVOICE_TOTAL_MISMATCH' in result['validation_errors']
+    workspace = store.workspace()
+    assert workspace['counts']['review'] == 1 and workspace['counts']['posted'] == 0
+    assert workspace['ledger'] == []
+    assert amount(workspace['summary']['input_by_head']['igst']) == 0
+
+
 def test_setoff_respects_heads_and_eco_cash():
     result = set_off({"igst": "100", "cgst": "100", "sgst": "100", "cess": "10"}, {"igst": "150", "cgst": "200", "sgst": "0", "cess": "0"}, {"cgst": "20"})
     assert result["cash_required"] == Decimal("80.00")
@@ -221,6 +258,7 @@ def test_api_cross_client_and_viewer_gates(repo, monkeypatch):
     _, db = seed(repo, "b")
     app = FastAPI()
     app.add_middleware(SessionMiddleware, secret_key="test-only")
+    app.include_router(legacy_router)
     app.include_router(workbench.router)
     app.dependency_overrides[get_db] = lambda: repo
     def identity(request: Request):
@@ -233,11 +271,15 @@ def test_api_cross_client_and_viewer_gates(repo, monkeypatch):
     monkeypatch.setattr(workbench.FinanceRepository, "clients", lambda self, user_id: [SimpleNamespace(id=user_id, name=user_id)])
     client = TestClient(app)
     assert client.get('/api/workspace').status_code == 401
+    assert client.get('/api/dashboard').status_code == 401
     for user, own, other in (("a", da, db), ("b", db, da)):
         headers = {"x-test-user": user}
-        for path in ("/api/workspace", "/api/pipeline/search?q=supplier", f"/api/pipeline/documents/{own['doc_id']}"):
+        for path in ("/api/dashboard", "/api/workspace", "/api/pipeline/search?q=supplier", f"/api/pipeline/documents/{own['doc_id']}"):
             response = client.get(path + ("&" if "?" in path else "?") + "period=2026-09", headers=headers)
             assert response.status_code == 200, response.text
+            if path == '/api/dashboard':
+                assert response.json()['source'] == 'gold'
+                assert 'documents' not in response.json()
             assert other['doc_id'] not in response.text
         assert client.get(f"/api/pipeline/documents/{other['doc_id']}?period=2026-09", headers=headers).status_code == 404
         for path in ("/api/gst/filing/recompute", "/api/gst/filing/generate/gstr3b", "/api/gst/filing/transition", "/api/gst/filing/import-2b", "/api/gst/filing/outward"):

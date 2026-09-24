@@ -102,6 +102,8 @@ def validate_extraction(data, period, duplicate=False):
     if taxes["cgst"] != taxes["sgst"]:
         errors.append("CENTRAL_STATE_TAX_DIFFER")
     taxable = amount(data.get("subtotal", data.get("taxable_value", 0)))
+    if abs(taxable + sum(taxes.values(), ZERO) - amount(data.get("total_amount"))) > amount("1"):
+        errors.append("INVOICE_TOTAL_MISMATCH")
     rate = data.get("gst_rate", data.get("tax_rate"))
     if rate is not None and abs(taxable * amount(rate) / amount("100") - sum(taxes.values(), ZERO)) > amount("1"):
         errors.append("TAX_RATE_INCONSISTENT")
@@ -112,6 +114,7 @@ def validate_extraction(data, period, duplicate=False):
 
 def silver(store, doc, data, engine="gemini", actor=None):
     store.source_writable()
+    previous = store.rows("silver_invoice_header", "AND doc_id=@doc_id", [param("doc_id", doc["doc_id"])])
     supplier = str(data.get("supplier_gstin") or data.get("gstin") or "").strip().upper()
     number = str(data.get("invoice_number") or "")
     duplicates = store.rows("silver_invoice_header", "AND supplier_gstin=@supplier AND invoice_no=@number AND doc_id!=@doc_id", [param("supplier", supplier), param("number", number), param("doc_id", doc["doc_id"])], period=False)
@@ -156,7 +159,7 @@ def silver(store, doc, data, engine="gemini", actor=None):
         header["validation_status"] = "needs_review"
         store.upsert("silver_invoice_header", header, ["client_id", "doc_id"])
     GCSObjectStore(get_settings().gcs_bucket_name).upload(f"silver/{store.client_id}/{doc['doc_id']}.json", encode(clean(header)).encode(), "application/json")
-    if header["validation_status"] == "validated":
+    if header["validation_status"] == "validated" or any(r.get("validation_status") == "validated" for r in previous):
         store.recompute()
     return clean(header)
 

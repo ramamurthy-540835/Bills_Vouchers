@@ -57,9 +57,9 @@ def current_user(request: Request, repo=Depends(get_db)):
                 user.role = "tax_admin"
             if user.role not in {"admin", "tax_admin", "client", "viewer"}:
                 user.role = "viewer"
-        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/auth/password", "/api/auth/logout", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             raise HTTPException(403, "Viewer access is read-only.")
-        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path not in {"/api/auth/password", "/api/auth/logout", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path not in {"/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             from .services.gst.medallion import Medallion, live_only
             live_only()
             if clients:
@@ -137,6 +137,8 @@ def login(request: Request, email: str = Form(...), password: str = Form(...), r
         record_login_failure(key)
         return page("login.html", request, status_code=400, error="Invalid email or password")
     record_login_success(key)
+    request.session.clear()
+    request.session["last_seen"] = str(time())
     request.session["user_id"] = user.id
     request.session["session_version"] = int(getattr(user, "session_version", 0) or 0)
     return RedirectResponse("/", 303)
@@ -1330,6 +1332,8 @@ async def api_login(request: Request, repo=Depends(get_db)):
         record_login_failure(key)
         raise HTTPException(401, "Invalid email or password.")
     record_login_success(key)
+    request.session.clear()
+    request.session["last_seen"] = str(time())
     request.session["user_id"] = user.id
     request.session["session_version"] = int(getattr(user, "session_version", 0) or 0)
     fr(repo).audit(user.id, "login", "user", user.id)
@@ -1437,13 +1441,8 @@ async def api_review_reject(document_id: str, request: Request, repo=Depends(get
 
 @router.get("/api/dashboard")
 def api_dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)):
-    client = active_client(request, repo, user)
-    return {
-        "client_id": client.id,
-        "documents": len(fr(repo).documents(client.id)),
-        "recent_documents": [_doc_json(x) for x in fr(repo).documents(client.id, 8)],
-        "status": "ok",
-    }
+    from .services.gst.workbench import dashboard
+    return dashboard(request, repo, user)
 
 
 @router.get("/api/documents")

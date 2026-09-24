@@ -2,12 +2,12 @@
 import ast
 from pathlib import Path
 
-lines = ["# v5 route audit", "", "Updated 2026-09-24. This table inventories every Python route decorator in the checkout. Static PASS means the dependency/scope is present in source, not that every legacy business workflow has an end-to-end test. Runtime isolation gates cover the v5 workspace, document detail/search, pipeline and filing actions; legacy workflows retain their existing tests.", "", "## Resolution chain", "", "Next.js server page -> signed backend session -> users -> active client_memberships -> selected client -> current client_user_role -> gst_client_profile. Workspace queries bind client_id and period. A missing profile produces incomplete-profile chrome; a missing session redirects before rendering. Sample figures live only in frontend/app/sample.ts and require DEMO_FALLBACK from the authenticated workspace response.", "", "D1 was located in the recovered preview frontend/app/page.tsx: its company context used the Umesh GSTIN independently of the resolved user name. That component and the fixture-only filing page have been replaced. Recovery source: Cloud Build f70ce346-7cda-4642-8b8c-c6b2ca829795; the later production build did not contain the complete preview implementation.", "", "## Frontend", "", "| Route | Auth | Client | Without data | Layer | Result |", "|---|---|---|---|---|---|"]
-for route in ('/', '/documents', '/documents/[id]', '/gst/filing', '/search'):
+lines = ["# v5 route audit", "", "Updated 2026-09-24. This table inventories every Python route decorator in the checkout. Static PASS means the dependency/scope is present in source, not that every legacy business workflow has an end-to-end test. Runtime isolation gates cover the v5 workspace, document detail/search, pipeline and filing actions; legacy workflows retain their existing tests.", "", "## Resolution chain", "", "Next.js server page -> signed backend session -> users -> active client_memberships -> selected client -> current client_user_role -> gst_client_profile. Workspace queries bind client_id and period. A missing profile produces incomplete-profile chrome; a missing session redirects before rendering. Legacy illustrations require DEMO_FALLBACK. The explicitly selected /demo workspace uses generated synthetic records from mock_data.py; live Overview has no sample fallback.", "", "D1 was located in the recovered preview frontend/app/page.tsx: its company context used the Umesh GSTIN independently of the resolved user name. That component and the fixture-only filing page have been replaced. Recovery source: Cloud Build f70ce346-7cda-4642-8b8c-c6b2ca829795; the later production build did not contain the complete preview implementation.", "", "## Frontend", "", "| Route | Auth | Client | Without data | Layer | Result |", "|---|---|---|---|---|---|"]
+for route in ('/', '/documents', '/documents/[id]', '/gst/filing', '/gst/workspace', '/search', '/assistant', '/demo'):
     lines.append(f"| `{route}` | Server proxy + backend session | Workspace identity | Complete shell / empty or error card | Bronze, silver, gold via API | PASS (browser gate) |")
 lines += ["| `/login` | Public sign-in | Not yet selected | Sign-in form | Identity | PASS |", "| `/settings` | Server proxy; password API session | Not needed for own password | Password form | Identity | PASS; standalone security flow |", "| `/api/[...path]` | Forwarded cookie, backend authorization | Backend | Structured error | Backend | PASS |", "", "## Backend", "", "| Method / route | Auth applied | Client resolved | Without data | Reads from | Static result |", "|---|---|---|---|---|---|"]
 count = 0
-for file in (Path('app/routes.py'), Path('app/services/gst/routes.py'), Path('app/services/gst/workbench.py')):
+for file in (Path('app/routes.py'), Path('app/services/gst/routes.py'), Path('app/services/gst/workbench.py'), Path('app/services/gst/demo_routes.py'), Path('app/services/gst/filing_workspace_routes.py')):
     source = file.read_text()
     for node in ast.walk(ast.parse(source)):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -25,6 +25,13 @@ for file in (Path('app/routes.py'), Path('app/services/gst/routes.py'), Path('ap
             scoped = any(key in text for key in ('active_client(', 'client_context(', 'selected(request', '_client_or_403(', 'client.id', 'client_id=@'))
             client = 'Bound selected client' if scoped else 'Delegates to scoped handler' if 'return ' in text and auth == 'Session dependency' and not path.startswith('/api/auth') else 'Identity / service scope'
             layer = 'Medallion (bronze/silver/gold)' if file.name == 'workbench.py' else 'GST profile / gold' if file.parent.name == 'gst' and '/gst/' in path else 'Legacy scoped tables'
+            if path.startswith('/api/demo/'):
+                layer = 'Generated synthetic records; no customer financial tables'
+                client = 'Explicit demo namespace'
+            elif path == '/api/assistant/chat':
+                layer = 'Selected client Gold and scoped source evidence; read-only Gemini'
+            elif path == '/api/dashboard':
+                layer = 'Gold financial data; profile/status metadata'
             if '/auth/' in path or '/health' in path or path in ('/login','/logout','/signup','/readyz'):
                 layer = 'Identity / operational'
             result = 'PASS' if auth != 'Public identity/health endpoint' or path in ('/login','/signup','/logout','/health','/healthz','/readyz','/api/auth/login','/api/v1/health') else 'REVIEW'

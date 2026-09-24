@@ -34,6 +34,17 @@ class Handler(BaseHTTPRequestHandler):
                    "pipeline": {"bronze": 0, "silver": 0, "gold": 0, "updated_at": None},
                    "documents": [], "ledger": [], "matches": [], "summary": None, "filing": {"state": "draft"},
                    "has_silver": False, "outward_count": 0, "demo_fallback": "sample" in cookie}
+        if self.path.startswith('/api/dashboard'):
+            payload = {k: payload[k] for k in ('client_id', 'period', 'user', 'profile', 'clients', 'filing')}
+            payload.update(source='gold', mode='empty', summary=None, totals=None,
+                           validated_invoices=0, updated_at=None, demo_fallback=False)
+            if 'gold-a' in cookie:
+                payload.update(mode='live', validated_invoices=2, updated_at='2026-09-24T12:00:00Z',
+                    totals={'eligible_credit':'100.10','output_tax':'210.30','cash_required':'110.20',
+                            'input_tax':'200.20','blocked':'0','deferred':'100.10','reversal':'0'},
+                    summary={'eligible_by_head':{'cgst':'50.05','sgst':'50.05'},
+                             'output_by_head':{'igst':'200.20'},'eco_by_head':{'cgst':'10.10'},
+                             'cash_by_head':{'igst':'100.10','cgst':'10.10'},'non_gst':'0'})
         self.send_response(200)
         self.send_header("content-type", "application/json")
         self.end_headers()
@@ -56,7 +67,7 @@ def main():
                 page = browser.new_page(viewport={"width": 1440, "height": 1000})
                 response = page.goto('http://localhost:3100/', wait_until='networkidle')
                 assert page.url.endswith('/login')
-                for identity in ('client-a', 'viewer-a', 'client-b', 'sample-a'):
+                for identity in ('client-a', 'viewer-a', 'client-b', 'sample-a', 'gold-a'):
                     context = browser.new_context(viewport={"width": 1440, "height": 1000})
                     context.add_cookies([{"name": "session", "value": identity+"=.signature", "domain": "localhost", "path": "/"}])
                     page = context.new_page()
@@ -69,15 +80,25 @@ def main():
                         assert 'Your workspace could not be loaded' not in text
                         assert '27AAPFU0939F1ZV' not in text
                         assert page.locator('nav a:not(.nav-item)').count() == 0
-                        if 'sample' in identity:
+                        if 'sample' in identity and route != '/':
                             assert page.get_by_text("Sample data — not your client's figures").count() == 1
                         else:
                             assert 'Umesh' not in text
                         if 'viewer' in identity:
                             assert page.locator('input[type=file]').count() == 0
                             assert page.get_by_role('button', name='Validate', exact=True).count() == 0
-                        elif identity=='client-a' and route in ('/', '/documents'):
+                        elif identity=='client-a' and route == '/documents':
                             assert page.get_by_text('＋ Upload bill', exact=True).count() == 1
+                        if route == '/':
+                            if identity == 'gold-a':
+                                assert 'Eligible input credit' in text and '₹100.10' in text
+                                assert '₹210.30' in text and '₹110.20' in text
+                                page.screenshot(path=str(ROOT / 'artifacts/gold-dashboard.png'), full_page=True)
+                            else:
+                                assert 'No validated figures yet' in text
+                            assert 'Your document pipeline' not in text
+                            assert 'Latest documents' not in text
+                            assert page.locator('input[type=file]').count() == 0
                         if identity=='client-a' and route in ('/', '/gst/filing'):
                             page.screenshot(path=str(ROOT / 'artifacts' / ('overview.png' if route=='/' else 'filing.png')), full_page=True)
                     page.set_viewport_size({"width": 390, "height": 844})

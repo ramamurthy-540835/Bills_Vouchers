@@ -65,7 +65,7 @@ def create_app():
         finally:
             request_id_context.reset(request_id_token)
         session = request.scope.get("session", {})
-        if session.get("csrf_token") and not request.cookies.get("csrf_token"):
+        if session.get("csrf_token") and not compare_digest(str(session['csrf_token']), request.cookies.get('csrf_token', '')):
             response.set_cookie("csrf_token", str(session["csrf_token"]), httponly=False, secure=s.app_env == "production", samesite="lax", max_age=s.session_max_age)
         logger.info(json.dumps({"event": "http_request", "request_id": request.state.request_id, "method": request.method, "path": request.url.path, "status": response.status_code, "document_id": request.path_params.get("document_id")}))
         response.headers["x-request-id"] = request.state.request_id
@@ -106,6 +106,10 @@ def create_app():
     app.include_router(gst_router)
     from .services.gst.workbench import router as workbench_router
     app.include_router(workbench_router)
+    from .services.gst.demo_routes import router as demo_router
+    app.include_router(demo_router)
+    from .services.gst.filing_workspace_routes import router as filing_workspace_router
+    app.include_router(filing_workspace_router)
 
     @app.on_event("startup")
     def startup():
