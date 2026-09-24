@@ -112,6 +112,9 @@ def create_app():
             FinanceRepository(get_repository()).ensure_admin(
                 hash_password(s.bootstrap_admin_password), s.bootstrap_admin_email
             )
+        if s.red_taxi_client_bootstrap:
+            payload = json.loads(s.red_taxi_client_bootstrap)
+            FinanceRepository(get_repository()).ensure_client_user(payload["email"], hash_password(payload["password"]), payload.get("client_name", "Red Taxi"))
 
     return app
 

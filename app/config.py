@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     max_upload_mb: int = 15
     bootstrap_admin_email: str = "stephenraj040899@gmail.com"
     bootstrap_admin_password: str = ""
+    red_taxi_client_bootstrap: str = ""
     session_max_age: int = 28800
     session_idle_timeout: int = 1800
     max_query_bytes: int = 100000000

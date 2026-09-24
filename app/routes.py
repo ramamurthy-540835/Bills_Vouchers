@@ -1321,8 +1321,20 @@ def api_logout(request: Request):
 
 
 @router.get("/api/auth/me")
-def api_me(user=Depends(current_user)):
-    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False))}
+def api_me(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.cloud import bigquery
+
+    clients = fr(repo).clients(user.id)
+    active = next((client for client in clients if client.id == request.session.get("client_id")), clients[0] if clients else None)
+    active_client_context = None
+    if active:
+        request.session["client_id"] = active.id
+        profile = repo.one(
+            f"SELECT legal_name, trade_name, gstin FROM `{repo.table('gst_client_profile')}` WHERE client_id=@client_id AND is_current=TRUE ORDER BY effective_from DESC LIMIT 1",
+            [bigquery.ScalarQueryParameter("client_id", "STRING", active.id)],
+        )
+        active_client_context = {"id": active.id, "name": (profile.trade_name or profile.legal_name) if profile else active.name, "gstin": profile.gstin if profile else active.gstin}
+    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False)), "active_client": active_client_context}
 
 
 @router.post("/api/auth/password")
