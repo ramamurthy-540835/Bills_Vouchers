@@ -171,3 +171,17 @@ Corrected stale Gold after re-review: an accepted invoice that subsequently fail
 Validation: **73 tests passed**, Ruff and mypy passed (40 modules), frontend production build passed. Browser checks passed for monthly/quarterly/year views, every workspace section, searches, correction links, ZIP downloads, mobile layout and existing role-specific pages. Live preview checks passed for password sign-in, actual Red Taxi records, client query-parameter isolation, all three report/download scopes and ZIP integrity. Customer document IDs and amounts were unchanged.
 
 Successful builds: combined r12 `02d23a4d-2c0b-4aeb-a5e2-d23e5f5f4a12`; final backend r13 `f510f4c5-ea08-4251-b6d6-98d2081267ce`. Preview revisions: backend `bills-voucher-00095-pun` (`v5-api`), frontend `bills-voucher-web-00033-haw` (`preview`). Production traffic remains entirely on original backend `bills-voucher-00084-5gr` and web `bills-voucher-web-00027-67p`; old `api-preview` is unchanged. These changes remain uncommitted/unpushed.
+
+### Red Taxi demonstration and auditor handoff — 2026-09-25
+
+The preceding workspace work was committed as `3934b81`, pushed to stephenv5 and merged into main at the user's request. The following new demonstration changes are not yet committed or pushed.
+
+Ran `scripts/generate_redtaxi_demo.py` for 2026-09, seed 42. It creates 26 fictional fleet purchases, six sales and 18 simulated GSTR-2B entries, CSV registers, 26 per-purchase PNG prompts, an auditor README and checksum manifest. Data is marked synthetic, uses no genuine GSTIN, and is not inserted into customer financial tables. The demo and script share the generator; the live downloaded pack was checked against the exact locally generated JSON.
+
+The `/demo?scenario=redtaxi&period=2026-09` preview shows the populated dashboard, purchase details, decisions, sales/GSTR-2B registers, search and assistant. GST Workspace links to the walkthrough. The authenticated auditor-pack endpoint includes the README and image prompts. Prompted images are planned assets, not generated or uploaded PNGs. The seven handoff files are stored separately in `gs://aidirac-503309-bills-voucher-documents/demos/redtaxi/2026-09/`.
+
+Archived the explicitly identified unrelated FreshKart test PNG from the live September workspace using `scripts/archive_demo_document.py`: first inspected the exact document, checked draft status and absence of Gold history, copied the original PNG and Silver JSON with integrity verification, saved scoped row snapshots, then removed only its active Bronze document, Silver header and eight Silver lines. A completion manifest and recoverable archive remain under the bucket's `archive/unrelated-demo/` prefix. Live acceptance confirmed the old document is absent and no synthetic purchases were inserted into the actual client account.
+
+Validation: **76 tests passed**, Ruff and mypy passed (41 modules), frontend build passed, all 16 local sample scenarios passed browser checks. Live browser checks passed for populated Red Taxi totals, six sales, 18 GSTR-2B rows, fuel search, authenticated ZIP contents/checksums, exact equality with Python output and mobile layout.
+
+Cloud Build r14 `ca4622a8-89b0-4957-b55d-2b22da7cbc9a` succeeded. Backend preview revision `bills-voucher-00096-bik`; frontend preview revision `bills-voucher-web-00034-mez`. Both deployed with no production traffic. Auditor usage: `docs/README-REDTAXI-AUDITORS.md`.

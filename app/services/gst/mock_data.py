@@ -9,6 +9,7 @@ from .medallion import clean, period_value
 from .rules import HEADS, ZERO, amount, common_reversal, rule, set_off
 
 SCENARIOS = {
+    'redtaxi': 'Red Taxi Coimbatore — September auditor demonstration',
     'mixed': 'All major invoice and credit states',
     'ready': 'Validated purchases and eligible credit',
     'empty': 'No records for this period',
@@ -45,6 +46,9 @@ class DemoStore:
 
 
 def generate_mock_data(scenario='mixed', period='2026-09', seed=42):
+    if scenario == 'redtaxi':
+        from .redtaxi_mock import generate_redtaxi_mock_data
+        return generate_redtaxi_mock_data(period, seed)
     period_value(period)
     if scenario not in SCENARIOS:
         raise ValueError('Unknown demo scenario')

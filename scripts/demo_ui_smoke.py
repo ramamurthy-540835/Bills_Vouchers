@@ -61,7 +61,7 @@ def main():
                     page.wait_for_function("!document.querySelector('select[aria-label=\"Demo scenario\"]').disabled")
                     assert page.locator('input[type=file]').count()==0
                     assert 'Your workspace could not be loaded' not in page.locator('body').inner_text()
-                print('PASS all 15 demo scenarios and read-only controls',flush=True)
+                print(f'PASS all {len(SCENARIOS)} demo scenarios and read-only controls',flush=True)
                 page.get_by_role('tab',name='Documents',exact=True).click()
                 page.get_by_role('button',name='Next',exact=True).click()
                 page.get_by_text('Page 2',exact=True).wait_for()

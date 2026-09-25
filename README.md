@@ -204,6 +204,16 @@ The application is designed for Google Cloud Run. See [docs/deployment.md](docs/
 - Import preview for Excel, CSV, JSON, Tally, Zoho Books, Busy, Marg, ERP, and GST files
 - Supplier compliance, ITC ageing, advanced analytics, alerts, global search, and AI CA assistant
 
+## Red Taxi auditor demonstration
+
+Use the [Red Taxi auditor guide](docs/README-REDTAXI-AUDITORS.md) for the September 2026 presentation, live-client onboarding steps and current filing limitations. The `/demo?scenario=redtaxi&period=2026-09` view contains labelled synthetic data and an auditor-pack download with CSV registers and PNG creation prompts.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/generate_redtaxi_demo.py --period 2026-09 --seed 42 --output artifacts/redtaxi-demo-2026-09
+```
+
+This generates example purchases, sales, GSTR-2B, ITC decisions and per-document prompts without inserting mock data into live financial tables. Generated PNGs are not included.
+
 ## Contribution rules
 
 Before adding a feature:

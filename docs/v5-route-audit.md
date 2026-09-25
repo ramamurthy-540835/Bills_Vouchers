@@ -129,6 +129,7 @@ D1 was located in the recovered preview frontend/app/page.tsx: its company conte
 | `POST /api/gst/filing/transition` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Medallion (bronze/silver/gold) | PASS |
 | `POST /api/gst/filing/generate/{kind}` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | Medallion (bronze/silver/gold) | PASS |
 | `POST /internal/pipeline/document` | OIDC identity | Identity / service scope | Empty response or explicit error; page templates retain shell | Medallion (bronze/silver/gold) | PASS |
+| `GET /api/demo/redtaxi-pack` | Session dependency | Explicit demo namespace | Empty response or explicit error; page templates retain shell | Generated synthetic records; no customer financial tables | PASS |
 | `GET /api/demo/scenarios` | Session dependency | Explicit demo namespace | Empty response or explicit error; page templates retain shell | Generated synthetic records; no customer financial tables | PASS |
 | `GET /api/demo/data` | Session dependency | Explicit demo namespace | Empty response or explicit error; page templates retain shell | Generated synthetic records; no customer financial tables | PASS |
 | `GET /api/demo/search` | Session dependency | Explicit demo namespace | Empty response or explicit error; page templates retain shell | Generated synthetic records; no customer financial tables | PASS |
@@ -137,7 +138,7 @@ D1 was located in the recovered preview frontend/app/page.tsx: its company conte
 | `GET /api/gst/workspace` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | GST profile / gold | PASS |
 | `GET /api/gst/workspace/download` | Session dependency | Bound selected client | Empty response or explicit error; page templates retain shell | GST profile / gold | PASS |
 
-Backend registrations inventoried: **108**.
+Backend registrations inventoried: **109**.
 
 ## Verification limits
 
