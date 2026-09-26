@@ -1,0 +1,17 @@
+# Preview builds precede the requested post-deployment test gates.
+steps:
+  - id: backend
+    name: gcr.io/cloud-builders/docker
+    args: ['build', '-t', 'asia-south1-docker.pkg.dev/aidirac-503309/finance/bills-voucher:${_TAG}', '.']
+  - id: frontend
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']
+    args: ['build', '-t', 'asia-south1-docker.pkg.dev/aidirac-503309/finance/bills-voucher-web:${_TAG}', 'frontend']
+images:
+  - 'asia-south1-docker.pkg.dev/aidirac-503309/finance/bills-voucher:${_TAG}'
+  - 'asia-south1-docker.pkg.dev/aidirac-503309/finance/bills-voucher-web:${_TAG}'
+substitutions:
+  _TAG: v7-preview-20260925-r1
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8

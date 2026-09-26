@@ -41,6 +41,15 @@ def search(request: Request, q: str = '', status: str = '', minimum: str | None 
 @router.get("/api/pipeline/documents/{doc_id}")
 def document_detail(doc_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
     store = selected(request, repo, user)
+    from ...fixtures.red_taxi_sample import use_sample, generate
+    if use_sample(store):
+        fixture = generate(store.period,store.client_id,store.profile())['tables']
+        sources = [r for r in fixture['bronze_document'] if r['doc_id']==doc_id]
+        if not sources:
+            raise HTTPException(404, 'Document not found.')
+        return clean({'sample':True,'bronze':sources[0],
+            'header':next(r for r in fixture['silver_invoice_header'] if r['doc_id']==doc_id),
+            'lines':[r for r in fixture['silver_invoice_line'] if r['doc_id']==doc_id]})
     docs = store.rows("bronze_document", "AND doc_id=@doc_id", [param("doc_id", doc_id)])
     if not docs:
         raise HTTPException(404, "Document not found.")
@@ -70,12 +79,18 @@ def workspace(request: Request, repo=Depends(get_db), user=Depends(current_user)
     result = store.workspace()
     result["user"] = {"full_name": user.full_name, "email": user.email, "role": user.role}
     result["clients"] = [{"id": c.id, "name": c.name} for c in FinanceRepository(repo).clients(user.id)]
-    result["demo_fallback"] = get_settings().demo_fallback
+    result["demo_fallback"] = bool(result.get('sample'))
     return result
 
 
 def dashboard(request: Request, repo=Depends(get_db), user=Depends(current_user)):
-    result = customer_dashboard(selected(request, repo, user))
+    from ...fixtures.red_taxi_sample import use_sample, sample_dashboard
+    store = selected(request, repo, user)
+    result = sample_dashboard(store) if use_sample(store) else customer_dashboard(store)
+    if not result.get('sample'):
+        from ...fixtures.red_taxi_sample import comparison_deltas, previous_period, is_synthetic
+        previous = Medallion(repo,store.client_id,previous_period(store.period)).rows('gold_filing_summary','ORDER BY computed_at DESC LIMIT 1')
+        result['deltas'] = comparison_deltas(result.get('summary'),previous[0] if previous and not is_synthetic(previous[0]) else None)
     result['user'] = {'full_name': user.full_name, 'email': user.email, 'role': user.role}
     result['clients'] = [{'id': c.id, 'name': c.name} for c in FinanceRepository(repo).clients(user.id)]
     return result
@@ -131,6 +146,9 @@ def retry_document(doc_id: str, request: Request, background_tasks: BackgroundTa
 @router.get("/api/pipeline/documents/{doc_id}/file")
 def evidence(doc_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
     store = selected(request, repo, user)
+    from ...fixtures.red_taxi_sample import use_sample
+    if use_sample(store) or doc_id.startswith(('demo-','sample-')):
+        raise HTTPException(403, {'code':'sample_data_blocked','message':'Sample evidence cannot be downloaded.'})
     docs = store.rows("bronze_document", "AND doc_id=@doc_id", [param("doc_id", doc_id)])
     if not docs:
         raise HTTPException(404, "Document not found.")

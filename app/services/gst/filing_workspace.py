@@ -64,7 +64,29 @@ def build_filing_workspace(repo, client_id, period, scope='month'):
     with ThreadPoolExecutor(max_workers=4) as pool:
         values = list(pool.map(lambda table: scoped_rows(repo, client_id, months, table), tables))
     data = dict(zip(tables, values))
-    return prepare_report(client_id, period, scope, months, label, profile, data)
+    from ...fixtures.red_taxi_sample import generate, is_synthetic
+    from ...config import get_settings
+    sample_months = []
+    for month in months:
+        summaries = [r for r in data['gold_filing_summary'] if r['period']==month]
+        if any(not is_synthetic(r) for r in summaries):
+            for table in tables:
+                data[table] = [r for r in data[table] if r['period']!=month or not (
+                    is_synthetic(r) or str(r.get('doc_id','')).startswith(('demo-','sample-'))
+                    or str(r.get('invoice_no','')).startswith(('RTX-DEMO','RTX-SAMPLE')))]
+        if str(profile.get('legal_name','')).lower()=='red taxi' and not any(not is_synthetic(r) for r in summaries) and (get_settings().demo_fallback or any(is_synthetic(r) for r in summaries)):
+            fixture = generate(month,client_id,profile)
+            for table in tables:
+                data[table] = [r for r in data[table] if r['period']!=month] + fixture['tables'][table]
+            sample_months.append(month)
+    report = prepare_report(client_id, period, scope, months, label, profile, data)
+    if sample_months or any(is_synthetic(r) for r in data['gold_filing_summary']):
+        report.update(sample=True, mode='sample', demo_fallback=True, source='sample', sample_months=sample_months)
+        report['profile'] = {**profile,'state_code':'33','filing_frequency':'monthly'}
+        if scope=='month':
+            from ...fixtures.red_taxi_sample import comparison_deltas, previous_period
+            report['deltas'] = comparison_deltas(report['summary'],generate(previous_period(period),client_id,profile)['tables']['gold_filing_summary'][0])
+    return report
 
 
 def prepare_report(client_id, period, scope, months, label, profile, data):
@@ -120,7 +142,7 @@ def prepare_report(client_id, period, scope, months, label, profile, data):
         outward_count = sum(r['period']==month for r in data['silver_outward_invoice'])
         two_b_count = sum(r['period']==month for r in data['silver_gstr2b_invoice'])
         if not summary:
-            issue('GOLD_MISSING', 'No computed Gold figures. Review source records and run ITC computation.', month, f'/gst/filing?period={month}')
+            issue('GOLD_MISSING', 'No calculated figures. Review source records and run ITC computation.', month, f'/gst/filing?period={month}')
         if not outward_count:
             issue('SALES_NOT_IMPORTED', 'No sales register is available. Confirm nil sales or import the actual sales records.', month, f'/gst/filing?period={month}')
         if not two_b_count:
@@ -135,6 +157,7 @@ def prepare_report(client_id, period, scope, months, label, profile, data):
         # Never offset a later month's credit against an earlier month's liability.
         # Consolidated reports add stored monthly estimates; they do not simulate filing.
         summary = {**groups, 'cash_required':sum((amount(row.get('cash_required')) for row in by_summary.values()),ZERO),
+                   **{k:sum((amount(row.get(k)) for row in by_summary.values()),ZERO) for k in ('as_booked','restricted_2b','fully_compliant','if_late_file')},
                    'non_gst':sum((amount(row.get('non_gst')) for row in by_summary.values()),ZERO),
                    'credit_adjustments':{bucket:{h:sum((amount(row.get(f'{bucket}_{h}')) for row in ledger),ZERO) for h in HEADS}
                                          for bucket in ('blocked','deferred','reversal')}}
@@ -167,7 +190,7 @@ def csv_bytes(rows, columns):
 
 def working_papers(report):
     if report.get('sample'):
-        raise HTTPException(403, 'Sample records cannot be exported as actual working papers.')
+        raise HTTPException(403, {'code':'sample_data_blocked','message':'Sample records cannot be exported as working papers.'})
     files = {'preparation.json':json.dumps(report,ensure_ascii=False,indent=2).encode('utf-8')}
     files['checks.csv'] = csv_bytes(report['checks'], ['severity','period','code','message'])
     files['itc_ledger.csv'] = csv_bytes(report['ledger'], ['period','doc_id','invoice_no','line_no','description','reason_code','rule_ref'] + [f'{b}_{h}' for b in ('eligible','blocked','deferred','reversal') for h in HEADS])

@@ -4,7 +4,10 @@ from .rules import HEADS, ZERO, amount
 
 
 def customer_dashboard(store):
-    summaries = store.rows('gold_filing_summary', 'ORDER BY computed_at DESC LIMIT 1')
+    from ...fixtures.red_taxi_sample import is_synthetic
+    summaries = store.rows('gold_filing_summary', 'ORDER BY computed_at DESC')
+    genuine = [r for r in summaries if not is_synthetic(r)]
+    summaries = genuine or summaries
     summary = summaries[0] if summaries else None
     ledger = store.rows('gold_itc_ledger', 'AND run_id=@run_id ORDER BY doc_id,line_no',
                         [param('run_id', summary['run_id'])]) if summary else []

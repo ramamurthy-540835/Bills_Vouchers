@@ -71,10 +71,7 @@ def test_redtaxi_registers_reconcile_to_gold_and_prompts_are_labelled():
     assert search_evidence(data['documents'],q='diesel')['total']==2
 
 
-def test_redtaxi_pack_is_authenticated_synthetic_and_complete():
-    import hashlib
-    import io
-    from zipfile import ZipFile
+def test_redtaxi_pack_is_authenticated_and_export_blocked():
     app=FastAPI()
     app.include_router(demo_routes.router)
     def denied():
@@ -84,15 +81,9 @@ def test_redtaxi_pack_is_authenticated_synthetic_and_complete():
     assert client.get('/api/demo/redtaxi-pack').status_code==401
     app.dependency_overrides[current_user]=lambda: SimpleNamespace(id='viewer',role='viewer')
     response=client.get('/api/demo/redtaxi-pack?period=2026-09')
-    assert response.status_code==200
-    with ZipFile(io.BytesIO(response.content)) as archive:
-        manifest=json.loads(archive.read('manifest.json'))
-        assert manifest['sample'] and manifest['period']=='2026-09'
-        for name,digest in manifest['sha256'].items():
-            assert hashlib.sha256(archive.read(name)).hexdigest()==digest
-        assert 'README-AUDITORS.md' in archive.namelist() and 'PNG-PROMPTS.md' in archive.namelist()
-        assert 'user' not in json.loads(archive.read('mock-data.json'))
-    assert client.get('/api/demo/redtaxi-pack?period=2026-13').status_code==422
+    assert response.status_code==403
+    assert response.json()['detail']['code']=='sample_data_blocked'
+    assert client.get('/api/demo/redtaxi-pack?period=2026-13').status_code==403
 
 
 def test_chat_input_and_context_boundaries():

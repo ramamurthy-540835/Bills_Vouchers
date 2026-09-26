@@ -12,3 +12,6 @@ frontend/.next
 frontend/tsconfig.tsbuildinfo
 *.pptx
 artifacts
+.testdeps
+frontend/test-results
+frontend/playwright-report

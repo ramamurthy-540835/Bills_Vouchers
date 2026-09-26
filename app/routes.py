@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from google.cloud import bigquery
 
 from .config import get_settings
 from .db import get_db
@@ -57,9 +58,9 @@ def current_user(request: Request, repo=Depends(get_db)):
                 user.role = "tax_admin"
             if user.role not in {"admin", "tax_admin", "client", "viewer"}:
                 user.role = "viewer"
-        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/settings/account", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             raise HTTPException(403, "Viewer access is read-only.")
-        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path not in {"/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path not in {"/api/settings/account", "/api/settings/profile", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             from .services.gst.medallion import Medallion, live_only
             live_only()
             if clients:
@@ -67,6 +68,9 @@ def current_user(request: Request, repo=Depends(get_db)):
         if request.url.path.endswith('.csv') or request.url.path in {'/api/reports/gstr', '/api/v1/reports/gstr'}:
             from .services.gst.medallion import live_only
             live_only()
+            if clients:
+                from .services.gst.medallion import Medallion
+                Medallion(repo, selected.id, request.query_params.get('period') or request.session.get('period') or date.today().strftime('%Y-%m')).writable()
     return user
 
 
@@ -1336,6 +1340,7 @@ async def api_login(request: Request, repo=Depends(get_db)):
     request.session["last_seen"] = str(time())
     request.session["user_id"] = user.id
     request.session["session_version"] = int(getattr(user, "session_version", 0) or 0)
+    repo.query(f"UPDATE `{repo.table('users')}` SET last_sign_in=CURRENT_TIMESTAMP() WHERE id=@id", [bigquery.ScalarQueryParameter("id", "STRING", user.id)])
     fr(repo).audit(user.id, "login", "user", user.id)
     return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False))}
 

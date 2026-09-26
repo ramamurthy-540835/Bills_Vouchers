@@ -39,7 +39,7 @@ def grounded_context(dashboard, documents, question, demo_scenario=None, ledger=
     period = dashboard['period']
     suffix = f'/demo?scenario={demo_scenario}&period={period}' if demo_scenario else f'/gst/filing?period={period}'
     sources = [{'id': 'gold-summary', 'label': 'Validated financial summary', 'href': suffix,
-                'layer': 'Gold', 'facts': {'period': period, 'summary': dashboard.get('summary'),
+                'layer': 'Checked figures', 'facts': {'period': period, 'summary': dashboard.get('summary'),
                                          'totals': dashboard.get('totals'), 'validated_invoices': dashboard.get('validated_invoices'),
                                          'credit_decisions': [{k: row.get(k) for k in ('invoice_no', 'description', 'reason_code', 'rule_ref')}
                                                               for row in (ledger or [])[:30]]}}]
@@ -51,7 +51,7 @@ def grounded_context(dashboard, documents, question, demo_scenario=None, ledger=
         sources.append({'id': doc['doc_id'], 'label': doc['original_filename'], 'layer': 'Source evidence',
                         'href': suffix + '&tab=documents' if demo_scenario else f"/documents/{doc['doc_id']}?period={period}",
                         'facts': {k: header.get(k) for k in ('supplier_name', 'invoice_no', 'invoice_date', 'total', 'validation_status', 'validation_errors')}})
-    return {'sample': bool(demo_scenario), 'period': period, 'customer': dashboard.get('profile', {}).get('legal_name'),
+    return {'sample': bool(demo_scenario or dashboard.get('sample')), 'period': period, 'customer': dashboard.get('profile', {}).get('legal_name'),
             'document_scope': 'Up to eight relevant documents from the selected customer and period; not an exhaustive search.', 'sources': sources}
 
 

@@ -1,0 +1,8 @@
+'use client'
+import Link from 'next/link'
+import {ChevronDown} from 'lucide-react'
+export default function AccountMenu({data,request,action}:{data:any;request:(path:string,body?:any)=>Promise<any>;action:(fn:()=>Promise<void>)=>Promise<void>}){
+ const user=data?.user, profile=data?.profile
+ const initials=(user?.full_name||user?.email||'?').trim().split(/\s+/).slice(0,2).map((p:string)=>p[0]).join('').toUpperCase()
+ return <details className="account-menu" onKeyDown={e=>{if(e.key==='Escape')e.currentTarget.open=false}}><summary aria-label="Open account menu"><span className="avatar">{initials}</span><ChevronDown size={16}/></summary><div className="account-popover"><div className="account-contact"><strong>{profile?.legal_name||'Your business'}</strong><span>{profile?.contact_person||user?.full_name||'Your account'}</span><small>{profile?.contact_phone||profile?.contact_mobile||user?.mobile_number||'Phone not added'}</small><small>{profile?.contact_email||user?.email||'Email not added'}</small></div><hr/><Link href="/settings/account">Account settings</Link><Link href="/settings/profile">Client profile</Link><Link href="/settings/notifications">Notifications</Link>{data?.clients?.length>1&&<label>Switch client<select aria-label="Switch client" value={data.client_id} onChange={e=>action(async()=>{await request('/api/workspace/client',{client_id:e.target.value});window.location.reload()})}>{data.clients.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}<hr/><button onClick={()=>action(async()=>{await request('/api/auth/logout');window.location.href='/login'})}>Sign out</button></div></details>
+}

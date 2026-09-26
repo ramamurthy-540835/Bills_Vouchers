@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     bootstrap_admin_password: str = ""
     red_taxi_client_bootstrap: str = ""
     demo_fallback: bool = False
+    gst_bills_enabled: bool = False
+    require_otp: bool = False
     medallion_enabled: bool = False
     document_landed_topic: str = ""
     pipeline_push_audience: str = ""

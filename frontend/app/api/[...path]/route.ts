@@ -15,7 +15,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   out.headers.delete('set-cookie')
   for (const cookie of response.headers.getSetCookie()) out.headers.append('set-cookie', cookie)
   out.headers.set('cache-control','private, no-store')
-  if (path[0]==='pipeline' && path.at(-1)==='file') {
+  if ((path[0]==='pipeline' && path.at(-1)==='file') || (path[0]==='gst' && path[1]==='bills' && path.at(-1)==='original')) {
     out.headers.set('x-frame-options','SAMEORIGIN')
     out.headers.set('content-security-policy',"frame-ancestors 'self'")
   }

@@ -13,3 +13,5 @@ bcrypt>=4.0,<4.1
 google-cloud-tasks>=2.16
 google-cloud-pubsub>=2.26
 google-cloud-documentai>=3.0
+openpyxl>=3.1,<4
+pdfplumber>=0.11,<1

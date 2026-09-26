@@ -1,0 +1,1 @@
+export default function Loading(){return <main className="loading-skeleton" aria-label="Loading workspace" aria-busy="true"><div className="skeleton skeleton-title"/><div className="metric-grid">{[0,1,2,3].map(i=><div key={i} className="skeleton skeleton-card"/>)}</div><div className="skeleton skeleton-table"/></main>}

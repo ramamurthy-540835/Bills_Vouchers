@@ -245,7 +245,7 @@ def test_sample_boundary_blocks_before_any_write(repo, monkeypatch):
     monkeypatch.setenv("DEMO_FALLBACK", "true")
     get_settings.cache_clear()
     before = copy.deepcopy(repo.tables)
-    for call in (lambda: live_only(), lambda: Medallion(repo, "a", "2026-09").recompute(), lambda: pipeline.land(Medallion(repo, "a", "2026-09"), b"%PDF-1.4", "a.pdf", "application/pdf", "a", Objects())):
+    for call in (lambda: live_only({'sample':True}), lambda: Medallion(repo, "a", "2026-09").recompute(), lambda: pipeline.land(Medallion(repo, "a", "2026-09"), b"%PDF-1.4", "a.pdf", "application/pdf", "a", Objects())):
         with pytest.raises(HTTPException) as e:
             call()
         assert e.value.status_code == 403

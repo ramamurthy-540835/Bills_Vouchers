@@ -31,6 +31,7 @@ def test_login_replaces_expired_session(monkeypatch, endpoint):
                            session_version=2, must_change_password=False)
     repo = SimpleNamespace(user_by_email=lambda email: user,
                            user_by_id=lambda uid: user if uid == user.id else None,
+                           table=lambda name: 'test.'+name, query=lambda *args: [],
                            audit=lambda *args: None)
     monkeypatch.setattr(routes, 'fr', lambda _: repo)
     monkeypatch.setattr(routes, 'FinanceRepository', lambda _: repo)

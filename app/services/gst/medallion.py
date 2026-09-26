@@ -41,7 +41,7 @@ def clean(value):
 
 
 def live_only(payload=None):
-    if get_settings().demo_fallback or (payload and (payload.get("sample") or payload.get("mode") == "sample")):
+    if payload and (payload.get("sample") or payload.get("mode") == "sample"):
         raise HTTPException(403, {"code": "sample_data_blocked", "message": "Sample data cannot be saved or exported."})
 
 
@@ -84,6 +84,10 @@ class Medallion:
 
     def writable(self):
         live_only()
+        from ...fixtures.red_taxi_sample import use_sample, is_synthetic
+        rows = self.rows('gold_filing_summary')
+        if use_sample(self) or (rows and all(is_synthetic(r) for r in rows)):
+            raise HTTPException(403, {"code":"sample_data_blocked", "message":"Sample data cannot be written, exported or filed."})
         if self.status()["state"] == "locked":
             raise HTTPException(409, "This filing period is locked.")
 
@@ -125,6 +129,9 @@ class Medallion:
         clear_cache(self.client_id, self.period)
 
     def workspace(self):
+        from ...fixtures.red_taxi_sample import use_sample, sample_workspace, is_synthetic
+        if use_sample(self):
+            return sample_workspace(self)
         key = (self.repo.dataset, self.client_id, self.period)
         with _cache_lock:
             saved = _cache.get(key)
@@ -133,7 +140,12 @@ class Medallion:
         profile = self.profile()
         bronze = self.rows("bronze_document", "ORDER BY uploaded_at DESC LIMIT 500")
         silver = self.rows("silver_invoice_header", "ORDER BY extracted_at DESC LIMIT 500")
-        summaries = self.rows("gold_filing_summary", "LIMIT 1")
+        summaries = self.rows("gold_filing_summary", "ORDER BY computed_at DESC")
+        genuine = [r for r in summaries if not is_synthetic(r)]
+        if genuine:
+            summaries = genuine
+            bronze = [r for r in bronze if not r['doc_id'].startswith(('demo-','sample-'))]
+            silver = [r for r in silver if not r['doc_id'].startswith(('demo-','sample-'))]
         summary = summaries[0] if summaries else None
         run_id = summary["run_id"] if summary else ""
         ledger = self.rows("gold_itc_ledger", "AND run_id=@run_id ORDER BY doc_id,line_no", [param("run_id", run_id)]) if run_id else []
