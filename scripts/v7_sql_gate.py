@@ -12,7 +12,9 @@ from app.services.gst import account
 
 
 async def main():
-    token=subprocess.check_output(['gcloud.cmd','auth','print-access-token'],text=True).strip()
+    import os
+    cloud_env = {k: v for k, v in os.environ.items() if k.upper() != 'PYTHONPATH'}
+    token=subprocess.check_output(['gcloud.cmd','auth','print-access-token'],text=True,env=cloud_env).strip()
     bq=bigquery.Client(project='aidirac-503309',credentials=Credentials(token))
     captured=[]
     class Repo:

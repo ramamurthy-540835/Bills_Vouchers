@@ -5,7 +5,7 @@ test.beforeEach(async({context,request,baseURL})=>{
   const result=await request.post('/api/auth/login',{data:{email:process.env.BV_TEST_EMAIL,password:process.env.BV_TEST_PASSWORD}})
   expect(result.ok()).toBeTruthy()
   await context.addCookies((await request.storageState()).cookies)
- }else await context.addCookies([{name:'session',value:'local-browser-test',url:baseURL!}])
+ }else {await request.post('http://127.0.0.1:8103/__test__/reset');await context.addCookies([{name:'session',value:'local-browser-test',url:baseURL!}])}
 })
 
 test('GST Easy copy, tooltips, glossary, navigation and bills empty state',async({page})=>{
@@ -25,6 +25,7 @@ test('GST Easy copy, tooltips, glossary, navigation and bills empty state',async
  await expect(page.getByRole('heading',{name:'Bills',exact:true})).toBeVisible()
  await expect(page.getByText('Drop your purchase bills here — PDF, photo, Excel or CSV')).toBeVisible()
  await expect(page.getByRole('link',{name:'Download the Excel template'})).toBeVisible()
+ await expect(page.getByLabel('Loading bills')).toHaveCount(0)
  await expect(page.locator('body')).not.toContainText(/Finance Control Plane|Eligible ITC|Estimated cash|Actual customer records|BigQuery|run_id/)
  await page.screenshot({path:'../artifacts/v3/bills.png',fullPage:true})
  const response=await page.request.get('/documents?period=2026-09',{maxRedirects:0})
@@ -50,4 +51,22 @@ test('local upload accepts CSV, presents canonical review and blocks missing GST
  await expect(page.getByText('Resolve the highlighted bill details before confirming.')).toBeVisible()
  await page.getByRole('button',{name:'Reject',exact:true}).click()
  await expect(page.locator('.section-heading .chip').filter({hasText:'Rejected'})).toBeVisible()
+})
+
+test('mobile navigation and viewer bill controls',async({page,request})=>{
+ await page.setViewportSize({width:390,height:844})
+ await page.goto('/gst/workspace?period=2026-09')
+ await expect(page.locator('.mobile-tabs')).toBeVisible()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+ await page.goto('/bills?period=2026-09')
+ await expect(page.getByRole('heading',{name:'Bills',exact:true})).toBeVisible()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+ await expect(page.getByLabel('Loading bills')).toHaveCount(0)
+ await page.screenshot({path:'../artifacts/v3/bills-mobile.png',fullPage:true})
+ if(!process.env.BV_TEST_URL){
+  await request.post('http://127.0.0.1:8103/__test__/viewer')
+  await page.reload()
+  await expect(page.getByLabel('Upload bills',{exact:true})).toHaveCount(0)
+  await expect(page.getByRole('link',{name:'Export purchase register'})).toBeVisible()
+ }
 })

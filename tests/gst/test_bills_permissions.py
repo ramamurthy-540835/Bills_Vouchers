@@ -74,3 +74,10 @@ def test_missing_profile_prevents_confirmation(api,invoice,monkeypatch):
     client,user,_=api;user.role='client'
     monkeypatch.setattr(gst_bills,'profile_for',lambda *a:{})
     assert client.post(f'/api/gst/bills/{invoice.invoice_id}/confirm').status_code==409
+
+
+def test_stale_edit_and_payment_authority(api,invoice):
+    client,user,_=api;user.role='client'
+    assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',headers={'If-Match':'999'},json={'invoice_number':'NEW'}).status_code==409
+    assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',json={'reverse_charge_paid_reference':'REF123'}).status_code==403
+    assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',json={'totals':{'taxable_value':'bad'}}).status_code==422

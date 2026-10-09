@@ -1,5 +1,5 @@
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Annotated, Literal
 from uuid import uuid4
 
@@ -9,14 +9,17 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 def decimal_input(value):
     if isinstance(value, float):
         raise ValueError('Use a decimal string, not a float.')
-    result = Decimal(str(value))
+    try:
+        result = Decimal(str(value))
+    except InvalidOperation:
+        raise ValueError('Enter a valid decimal amount.') from None
     if not result.is_finite():
         raise ValueError('Amount must be finite.')
     return result
 
 
 Money = Annotated[Decimal, BeforeValidator(decimal_input), Field(max_digits=18, decimal_places=2)]
-Number = Annotated[Decimal, BeforeValidator(decimal_input)]
+Number = Annotated[Decimal, BeforeValidator(decimal_input), Field(max_digits=18, decimal_places=6)]
 
 
 class Model(BaseModel):
@@ -60,6 +63,7 @@ class GstInvoice(Model):
     invoice_id: str = Field(default_factory=lambda: str(uuid4()))
     client_id: str
     source_doc_id: str
+    selected_period: str = ''
     direction: Literal['purchase', 'sale'] = 'purchase'
     supplier_gstin: str = ''
     supplier_legal_name: str = ''
@@ -74,6 +78,7 @@ class GstInvoice(Model):
     invoice_type: Literal['tax_invoice', 'bill_of_supply', 'debit_note', 'credit_note'] = 'tax_invoice'
     place_of_supply_state_code: str = ''
     reverse_charge: bool = False
+    reverse_charge_paid_reference: str = ''
     supply_type: Literal['intra', 'inter'] = 'intra'
     line_items: list[LineItem] = Field(default_factory=list, max_length=2000)
     totals: Totals = Field(default_factory=Totals)

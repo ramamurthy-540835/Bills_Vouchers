@@ -5,8 +5,9 @@ import {FileUp} from 'lucide-react'
 import {GST} from '../../lib/copy/gst'
 import {money} from '../workspace'
 
-async function api(path:string,method='GET',body?:any){
+async function api(path:string,method='GET',body?:any,version?:number){
  const headers:Record<string,string>={}
+ if(version!==undefined)headers['if-match']=String(version)
  if(method!=='GET'){
   const csrf=await fetch('/api/auth/csrf');headers['x-csrf-token']=(await csrf.json()).token
   if(!(body instanceof FormData))headers['content-type']='application/json'
@@ -18,18 +19,31 @@ async function api(path:string,method='GET',body?:any){
 export default function BillsPanel({data}:{data:any}){
  const [bills,setBills]=useState<any[]>([]),[selected,setSelected]=useState<any>(null),[jobs,setJobs]=useState<any[]>([]),[status,setStatus]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true)
  const period=data.period,write=data.can_write
+ const jobKey=`gst-bill-job:${data.client_id}:${period}`
  const reload=useCallback(async()=>{const result=await api(`?period=${period}&status=${status}`);setBills(result.invoices);setLoading(false)},[period,status])
  useEffect(()=>{reload().catch(e=>{setMessage(e.message);setLoading(false)})},[reload])
+ useEffect(()=>{let active=true;const id=sessionStorage.getItem(jobKey);if(id){setBusy(true);(async()=>{try{while(active){const job=await api(`/upload/${id}`);if(!active)return;setJobs(job.files);await reload();if(job.status==='completed'||job.status==='needs_attention'){sessionStorage.removeItem(jobKey);break}await new Promise(resolve=>setTimeout(resolve,1500))}}catch(e){if(active)setMessage((e as Error).message)}finally{if(active)setBusy(false)}})()}return()=>{active=false}},[jobKey])
  async function upload(files:FileList|File[]|null){
   if(!files?.length||busy)return
-  if(files.length>20){setMessage(GST.maxFiles);return}
-  setBusy(true);setMessage('');setJobs(Array.from(files).map(f=>({filename:f.name,status:'reading'})))
-  try{const completed:any[]=[];for(const file of Array.from(files)){const body=new FormData();body.append('files',file);const result=await api(`/upload?period=${period}`,'POST',body);completed.push(...result.files);setJobs([...completed,...Array.from(files).slice(completed.length).map(f=>({filename:f.name,status:'reading'}))]);await reload()}}
-  catch(e){setMessage(e instanceof Error?e.message:GST.failed);setJobs(Array.from(files).map(f=>({filename:f.name,status:'needs_attention'})))}finally{setBusy(false)}
+  const chosen=Array.from(files)
+  if(chosen.length>20||chosen.some(f=>f.size>15*1024*1024)){setMessage(GST.maxFiles);return}
+  setBusy(true);setMessage('');setJobs(chosen.map(f=>({filename:f.name,status:'reading'})))
+  const completed:any[]=[]
+  try{for(const file of chosen){
+   const body=new FormData();body.append('files',file)
+   let job=await api(`/upload?period=${period}`,'POST',body)
+   sessionStorage.setItem(jobKey,job.job_id)
+   while(job.status!=='completed'&&job.status!=='needs_attention'){
+    setJobs([...completed,...job.files,...chosen.slice(completed.length+1).map(f=>({filename:f.name,status:'reading'}))])
+    await new Promise(resolve=>setTimeout(resolve,1500));job=await api(`/upload/${job.job_id}`)
+   }
+   sessionStorage.removeItem(jobKey);completed.push(...job.files)
+   setJobs([...completed,...chosen.slice(completed.length).map(f=>({filename:f.name,status:'reading'}))]);await reload()
+  }}catch(e){setMessage(e instanceof Error?e.message:GST.failed);setJobs([...completed,...chosen.slice(completed.length).map(f=>({filename:f.name,status:'needs_attention'}))])}finally{setBusy(false)}
  }
  async function open(id:string){try{setSelected(await api(`/${id}`));setMessage('')}catch(e){setMessage((e as Error).message)}}
- async function save(body:any){if(!selected||!write)return;setBusy(true);setMessage('');try{setSelected(await api(`/${selected.invoice_id}`,'PATCH',body));await reload();setMessage(GST.saved)}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
- async function decision(action:string){setBusy(true);setMessage('');try{setSelected(await api(`/${selected.invoice_id}/${action}`,'POST'));await reload()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
+ async function save(body:any){if(!selected||!write)return;setBusy(true);setMessage('');try{setSelected(await api(`/${selected.invoice_id}`,'PATCH',body,selected.version));await reload();setMessage(GST.saved)}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
+ async function decision(action:string){setBusy(true);setMessage('');try{setSelected(await api(`/${selected.invoice_id}/${action}`,'POST',undefined,selected.version));await reload()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  const labels=GST.fields
  const input=(field:string,value:any,onSave:(value:string)=>void,type='text')=><label key={field}>{labels[field]}<input aria-label={labels[field]} key={`${selected?.version}-${field}-${String(value)}`} defaultValue={value??''} type={type} disabled={!write||busy} onBlur={e=>{if(e.target.value!==String(value??''))onSave(e.target.value)}}/></label>
  return <>
@@ -45,11 +59,11 @@ export default function BillsPanel({data}:{data:any}){
     <label>{GST.direction}<select disabled={!write||busy} value={selected.direction} onChange={e=>save({direction:e.target.value})}><option value="purchase">{GST.purchase}</option><option value="sale">{GST.sale}</option></select></label>
     <label>{GST.type}<select disabled={!write||busy} value={selected.invoice_type} onChange={e=>save({invoice_type:e.target.value})}>{[['tax_invoice',GST.taxInvoice],['bill_of_supply',GST.billOfSupply],['debit_note',GST.debitNote],['credit_note',GST.creditNote]].map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
     <label>{GST.reverseCharge}<input type="checkbox" checked={selected.reverse_charge} disabled={!write||busy} onChange={e=>save({reverse_charge:e.target.checked})}/></label>
-   </div><h3>{GST.lineItems}</h3>{selected.line_items.map((line:any,index:number)=><fieldset key={`${selected.version}-${index}`}><legend>{index+1}</legend><div className="bill-line-fields">{Object.keys(line).map(f=>input(f,line[f],v=>save({line_items:selected.line_items.map((l:any,i:number)=>i===index?{...l,[f]:v}:l)})))}</div>{write&&<button className="button quiet" disabled={busy} onClick={()=>save({line_items:selected.line_items.filter((_:any,i:number)=>i!==index)})}>{GST.remove}</button>}</fieldset>)}
+   {selected.reverse_charge&&['admin','tax_admin'].includes(data.user?.role)&&<label>{GST.paymentReference}<input defaultValue={selected.reverse_charge_paid_reference} disabled={busy} onBlur={e=>save({reverse_charge_paid_reference:e.target.value})}/></label>}</div><h3>{GST.lineItems}</h3>{selected.line_items.map((line:any,index:number)=><fieldset key={`${selected.version}-${index}`}><legend>{index+1}</legend><div className="bill-line-fields">{Object.keys(line).map(f=>input(f,line[f],v=>save({line_items:selected.line_items.map((l:any,i:number)=>i===index?{...l,[f]:v}:l)})))}</div>{write&&<button className="button quiet" disabled={busy} onClick={()=>save({line_items:selected.line_items.filter((_:any,i:number)=>i!==index)})}>{GST.remove}</button>}</fieldset>)}
    {write&&<button className="button secondary" disabled={busy} onClick={()=>save({line_items:[...selected.line_items,{description:'',hsn_sac:'',quantity:'1',unit:'NOS',taxable_value:'0',gst_rate:'0',cgst:'0',sgst:'0',igst:'0',cess:'0'}]})}>{GST.addLine}</button>}
    <h3>{GST.total}</h3><div className="account-form">{Object.keys(selected.totals).map(f=>input(f,selected.totals[f],v=>save({totals:{...selected.totals,[f]:v}})))}</div>
    <ul className="review-reasons">{selected.review_reasons.map((r:string)=><li key={r}>{GST.reasons[r]||GST.attention}</li>)}</ul><p>{GST.confirmNote}</p><div className="filing-actions">{write&&<><button className="button primary" disabled={busy||selected.status==='confirmed'||selected.status==='rejected'} onClick={()=>decision('confirm')}>{GST.confirm}</button><button className="button quiet" disabled={busy||selected.status==='rejected'} onClick={()=>decision('reject')}>{GST.reject}</button></>}</div></section>
-   <aside className="bv-card original-bill"><h2>{GST.original}</h2><Link href={`/api/gst/bills/${selected.invoice_id}/original`} target="_blank">{GST.originalDownload}</Link><iframe title={GST.original} src={`/api/gst/bills/${selected.invoice_id}/original`}/></aside></div>
+   <aside className="bv-card original-bill"><h2>{GST.original}</h2><Link href={`/api/gst/bills/${selected.invoice_id}/original`} target="_blank">{GST.originalDownload}</Link>{/\.(pdf|png|jpe?g)$/i.test(selected.extraction.raw_ref)?<iframe title={GST.original} src={`/api/gst/bills/${selected.invoice_id}/original`}/>:<p>{GST.spreadsheetOriginal}</p>}</aside></div>
   </>}
  </>
 }

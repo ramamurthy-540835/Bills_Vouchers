@@ -4,6 +4,8 @@ COPY package*.json ./
 RUN npm ci
 FROM node:22-alpine AS builder
 WORKDIR /app
+ARG NEXT_PUBLIC_GST_MODULE_NAME="GST Easy"
+ENV NEXT_PUBLIC_GST_MODULE_NAME=$NEXT_PUBLIC_GST_MODULE_NAME
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

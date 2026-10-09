@@ -2,6 +2,7 @@ import csv
 from datetime import date, datetime
 from decimal import Decimal
 from io import BytesIO, StringIO
+from itertools import islice
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -13,6 +14,7 @@ from app.services.gst.validation import VALID_STATE_CODES
 HEADERS = ['Supplier GSTIN', 'Invoice Number', 'Invoice Date (DD-MM-YYYY)', 'HSN/SAC',
            'Description', 'Taxable Value', 'GST Rate %', 'CGST', 'SGST', 'IGST', 'Cess',
            'Invoice Total', 'Place of Supply (State Code)', 'Reverse Charge (Y/N)']
+STATE_NAMES = ['Jammu and Kashmir','Himachal Pradesh','Punjab','Chandigarh','Uttarakhand','Haryana','Delhi','Rajasthan','Uttar Pradesh','Bihar','Sikkim','Arunachal Pradesh','Nagaland','Manipur','Mizoram','Tripura','Meghalaya','Assam','West Bengal','Jharkhand','Odisha','Chhattisgarh','Madhya Pradesh','Gujarat','Daman and Diu (legacy)','Dadra and Nagar Haveli and Daman and Diu','Maharashtra','Andhra Pradesh (legacy)','Karnataka','Goa','Lakshadweep','Kerala','Tamil Nadu','Puducherry','Andaman and Nicobar Islands','Telangana','Andhra Pradesh','Ladakh']
 
 
 def template_bytes():
@@ -37,6 +39,10 @@ def template_bytes():
         instructions.append(row)
     instructions.column_dimensions['A'].width = 110
     instructions.column_dimensions['B'].width = 110
+    for number, name in enumerate(STATE_NAMES, 1):
+        instructions.append([f'{number:02}', name])
+    instructions.append(['97', 'Other territory'])
+    instructions.append(['99', 'Centre jurisdiction'])
     for col, values in [('G', sorted(RATES)), ('M', sorted(VALID_STATE_CODES)), ('N', ['Y', 'N'])]:
         validation = DataValidation(type='list', formula1='"' + ','.join(map(str, values)) + '"')
         validation.errorTitle = 'Choose a listed value'
@@ -59,22 +65,24 @@ def template_bytes():
 
 def parse_template(content, extension, client_id, doc_id, profile, raw_ref):
     if extension == '.csv':
-        rows = list(csv.reader(StringIO(content.decode('utf-8-sig'))))
+        rows = list(islice(csv.reader(StringIO(content.decode('utf-8-sig'))), 1002))
     else:
-        workbook = load_workbook(BytesIO(content), read_only=True, data_only=True)
+        workbook = load_workbook(BytesIO(content), read_only=True, data_only=False)
         try:
-            rows = list(workbook['Bills'].values)
+            rows = list(islice(workbook['Bills'].values, 1002))
         finally:
             workbook.close()
     if not rows or list(rows[0]) != HEADERS:
         raise ValueError('Use the provided Excel template or its exact CSV headers.')
-    if len(rows) > 10001:
-        raise ValueError('Upload at most 10,000 rows per file.')
+    if len(rows) > 1001:
+        raise ValueError('Upload at most 1,000 rows per file.')
     groups = {}
     for values in rows[1:]:
         if not any(v is not None and str(v).strip() for v in values):
             continue
         row = dict(zip(HEADERS, values, strict=True))
+        if any(isinstance(value, str) and value.lstrip().startswith(('=', '+', '@')) for value in values):
+            raise ValueError('Replace spreadsheet formulas with their values before uploading.')
         day = row[HEADERS[2]]
         if isinstance(day, datetime):
             day = day.date()
@@ -101,6 +109,8 @@ def parse_template(content, extension, client_id, doc_id, profile, raw_ref):
         if inv.totals.invoice_total != dec('Invoice Total'):
             raise ValueError('Repeat the same invoice total on every line of a bill.')
         inv.line_items.append(line)
+    if len(groups) > 200:
+        raise ValueError('Split the spreadsheet into batches of at most 200 bills.')
     for inv in groups.values():
         for field in ('taxable_value', 'cgst', 'sgst', 'igst', 'cess'):
             setattr(inv.totals, field, sum((getattr(line, field) for line in inv.line_items), Decimal('0')))

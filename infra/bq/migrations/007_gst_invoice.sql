@@ -28,3 +28,10 @@ CREATE TABLE IF NOT EXISTS `aidirac-503309.ops.extraction_log` (
  client_id STRING NOT NULL, source_doc_id STRING, model STRING,
  input_tokens INT64, output_tokens INT64, created_at TIMESTAMP
 ) PARTITION BY DATE(created_at) CLUSTER BY client_id;
+CREATE TABLE IF NOT EXISTS `aidirac-503309.silver.gst_bills_gstr2b` (
+ client_id STRING NOT NULL, period STRING NOT NULL, supplier_gstin STRING,
+ invoice_number STRING, payload JSON, imported_at TIMESTAMP
+) CLUSTER BY client_id, period, supplier_gstin;
+MERGE `aidirac-503309.ops.gst_bill_lock` T
+USING (SELECT '__guard__' client_id) S ON T.client_id=S.client_id
+WHEN NOT MATCHED THEN INSERT (client_id,touched_at) VALUES (S.client_id,CURRENT_TIMESTAMP());

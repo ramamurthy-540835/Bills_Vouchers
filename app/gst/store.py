@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from google.cloud import storage
+from google.api_core.exceptions import BadRequest, Conflict
 
 from app.config import get_settings
 from app.services.gst.medallion import param
@@ -49,18 +50,20 @@ class BillStore:
             raise HTTPException(403, {'code': 'sample_data_blocked', 'message': 'Illustrations cannot be saved.'})
         table = self.table('gold', 'gst_invoice')
         lock = self.table('ops', 'gst_bill_lock')
-        self.query(f'MERGE {lock} T USING (SELECT @client_id client_id) S ON T.client_id=S.client_id WHEN NOT MATCHED THEN INSERT (client_id,touched_at) VALUES (@client_id,CURRENT_TIMESTAMP())')
+        if selected_period and not invoice.selected_period:
+            invoice.selected_period = selected_period
         payload = invoice.model_dump_json()
         params = [param('id', invoice.invoice_id), param('payload', payload),
                   param('before', previous.model_dump_json() if previous else 'null'),
                   param('expected', previous.version if previous else 0, 'INT64'),
                   param('version', invoice.version, 'INT64'), param('actor', str(actor)), param('action', action),
-                  param('period', invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else selected_period),
+                  param('period', invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else invoice.selected_period),
                   param('fy', financial_year(invoice.invoice_date) if invoice.invoice_date else None, 'INT64'),
                   param('supplier', invoice.supplier_gstin), param('number', invoice.invoice_number.strip().upper()),
                   param('status', invoice.status)]
         sql = f'''BEGIN TRANSACTION;
-        UPDATE {lock} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id=@client_id;
+        ASSERT (SELECT COUNT(*) FROM {lock} WHERE client_id='__guard__')=1 AS 'Storage guard missing';
+        UPDATE {lock} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
         ASSERT COALESCE((SELECT version FROM {table} WHERE client_id=@client_id AND invoice_id=@id),0)=@expected AS 'Bill changed; reload';
         ASSERT @status='rejected' OR NOT EXISTS(SELECT 1 FROM {table} WHERE client_id=@client_id AND supplier_gstin=@supplier AND invoice_number=@number AND financial_year=@fy AND invoice_id!=@id AND status!='rejected') AS 'Duplicate invoice';
         DELETE FROM {table} WHERE client_id=@client_id AND invoice_id=@id;
@@ -73,7 +76,26 @@ class BillStore:
         FROM UNNEST(JSON_QUERY_ARRAY(@payload,'$.line_items')) line WITH OFFSET position;
         INSERT INTO {self.table('ops', 'gst_bill_audit')} VALUES (@client_id,@id,@actor,@action,PARSE_JSON(@before),PARSE_JSON(@payload),CURRENT_TIMESTAMP());
         COMMIT TRANSACTION;'''
-        self.query(sql, params)
+        try:
+            self.query(sql, params)
+        except (BadRequest, Conflict) as exc:
+            if any(word in str(exc).lower() for word in ('duplicate invoice', 'bill changed', 'concurrent', 'transaction is aborted')):
+                raise HTTPException(409, {'code': 'bill_conflict', 'message': 'This bill was saved or changed in another request. Refresh your bills before retrying.'}) from None
+            raise
+
+    def matching_rows(self, period):
+        rows = self.query(f'SELECT payload FROM {self.table("silver", "gst_bills_gstr2b")} WHERE client_id=@client_id AND period=@period', [param('period', period)])
+        return [json.loads(r['payload']) if isinstance(r['payload'], str) else r['payload'] for r in rows]
+
+    def save_matching(self, period, records, actor):
+        self.query(f'''BEGIN TRANSACTION;
+            UPDATE {self.table('ops', 'gst_bill_lock')} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
+            DELETE FROM {self.table('silver', 'gst_bills_gstr2b')} WHERE client_id=@client_id AND period=@period;
+            INSERT INTO {self.table('silver', 'gst_bills_gstr2b')}
+            SELECT @client_id,@period,JSON_VALUE(row,'$.supplier_gstin'),JSON_VALUE(row,'$.invoice_number'),PARSE_JSON(row),CURRENT_TIMESTAMP()
+            FROM UNNEST(JSON_QUERY_ARRAY(@payload)) row;
+            INSERT INTO {self.table('ops', 'gst_bill_audit')} VALUES (@client_id,NULL,@actor,'import_gstr2b',NULL,PARSE_JSON(@payload),CURRENT_TIMESTAMP());
+            COMMIT TRANSACTION;''', [param('period', period), param('payload', json.dumps(records, default=str)), param('actor', str(actor))])
 
     def job(self, job_id, payload=None):
         table = self.table('ops', 'gst_bill_job')
@@ -103,8 +125,10 @@ class BillStore:
         bucket.blob(key).upload_from_string(content, content_type=mime)
         return f'gs://{bucket.name}/{key}'
 
-    def download_object(self, ref):
-        prefix = f'gs://{get_settings().gcs_bucket_name}/{self.client_id}/bronze/bills/'
+    def download_object(self, ref, layer='bronze'):
+        if layer not in {'bronze','silver'}:
+            raise HTTPException(404, 'Original bill not found.')
+        prefix = f'gs://{get_settings().gcs_bucket_name}/{self.client_id}/{layer}/bills/'
         if not ref.startswith(prefix):
             raise HTTPException(404, 'Original bill not found.')
         key = ref.split('/', 3)[3]

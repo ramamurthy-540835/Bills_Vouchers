@@ -2,7 +2,6 @@
 import os
 from types import SimpleNamespace
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import Response
 from app.config import get_settings
 from app.db import get_db
 from app.routes import current_user
@@ -30,14 +29,15 @@ class Store:
         return jobs[id]
     def upload_object(self,content,doc,filename,layer,mime):
         ref=f'gs://test/{self.client_id}/{layer}/bills/{doc}/{filename}';objects[ref]=content;return ref
-    def download_object(self,ref):return objects[ref]
+    def download_object(self,ref,layer="bronze"):return objects[ref]
     def usage(self,*args):pass
+    def matching_rows(self,period):return []
 
 
 gst_bills.BillStore=Store
 gst_bills.active_client=lambda *args:SimpleNamespace(id='browser-client')
 gst_bills.profile_for=lambda *args:profile
-gst_bills.can=lambda *args:True
+gst_bills.can=lambda user,action,*args:action=='bills:read' or user.role!='viewer'
 gst_bills.FinanceRepository=lambda repo:SimpleNamespace(clients=lambda uid:[SimpleNamespace(id='browser-client',name='Red Taxi')])
 app=FastAPI()
 app.include_router(gst_bills.router)
@@ -55,3 +55,15 @@ def period():return {'ok':True}
 
 @app.get('/api/health')
 def health():return {'ok':True}
+
+
+@app.post('/__test__/reset')
+def reset():
+    items.clear();objects.clear();jobs.clear();user.role='client';profile['gstin']=''
+    return {'ok':True}
+
+
+@app.post('/__test__/viewer')
+def viewer():
+    user.role='viewer'
+    return {'ok':True}

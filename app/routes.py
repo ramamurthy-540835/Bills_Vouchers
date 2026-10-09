@@ -60,7 +60,8 @@ def current_user(request: Request, repo=Depends(get_db)):
                 user.role = "viewer"
         if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/settings/account", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             raise HTTPException(403, "Viewer access is read-only.")
-        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path not in {"/api/settings/account", "/api/settings/profile", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+        canonical_bills = get_settings().gst_bills_enabled and (request.url.path == '/api/gst/bills' or request.url.path.startswith('/api/gst/bills/'))
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not canonical_bills and request.url.path not in {"/api/settings/account", "/api/settings/profile", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             from .services.gst.medallion import Medallion, live_only
             live_only()
             if clients:

@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     red_taxi_client_bootstrap: str = ""
     demo_fallback: bool = False
     gst_bills_enabled: bool = False
+    gst_bills_queue: str = ''
+    gst_bills_worker_url: str = ''
+    gst_bills_worker_audience: str = ''
+    gst_bills_worker_account: str = ''
     require_otp: bool = False
     medallion_enabled: bool = False
     document_landed_topic: str = ""

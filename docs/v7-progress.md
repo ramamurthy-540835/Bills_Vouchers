@@ -1,6 +1,22 @@
-https://preview-v2---bills-voucher-web-foovqasysa-el.a.run.app/gst/workspace?period=2026-09
+https://preview-v3---bills-voucher-web-foovqasysa-el.a.run.app
 
 # v7 preview progress
+
+## V3 deployed — 2026-10-09
+
+GST Easy and canonical bill uploads are live on isolated `preview-v3` and
+`api-preview-v3` tags. Web revision: `bills-voucher-web-00050-rij`; API revision:
+`bills-voucher-00109-quv`. Both have zero production traffic. Original and v2
+tags and the current production revisions were verified unchanged.
+
+129 backend tests, 3 local browser tests, 2 live browser tests, 6 live API smoke
+groups and the live queue check passed. One synthetic-upload browser test was
+intentionally skipped against the live customer. No mock financial records were
+loaded. Full evidence and screenshots: [v3 release](releases/v7.md).
+Remaining acceptance work: [handoff](STEPHEN_VERSION3_REMAINING.md).
+
+The revision/traffic information below is historical; use the current release
+report and fresh Cloud Run state for future deployments.
 
 ## V2 frontend update deployed — 2026-09-25
 

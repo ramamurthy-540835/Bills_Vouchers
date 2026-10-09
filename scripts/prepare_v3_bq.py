@@ -1,5 +1,6 @@
 """Apply additive schema and validate tenant-bound DML without persisting test bills."""
 import json
+import os
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,7 +10,8 @@ from google.oauth2.credentials import Credentials
 from app.gst.schemas.invoice import GstInvoice, LineItem, Totals
 from app.gst.store import BillStore
 
-token = subprocess.check_output(['gcloud.cmd', 'auth', 'print-access-token'], text=True).strip()
+cloud_env = {k: v for k, v in os.environ.items() if k.upper() != 'PYTHONPATH'}
+token = subprocess.check_output(['gcloud.cmd', 'auth', 'print-access-token'], text=True, env=cloud_env).strip()
 client = bigquery.Client(project='aidirac-503309', credentials=Credentials(token))
 job = client.query(Path('infra/bq/migrations/007_gst_invoice.sql').read_text(), location='asia-south1')
 job.result()
@@ -35,6 +37,7 @@ invoice = GstInvoice(client_id='v3-sql-rollback-check', source_doc_id='rollback-
     line_items=[LineItem(description='Rollback verification', hsn_sac='1234', taxable_value='100', gst_rate='18', cgst='9', sgst='9')],
     totals=Totals(taxable_value='100', cgst='9', sgst='9', invoice_total='118'))
 BillStore(Probe(), invoice.client_id).save(invoice, 'verification', 'rollback-check')
+BillStore(Probe(), invoice.client_id).save_matching('2026-09', [], 'verification')
 count = list(client.query('SELECT COUNT(*) n FROM `aidirac-503309.gold.gst_invoice` WHERE client_id=@client_id',
     job_config=bigquery.QueryJobConfig(query_parameters=[bigquery.ScalarQueryParameter('client_id','STRING',invoice.client_id)])))[0]['n']
 assert count == 0
