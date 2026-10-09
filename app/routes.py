@@ -52,6 +52,8 @@ def current_user(request: Request, repo=Depends(get_db)):
         if clients:
             selected = next((c for c in clients if c.id == request.session.get("client_id")), clients[0])
             request.session["client_id"] = selected.id
+            if getattr(selected, 'is_test', False) and (request.url.path.startswith('/api/gst/filing/generate/') or request.url.path == '/api/gst/filing/transition'):
+                raise HTTPException(403, {'code': 'sample_data_blocked', 'message': 'Test workspace figures cannot be exported or filed.'})
             role = repo.one(f"SELECT role FROM `{repo.table('client_user_role')}` WHERE client_id=@client_id AND email=@email AND is_current=TRUE ORDER BY effective_from DESC LIMIT 1", [param("client_id", selected.id), param("email", user.email.lower())])
             user.role = str(role.role if role else user.role).lower()
             if user.role == "accountant":

@@ -70,6 +70,16 @@ def test_sample_export_blocked(api,invoice):
     assert response.status_code==403 and response.json()['detail']['code']=='sample_data_blocked'
 
 
+def test_test_client_can_review_but_cannot_export(api,monkeypatch):
+    client,user,_=api
+    monkeypatch.setattr(gst_bills,'active_client',lambda *a:SimpleNamespace(id='a',is_test=True))
+    assert client.get('/api/gst/bills?period=2026-09').status_code==200
+    assert client.get('/api/gst/bills/template.xlsx').status_code==200
+    for path in ('export?period=2026-09&format=csv','export?period=2026-09&format=xlsx','working-papers?period=2026-09'):
+        response=client.get('/api/gst/bills/'+path)
+        assert response.status_code==403 and response.json()['detail']['code']=='sample_data_blocked'
+
+
 def test_missing_profile_prevents_confirmation(api,invoice,monkeypatch):
     client,user,_=api;user.role='client'
     monkeypatch.setattr(gst_bills,'profile_for',lambda *a:{})

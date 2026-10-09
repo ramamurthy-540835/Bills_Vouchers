@@ -24,3 +24,15 @@ def test_real_auth_allows_customer_upload_while_legacy_sample_is_read_only(monke
         assert routes.current_user(request('/api/gst/bills/upload'),repo).role==role
         with pytest.raises(HTTPException):routes.current_user(request('/api/pipeline/upload'),repo)
     get_settings.cache_clear()
+
+
+@pytest.mark.parametrize('path',['/api/gst/filing/generate/gstr3b','/api/gst/filing/transition'])
+def test_test_workspace_cannot_generate_or_file(monkeypatch,path):
+    monkeypatch.setenv('MEDALLION_ENABLED','true');get_settings.cache_clear()
+    user=SimpleNamespace(id='u',role='client',session_version=1,must_change_password=False)
+    client=SimpleNamespace(id='a',is_test=True)
+    monkeypatch.setattr(routes,'FinanceRepository',lambda repo:SimpleNamespace(user_by_id=lambda uid:user,clients=lambda uid:[client]))
+    request=Request({'type':'http','method':'POST','path':path,'headers':[], 'query_string':b'', 'session':{'user_id':'u','session_version':1},'server':('test',80),'scheme':'http'})
+    with pytest.raises(HTTPException) as error:routes.current_user(request,SimpleNamespace())
+    assert error.value.status_code==403 and error.value.detail['code']=='sample_data_blocked'
+    get_settings.cache_clear()

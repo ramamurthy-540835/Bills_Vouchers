@@ -38,6 +38,8 @@ def scope(request, repo, user, action='bills:read'):
     client = active_client(request, repo, user)
     if not can(user, action, client.id, repo):
         raise HTTPException(403, 'You do not have permission for this action.')
+    if getattr(client, 'is_test', False) and request.url.path.rsplit('/', 1)[-1] in {'export', 'working-papers'}:
+        raise HTTPException(403, {'code': 'sample_data_blocked', 'message': 'Test workspace figures cannot be exported or filed.'})
     return client, BillStore(repo, client.id)
 
 
@@ -150,6 +152,7 @@ def dashboard(request: Request, period: str = '', repo=Depends(get_db), user=Dep
     profile = profile_for(repo, client.id, period)
     calculation = calculate(invoices, profile, store.matching_rows(period))
     return clean({'client_id': str(client.id), 'period': period, 'profile': profile, 'sample': False,
+        'test_workspace': bool(getattr(client, 'is_test', False)),
         'user': {'id': str(user.id), 'full_name': user.full_name, 'email': user.email, 'role': user.role},
         'clients': [{'id': c.id, 'name': c.name} for c in FinanceRepository(repo).clients(user.id)],
         'can_write': can(user, 'bills:write', client.id, repo),

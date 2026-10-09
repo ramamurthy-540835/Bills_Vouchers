@@ -2,6 +2,14 @@ https://preview-v3---bills-voucher-web-foovqasysa-el.a.run.app
 
 # v7 preview progress
 
+## Isolated test client — 2026-10-09
+
+The owner requested a separate test account populated with the local dummy bill
+pack. Added an explicit test-client flag and blocked exports/filing for that
+client. API-only update: `bills-voucher-00110-wuv` on `api-preview-v3`, 0% traffic.
+All web revisions and non-v3 API routing remain unchanged. 132 backend tests
+passed. See [test workspace release note](releases/v3-test-workspace.md).
+
 ## V3 deployed — 2026-10-09
 
 GST Easy and canonical bill uploads are live on isolated `preview-v3` and
