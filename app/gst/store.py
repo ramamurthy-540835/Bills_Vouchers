@@ -26,6 +26,11 @@ class BillStore:
     def query(self, sql, params=()):
         return self.repo.query(sql, [param('client_id', self.client_id), *params])
 
+    def latest_period(self):
+        rows = self.query(f'''SELECT COALESCE(MAX(IF(status='confirmed',period,NULL)),MAX(period)) AS period
+            FROM {self.table('gold', 'gst_invoice')} WHERE client_id=@client_id AND status!='rejected' ''')
+        return rows[0]['period'] if rows else None
+
     def list(self, period=None, status=None):
         clause = ''
         params = []

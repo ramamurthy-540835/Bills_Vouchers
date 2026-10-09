@@ -47,6 +47,13 @@ def profile_for(repo, client_id, period):
     return Medallion(repo, client_id, period).profile() or {}
 
 
+def selected_period(request, client, store, explicit=''):
+    chosen = explicit or request.session.get('period')
+    if not chosen and getattr(client, 'is_test', False):
+        chosen = store.latest_period()
+    return period_value(chosen or date.today().strftime('%Y-%m'))
+
+
 def safe_cell(value):
     value = str(value or '')
     return "'" + value if value.startswith(('=', '+', '-', '@', '\t', '\r')) else value
@@ -68,7 +75,7 @@ def template(request: Request, repo=Depends(get_db), user=Depends(current_user))
 @router.post('/upload')
 def upload(request: Request, files: list[UploadFile] = File(...), period: str = '', repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user, 'bills:write')
-    period = period_value(period or date.today().strftime('%Y-%m'))
+    period = selected_period(request, client, store, period)
     profile = profile_for(repo, client.id, period)
     if not 1 <= len(files) <= 20:
         raise HTTPException(422, 'Choose between 1 and 20 bills.')
@@ -139,7 +146,7 @@ def progress(job_id: str, request: Request, repo=Depends(get_db), user=Depends(c
 @router.get('')
 def list_bills(request: Request, period: str = '', status: str = '', repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user)
-    period = period_value(period or date.today().strftime('%Y-%m'))
+    period = selected_period(request, client, store, period)
     return {'invoices': [i.model_dump(mode='json') for i in store.list(period, status)],
             'client_id': str(client.id), 'can_write': can(user, 'bills:write', client.id, repo)}
 
@@ -147,7 +154,7 @@ def list_bills(request: Request, period: str = '', status: str = '', repo=Depend
 @router.get('/dashboard')
 def dashboard(request: Request, period: str = '', repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user)
-    period = period_value(period or request.session.get('period') or date.today().strftime('%Y-%m'))
+    period = selected_period(request, client, store, period)
     invoices = store.list(period)
     profile = profile_for(repo, client.id, period)
     calculation = calculate(invoices, profile, store.matching_rows(period))

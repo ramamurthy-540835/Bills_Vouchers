@@ -2,6 +2,14 @@ https://preview-v3---bills-voucher-web-foovqasysa-el.a.run.app
 
 # v7 preview progress
 
+## Demo default month fixed - 2026-10-09
+
+Fresh test-account login now opens the latest populated month, September 2026,
+instead of empty October. Live browser sign-in and Bills navigation passed;
+21 bills confirmed, 7 need review. Explicit month selections remain available.
+139 backend tests passed. API revision `bills-voucher-00111-viz` updates only
+`api-preview-v3`; production, original preview and v2 remain unchanged.
+
 ## Isolated test client — 2026-10-09
 
 The owner requested a separate test account populated with the local dummy bill

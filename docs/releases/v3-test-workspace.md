@@ -16,3 +16,13 @@ Deployment:
 - Validation before deployment: 132 backend tests passed, including test-client export restrictions, filing restrictions and tenant isolation. Ruff and whitespace checks passed.
 
 The local fixture folder is `C:\Users\BIS\Stephen\GST-V2\Dummy_Bills_V3`. Provisioning, processing progress, verification results and screenshots are kept there, outside Git. These synthetic results do not replace acceptance with genuine customer evidence and a verified real GSTIN.
+
+## Default-month correction
+
+Fresh login previously selected October while the dummy bills were dated September, leaving the dashboard empty. Test clients now default to their latest confirmed bill month (latest non-rejected month if none are confirmed). Explicit URL and session selections remain authoritative; ordinary clients retain the current-month default. Dashboard, bill listing and uploads share this selection rule, with a parameterized client filter.
+
+- Build `8d7ebfe6-52e2-446a-bacb-3ab767f0dd50`: SUCCESS.
+- API revision `bills-voucher-00111-viz`, tag `api-preview-v3`, zero production traffic. Other API tags and all web mappings verified unchanged.
+- 139 backend tests passed before deployment; Ruff and whitespace checks passed.
+- Live browser sign-in verified September 2026, 21 confirmed bills, 7 needing review and usable credit of INR 348,960.00. Bills returned 29 September records, and explicit April selection still returned its one confirmed bill.
+- Local evidence: `Dummy_Bills_V3/demo-login-check.json`, `demo-fresh-login-fixed.png`, and `demo_period_deployment.json` (outside Git). The browser check allows asynchronous dashboard loading before asserting rendered values.
