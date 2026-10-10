@@ -9,7 +9,12 @@ test.beforeEach(async({context,request,baseURL})=>{
 })
 
 test('GST Easy copy, tooltips, glossary, navigation and bills empty state',async({page})=>{
- await page.goto('/gst/workspace?period=2026-09')
+ const landing=await page.request.get('/?period=2026-09',{maxRedirects:0})
+ expect(landing.status()).toBe(301)
+ expect(landing.headers().location).toBe('/gst/workspace?period=2026-09')
+ await page.goto('/?period=2026-09')
+ await expect(page).toHaveURL(/\/gst\/workspace\?period=2026-09$/)
+ await expect(page.getByRole('link',{name:'Overview',exact:true})).toHaveCount(0)
  await expect(page.getByRole('heading',{name:'GST Easy',exact:true})).toBeVisible()
  await expect(page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'GST Easy',exact:true})).toBeVisible()
  await expect(page.locator('.metric-card .term-tip summary')).toHaveCount(4)
@@ -57,6 +62,8 @@ test('mobile navigation and viewer bill controls',async({page,request})=>{
  await page.setViewportSize({width:390,height:844})
  await page.goto('/gst/workspace?period=2026-09')
  await expect(page.locator('.mobile-tabs')).toBeVisible()
+ await expect(page.locator('.mobile-tabs').getByRole('link',{name:'GST Easy',exact:true})).toBeVisible()
+ await expect(page.getByRole('link',{name:'Overview',exact:true})).toHaveCount(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
  await page.goto('/bills?period=2026-09')
  await expect(page.getByRole('heading',{name:'Bills',exact:true})).toBeVisible()

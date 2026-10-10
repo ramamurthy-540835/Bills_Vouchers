@@ -2,6 +2,17 @@ https://preview-v3---bills-voucher-web-foovqasysa-el.a.run.app
 
 # v7 preview progress
 
+## Single GST Easy dashboard - 2026-10-10
+
+Removed the duplicate Overview destination from desktop and mobile navigation.
+The root URL now returns a 301 to `/gst/workspace`, preserving query parameters.
+GST Easy is the single dashboard; Bills and Returns & Credit remain distinct workflows.
+Web-only deployment: `bills-voucher-web-00051-faf` on `preview-v3`, zero production
+traffic. Build `5cdb6242-7e2a-4ee9-825e-2ad604e97565` succeeded. Type checking,
+three local browser checks and live form sign-in passed. The demo still opens
+September with its populated figures. All API routing, production and the
+original/v2 previews were verified unchanged.
+
 ## Demo default month fixed - 2026-10-09
 
 Fresh test-account login now opens the latest populated month, September 2026,

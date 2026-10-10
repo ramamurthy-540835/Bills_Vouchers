@@ -1,2 +1,2 @@
-import { WorkspacePage } from './workspace-server'
-export default function Page({searchParams}:{searchParams:Promise<{period?:string}>}){return <WorkspacePage view="overview" searchParams={searchParams}/>}
+// The root URL redirects to GST Easy in next.config.ts, preserving query parameters.
+export default function Page(){return null}
