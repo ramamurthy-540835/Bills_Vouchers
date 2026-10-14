@@ -6,6 +6,7 @@ from datetime import date
 from decimal import InvalidOperation
 from io import BytesIO, StringIO
 from pathlib import Path
+from typing import Any
 from uuid import uuid4, uuid5, NAMESPACE_URL
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
@@ -81,7 +82,7 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
     profile = profile_for(repo, client.id, period)
     if not 1 <= len(files) <= 20:
         raise HTTPException(422, 'Choose between 1 and 20 bills.')
-    content_files = []
+    content_files: list[tuple[str, bytes]] = []
     allowed = {'.pdf', '.jpg', '.jpeg', '.png', '.xlsx', '.csv'}
     for file in files:
         filename = Path((file.filename or 'bill').replace('\\', '/')).name
@@ -98,7 +99,7 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
             raise HTTPException(422, 'Check the file format and size. Use a valid PDF, photo or the provided spreadsheet template.') from None
         content_files.append((filename, content))
     job_id = str(uuid4())
-    job = {'job_id': job_id, 'status': 'queued', 'actor_id': str(user.id), 'period': period, 'files': []}
+    job: dict[str, Any] = {'job_id': job_id, 'status': 'queued', 'actor_id': str(user.id), 'period': period, 'files': []}
     for filename, content in content_files:
         doc_id = str(uuid5(NAMESPACE_URL, f'{client.id}/{hashlib.sha256(content).hexdigest()}'))
         raw_ref = store.upload_object(content, doc_id, filename, 'bronze', mimetypes.guess_type(filename)[0] or 'application/octet-stream')

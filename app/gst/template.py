@@ -3,6 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from io import BytesIO, StringIO
 from itertools import islice
+from typing import Any
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -43,7 +44,7 @@ def template_bytes():
         instructions.append([f'{number:02}', name])
     instructions.append(['97', 'Other territory'])
     instructions.append(['99', 'Centre jurisdiction'])
-    for col, values in [('G', sorted(RATES)), ('M', sorted(VALID_STATE_CODES)), ('N', ['Y', 'N'])]:
+    for col, values in [('G', [str(rate) for rate in sorted(RATES)]), ('M', sorted(VALID_STATE_CODES)), ('N', ['Y', 'N'])]:
         validation = DataValidation(type='list', formula1='"' + ','.join(map(str, values)) + '"')
         validation.errorTitle = 'Choose a listed value'
         validation.error = 'Select a value from the dropdown.'
@@ -54,16 +55,17 @@ def template_bytes():
     dates.showErrorMessage = True
     sheet.add_data_validation(dates)
     dates.add('C2:C10001')
-    for row in range(2, 1002):
-        sheet.cell(row, 3).number_format = 'DD-MM-YYYY'
-        for col in (1, 2, 4, 13):
-            sheet.cell(row, col).number_format = '@'
+    for row_number in range(2, 1002):
+        sheet.cell(row_number, 3).number_format = 'DD-MM-YYYY'
+        for column_number in (1, 2, 4, 13):
+            sheet.cell(row_number, column_number).number_format = '@'
     out = BytesIO()
     workbook.save(out)
     return out.getvalue()
 
 
 def parse_template(content, extension, client_id, doc_id, profile, raw_ref):
+    rows: list[Any]
     if extension == '.csv':
         rows = list(islice(csv.reader(StringIO(content.decode('utf-8-sig'))), 1002))
     else:

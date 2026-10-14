@@ -42,7 +42,7 @@ def calculate(invoices, profile, two_b):
                 amount = sign * getattr(line, h)
                 pools['recorded'][h] += amount
                 # Supplier credit notes reduce claimed credit even before matching.
-                if sign < 0 or (match == 'matched' and row.get('itc_available', True)):
+                if sign < 0 or (match == 'matched' and row is not None and row.get('itc_available', True)):
                     pools['matched'][h] += amount
                     if bucket == 'eligible':
                         pools['eligible'][h] += amount
