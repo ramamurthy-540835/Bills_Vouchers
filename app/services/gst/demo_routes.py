@@ -51,6 +51,23 @@ def demo_chat(payload: ChatRequest, bundle=Depends(demo_bundle), user=Depends(cu
 def live_chat(payload: ChatRequest, request: Request, repo=Depends(get_db), user=Depends(current_user)):
     check_rate(str(user.id))
     store = selected(request, repo, user)
+    from app.config import get_settings
+    if get_settings().gst_bills_enabled:
+        from app.gst.store import BillStore
+        from app.gst.evidence import documents
+        from app.gst.report import calculate
+        from app.services.auth_identity import throttle
+        from app.routes import active_client
+        throttle(repo,'assistant:'+str(user.id))
+        bills=BillStore(repo,store.client_id)
+        invoices=bills.list(store.period)
+        profile=store.profile() or {}
+        report=calculate(invoices,profile,bills.matching_rows(store.period))
+        dashboard={'period':store.period,'profile':profile,'source':'canonical','summary':report,
+                   'totals':report['totals'],'validated_invoices':report['confirmed_count'],
+                   'sample':getattr(active_client(request,repo,user),'is_test',False)}
+        context=grounded_context(dashboard,documents(invoices[:500],store.period),payload.question)
+        return generate_answer(payload,context)
     workspace = store.workspace()
     from ...fixtures.red_taxi_sample import use_sample, sample_dashboard
     dashboard = sample_dashboard(store) if use_sample(store) else customer_dashboard(store)

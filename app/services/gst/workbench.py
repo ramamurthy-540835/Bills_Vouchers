@@ -34,6 +34,12 @@ async def body_json(request):
 def search(request: Request, q: str = '', status: str = '', minimum: str | None = None, maximum: str | None = None,
            offset: int = 0, limit: int = 20, repo=Depends(get_db), user=Depends(current_user)):
     store = selected(request, repo, user)
+    if get_settings().gst_bills_enabled:
+        from app.gst.store import BillStore
+        from app.gst.evidence import documents
+        evidence=documents(BillStore(repo,store.client_id).list(store.period)[:500],store.period)
+        return {**search_evidence(evidence,q,status,minimum,maximum,offset,limit),
+                'scope':'Latest 500 canonical bills for the selected business and period'}
     return {**search_evidence(store.workspace()['documents'], q, status, minimum, maximum, offset, limit),
             'scope': 'Latest 500 documents for the selected customer and period'}
 

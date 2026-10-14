@@ -38,7 +38,7 @@ def check_rate(user_id):
 def grounded_context(dashboard, documents, question, demo_scenario=None, ledger=None):
     period = dashboard['period']
     suffix = f'/demo?scenario={demo_scenario}&period={period}' if demo_scenario else f'/gst/filing?period={period}'
-    sources = [{'id': 'gold-summary', 'label': 'Validated financial summary', 'href': suffix,
+    sources = [{'id': 'gold-summary', 'label': 'Canonical financial summary' if dashboard.get('source')=='canonical' else 'Validated financial summary', 'href': suffix,
                 'layer': 'Checked figures', 'facts': {'period': period, 'summary': dashboard.get('summary'),
                                          'totals': dashboard.get('totals'), 'validated_invoices': dashboard.get('validated_invoices'),
                                          'credit_decisions': [{k: row.get(k) for k in ('invoice_no', 'description', 'reason_code', 'rule_ref')}
@@ -49,7 +49,7 @@ def grounded_context(dashboard, documents, question, demo_scenario=None, ledger=
     for doc in sorted(documents, key=score, reverse=True)[:8]:
         header = doc.get('silver') or {}
         sources.append({'id': doc['doc_id'], 'label': doc['original_filename'], 'layer': 'Source evidence',
-                        'href': suffix + '&tab=documents' if demo_scenario else f"/documents/{doc['doc_id']}?period={period}",
+                        'href': suffix + '&tab=documents' if demo_scenario else doc.get('href',f"/documents/{doc['doc_id']}?period={period}"),
                         'facts': {k: header.get(k) for k in ('supplier_name', 'invoice_no', 'invoice_date', 'total', 'validation_status', 'validation_errors')}})
     return {'sample': bool(demo_scenario or dashboard.get('sample')), 'period': period, 'customer': dashboard.get('profile', {}).get('legal_name'),
             'document_scope': 'Up to eight relevant documents from the selected customer and period; not an exhaustive search.', 'sources': sources}
@@ -65,7 +65,7 @@ def generate_answer(payload, context):
               if settings.gemini_api_key else genai.Client(vertexai=True, project=settings.gcp_project_id,
                   location=settings.gcp_region, http_options=types.HttpOptions(timeout=45000)))
     system = """You are a read-only financial workspace assistant. Answer only from PROVIDED_FACTS for this customer and period.
-Use the Gold summary for all financial totals. Source invoices may be unreviewed: label that status and never add their totals to validated figures.
+Use the provided financial summary for all financial totals. Source invoices may be unreviewed: label that status and never add their totals to validated figures.
 Do not invent amounts, tax advice, customer records, or claim a filing/payment/change was performed. You have no write tools.
 If a question asks for a change, explain that you can explain the figures but cannot change records.
 If facts are absent or the question needs other periods/customers, say what is unavailable; do not infer absence from the eight-document sample.

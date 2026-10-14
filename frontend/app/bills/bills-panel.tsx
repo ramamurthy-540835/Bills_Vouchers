@@ -27,6 +27,7 @@ export default function BillsPanel({data}:{data:any}){
  const jobKey=`gst-bill-job:${data.client_id}:${period}`
  const reload=useCallback(async()=>{const result=await api(`?period=${period}&status=${status}`);setBills(result.invoices);setLoading(false)},[period,status])
  useEffect(()=>{reload().catch(e=>{setMessage(e.message);setLoading(false)})},[reload])
+ useEffect(()=>{const id=new URLSearchParams(window.location.search).get('invoice');if(id)open(id)},[period,data.client_id])
  useEffect(()=>{setRejectionReason('')},[selected?.invoice_id])
  async function loadHistory(){try{setHistory((await api(`/history?period=${period}`)).jobs);if(write)setDeleted((await api(`/deleted?period=${period}`)).invoices)}catch(e){setMessage((e as Error).message)}}
  async function retryUpload(id:string){setBusy(true);try{let job=await api(`/upload/${id}/retry`,'POST');sessionStorage.setItem(jobKey,id);while(!['completed','needs_attention'].includes(job.status)){setJobs(job.files);await new Promise(resolve=>setTimeout(resolve,1500));job=await api(`/upload/${id}`)}sessionStorage.removeItem(jobKey);setJobs(job.files);await reload();await loadHistory()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
