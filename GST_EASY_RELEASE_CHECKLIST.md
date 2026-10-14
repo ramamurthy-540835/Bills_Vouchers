@@ -5,7 +5,7 @@
 - [x] Synthetic BigQuery identity, bill lifecycle, statement and approval transactions tested.
 - [x] Additive migrations reviewed; no historical seed scripts used.
 - [x] Preview deploy script uses successful immutable digests and no-traffic tags.
-- [ ] Record final browser suite and successful cloud builds/deployment smoke.
+- [x] Record ten local browser journeys and successful cloud builds/deployment public-boundary smoke.
 - [ ] Configure and verify approved email sender and SMS provider.
 - [ ] Complete canonical credit ledger, financial exception decisions and accountant acceptance.
 - [ ] Validate official return export schemas; direct filing remains disabled.
