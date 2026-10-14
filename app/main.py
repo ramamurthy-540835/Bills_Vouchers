@@ -51,7 +51,7 @@ def create_app():
                     },
                     status_code=403,
                 )
-            if request.url.path not in {"/login", "/signup", "/api/auth/login", "/api/auth/register", "/api/auth/request-link", "/api/auth/verify-email", "/api/auth/reset-password", "/api/auth/csrf", "/internal/pipeline/document", "/internal/tasks/scan", "/api/gst/bills/internal/process"}:
+            if request.url.path not in {"/login", "/signup", "/api/auth/login", "/api/auth/register", "/api/auth/request-link", "/api/auth/verify-email", "/api/auth/reset-password", "/api/auth/csrf", "/internal/auth/mail", "/internal/auth/mail/repair", "/internal/pipeline/document", "/internal/tasks/scan", "/api/gst/bills/internal/process"}:
                 expected = request.cookies.get("csrf_token")
                 supplied = request.headers.get("x-csrf-token")
                 if not supplied:

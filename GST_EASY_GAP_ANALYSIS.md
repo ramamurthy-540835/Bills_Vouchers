@@ -29,6 +29,10 @@ Do not aggregate the three paths together. Canonical calculations use confirmed 
 
 ## Cloud evidence
 
+Additional read-only metadata is recorded in docs/GST_EASY_CLOUD_BASELINE.json. All four datasets are in asia-south1: finance_analytics (45 tables), gold (1), silver (2), ops (4). Preview image digests match the historical deployment artifact. The queue is RUNNING with one concurrent dispatch, one dispatch/second and ten attempts. The evidence bucket uses uniform access and enforced public-access prevention with seven-day soft deletion.
+
+Both current service templates use the default compute service account. Its project roles include run.admin, artifactregistry.writer, cloudbuild.builds.builder, secretmanager.secretAccessor and storage.objectAdmin, in addition to runtime data/AI roles. This does not meet least-privilege acceptance; introduce separate preview runtime identities and scoped permissions before production certification. API invocation is public at Cloud Run, so application authorization and worker OIDC verification remain mandatory. No IAM bindings were changed during the audit.
+
 Read-only Cloud Run inspection on the audit date confirms API api-preview-v3 -> bills-voucher-00113-leg and web preview-v3 -> bills-voucher-web-00052-wuc. Production remains 100% on bills-voucher-redtaxi-account and bills-voucher-web-public-redtaxi-api. Other preview tags remain present. No deployment or traffic mutation occurred during this audit.
 
 Full live BigQuery schema/IAM, bucket retention, task queue configuration, Vertex configuration and image provenance audit remain pending. Do not describe Phase 00 as fully accepted until these are recorded.

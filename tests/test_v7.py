@@ -168,12 +168,15 @@ def test_profile_update_rejects_client_override_and_parameterizes_values(monkeyp
     assert 'BEGIN TRANSACTION' in sql and 'COMMIT TRANSACTION' in sql
 
 
-def test_otp_required_stub_does_not_write(monkeypatch):
+def test_changed_mobile_is_saved_unverified_even_when_otp_required(monkeypatch):
     import asyncio
+    from unittest.mock import Mock
     from app.services.gst import account
     monkeypatch.setattr(account,'get_settings',lambda:SimpleNamespace(require_otp=True))
     class Request:
         async def json(self):return {'full_name':'A User','mobile_number':'+919876543210'}
-    with pytest.raises(HTTPException) as error:
-        asyncio.run(account.save_account(Request(),object(),SimpleNamespace(mobile_number='')))
-    assert error.value.status_code==409 and error.value.detail['code']=='otp_verification_required'
+    repo=Mock();repo.table.return_value='test.users'
+    asyncio.run(account.save_account(Request(),repo,SimpleNamespace(id='user',mobile_number='')))
+    sql=repo.query.call_args.args[0]
+    assert 'mobile_verified=IF(COALESCE(mobile_number,\'\')=@mobile,mobile_verified,FALSE)' in sql
+    assert 'mobile_verified=TRUE' not in sql

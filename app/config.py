@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     smtp_username: str = ''
     smtp_password: str = ''
     smtp_sender: str = ''
+    auth_mail_queue: str = ''
+    auth_worker_url: str = ''
+    auth_worker_audience: str = ''
+    auth_worker_account: str = ''
+    twilio_verify_service_sid: str = ''
+    twilio_api_key: str = ''
+    twilio_api_secret: str = ''
     medallion_enabled: bool = False
     document_landed_topic: str = ""
     pipeline_push_audience: str = ""

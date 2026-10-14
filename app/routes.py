@@ -23,7 +23,7 @@ from .services.gst.validation import validate_document
 from .services.gst.compliance import RETURN_STATUSES, RETURN_TYPES, gst_health_score
 from .services.tasks import dispatch_scan
 from .services.ocr import decimal_or_none
-from .services import auth_identity
+from .services import auth_identity, auth_mail
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
@@ -47,6 +47,10 @@ def current_user(request: Request, repo=Depends(get_db)):
         request.session.clear()
         raise HTTPException(401, "Session expired.")
     request.session["session_version"] = session_version
+    identity_paths = {'/api/auth/me', '/api/auth/csrf', '/api/auth/password', '/api/auth/logout', '/logout',
+                      '/api/auth/mobile/start', '/api/auth/mobile/check', '/api/settings/account', '/settings'}
+    if getattr(get_settings(), 'require_otp', False) and not getattr(user, 'mobile_verified', False) and request.url.path not in identity_paths:
+        raise HTTPException(403, {'code': 'mobile_verification_required', 'message': 'Verify your mobile number in account settings before continuing.'})
     if getattr(user, "must_change_password", False) and request.url.path not in {"/settings", "/api/auth/me", "/api/auth/csrf", "/api/auth/password", "/logout", "/api/auth/logout"}:
         raise HTTPException(403, {"code": "password_change_required", "message": "Change your password before continuing."})
     request.session["last_seen"] = str(time())
@@ -64,10 +68,10 @@ def current_user(request: Request, repo=Depends(get_db)):
                 user.role = "tax_admin"
             if user.role not in {"admin", "tax_admin", "client", "viewer"}:
                 user.role = "viewer"
-        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/settings/account", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/auth/mobile/start", "/api/auth/mobile/check", "/api/settings/account", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             raise HTTPException(403, "Viewer access is read-only.")
         canonical_bills = get_settings().gst_bills_enabled and (request.url.path == '/api/gst/bills' or request.url.path.startswith('/api/gst/bills/'))
-        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not canonical_bills and request.url.path not in {"/api/settings/account", "/api/settings/profile", "/api/settings/profile/logo", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not canonical_bills and request.url.path not in {"/api/auth/mobile/start", "/api/auth/mobile/check", "/api/settings/account", "/api/settings/profile", "/api/settings/profile/logo", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             from .services.gst.medallion import Medallion, live_only
             live_only()
             if clients:
@@ -1312,7 +1316,7 @@ async def api_login(request: Request, repo=Depends(get_db)):
 @router.post('/api/auth/register', status_code=201)
 async def api_register(request: Request, repo=Depends(get_db)):
     from .services.registration import register
-    auth_identity.delivery_ready()
+    auth_mail.ready()
     body = await request.json()
     key = 'register:' + str(body.get('email', '')).strip().lower()
     if not login_allowed(key):
@@ -1321,30 +1325,45 @@ async def api_register(request: Request, repo=Depends(get_db)):
     auth_identity.throttle(repo, key)
     result = register(repo, body)
     request.session.clear()
-    auth_identity.issue(repo, result['id'], result['email'], 'verify')
-    fr(repo).audit(result['id'], 'registration_pending_verification', 'user', result['id'])
+    auth_mail.schedule(result['mail_id'])
     return {'verification_required': True}
 
 
 @router.post('/api/auth/request-link')
 async def request_identity_link(request: Request, repo=Depends(get_db)):
-    auth_identity.delivery_ready()
+    auth_mail.ready()
     body = await request.json()
     email = str(body.get('email', '')).strip().lower()
     purpose = str(body.get('purpose', 'reset'))
     if purpose not in {'reset', 'verify'} or len(email) > 254:
         raise HTTPException(422, 'Invalid request.')
     auth_identity.throttle(repo, 'link:' + email)
-    user = fr(repo).user_by_email(email)
-    if user and getattr(user, 'is_active', True):
-        if purpose == 'reset' or getattr(user, 'email_verified', None) is False:
-            try:
-                auth_identity.issue(repo, user.id, email, purpose)
-            except HTTPException as exc:
-                if exc.status_code != 503:
-                    raise
-                # Keep the public result identical for existing and unknown accounts.
+    auth_mail.request_link(repo, email, purpose)
     return {'message': 'If this account can receive a link, an email will arrive shortly.'}
+
+
+@router.post('/internal/auth/mail')
+async def process_identity_mail(request: Request, repo=Depends(get_db)):
+    from .services.tasks import verify_cloud_tasks_request
+    settings = get_settings()
+    if not verify_cloud_tasks_request(request, settings.auth_worker_audience or settings.auth_worker_url, settings.auth_worker_account):
+        raise HTTPException(403, 'Access denied.')
+    body = await request.json()
+    mail_id = str(body.get('mail_id', ''))
+    if not __import__('re').fullmatch(r'[0-9a-f-]{36}', mail_id):
+        raise HTTPException(422, 'Invalid email request.')
+    from starlette.concurrency import run_in_threadpool
+    await run_in_threadpool(auth_mail.process, repo, mail_id)
+    return {'processed': True}
+
+
+@router.post('/internal/auth/mail/repair')
+def repair_identity_mail(request: Request, repo=Depends(get_db)):
+    from .services.tasks import verify_cloud_tasks_request
+    settings = get_settings()
+    if not verify_cloud_tasks_request(request, settings.auth_worker_audience or settings.auth_worker_url, settings.auth_worker_account):
+        raise HTTPException(403, 'Access denied.')
+    return {'scheduled': auth_mail.repair(repo)}
 
 
 @router.post('/api/auth/verify-email')
@@ -1358,9 +1377,12 @@ async def verify_identity_email(request: Request, repo=Depends(get_db)):
 
 @router.post('/api/auth/reset-password')
 async def reset_identity_password(request: Request, repo=Depends(get_db)):
+    auth_mail.ready()
     body = await request.json()
     auth_identity.throttle(repo, 'reset-token:' + str(body.get('token', '')))
-    auth_identity.consume(repo, body.get('token'), 'reset', str(body.get('password', '')), str(body.get('confirm', '')))
+    mail_id = auth_identity.consume(repo, body.get('token'), 'reset', str(body.get('password', '')), str(body.get('confirm', '')))
+    if mail_id:
+        auth_mail.schedule(mail_id)
     request.session.clear()
     return {'message': 'Password changed. Sign in with your new password.'}
 

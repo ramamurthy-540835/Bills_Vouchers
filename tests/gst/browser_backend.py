@@ -50,6 +50,15 @@ app.dependency_overrides[current_user]=lambda:user
 def csrf():return {'token':'local-browser-test'}
 
 
+@app.get('/api/settings/account')
+def account_data():
+    return {'client_id':'browser-client','profile':profile,
+            'user':{'id':user.id,'email':user.email,'full_name':user.full_name,'role':user.role,
+                    'mobile_number':'+919876543210','mobile_verified':False},
+            'clients':[{'id':'browser-client','name':'Synthetic Business'}],
+            'can_edit_profile':user.role!='viewer','require_otp':True}
+
+
 @app.post('/api/workspace/period')
 def period():return {'ok':True}
 

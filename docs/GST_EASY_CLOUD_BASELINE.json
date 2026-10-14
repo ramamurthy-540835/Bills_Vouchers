@@ -1,0 +1,3849 @@
+{
+  "observed_utc": "2026-10-14T10:33:41.953957+00:00",
+  "datasets": {
+    "finance_analytics": {
+      "location": "asia-south1",
+      "tables": [
+        {
+          "name": "account_balances",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "account_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "code",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "account_type",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "current_balance",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "accounts",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "code",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "account_type",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_active",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 12
+        },
+        {
+          "name": "audit_logs",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "user_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "action",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "entity",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "entity_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "old_value",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "new_value",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 230
+        },
+        {
+          "name": "biglake_powerbi_demo",
+          "fields": [
+            {
+              "name": "month",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "category",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "income",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "expense",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "bronze_document",
+          "fields": [
+            {
+              "name": "doc_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "gcs_uri",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "content_hash",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "mime_type",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "byte_size",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "original_filename",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "source_channel",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "uploaded_by",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "uploaded_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "ingest_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "ingest_date",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 26
+        },
+        {
+          "name": "bronze_gstr2b_import",
+          "fields": [
+            {
+              "name": "import_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "gcs_uri",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "content_hash",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "imported_by",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "imported_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "imported_at",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "client_gst_profiles",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "trade_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "pan",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "state",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "registration_type",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "filing_frequency",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "financial_year",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "contact_person",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "phone",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "email",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "assigned_staff_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "partner_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "updated_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "composition_flag",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "aato_band",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "export_status",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_demo",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "client_memberships",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "user_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "access_role",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_active",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 7
+        },
+        {
+          "name": "client_preferences",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "user_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "is_favorite",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "last_used_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "client_user_role",
+          "fields": [
+            {
+              "name": "email",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "role",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "effective_from",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "effective_to",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_current",
+              "type": "BOOLEAN",
+              "mode": "REQUIRED"
+            }
+          ],
+          "partition_field": "effective_from",
+          "clustering": [
+            "client_id",
+            "email"
+          ],
+          "row_count_metadata": 3
+        },
+        {
+          "name": "clients",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "code",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "name",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "address",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_active",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "storage_slug",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_test",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 3
+        },
+        {
+          "name": "document_corrections",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "document_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "extraction_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "user_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "field_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "old_value",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "new_value",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "source",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "document_id"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "document_embeddings",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "document_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "content",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "embedding",
+              "type": "FLOAT",
+              "mode": "REPEATED"
+            },
+            {
+              "name": "document_type",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "vendor_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "total_amount",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "gcs_uri",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 14
+        },
+        {
+          "name": "document_extractions",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "document_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "vendor_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "vendor_address",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "due_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "subtotal",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "tax_amount",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "discount_amount",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "total_amount",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "currency",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "payment_method",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "ocr_text",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "ocr_confidence",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "bill_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "round_off",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "trade_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "supplier_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "recipient_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "supplier_state_code",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "place_of_supply",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "b2b",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "classification",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reverse_charge",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "irn",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "acknowledgement_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "acknowledgement_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "signed_qr_detected",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "validation_report",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "field_confidence",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "version",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_current",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "storage_path",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "storage_layer",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "path_scheme",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 7
+        },
+        {
+          "name": "document_line_items",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "extraction_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "line_number",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "item_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "description",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "quantity",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "unit",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "unit_price",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "tax",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "discount",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "total",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "taxable_value",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "rate",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "hsn",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sac",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 39
+        },
+        {
+          "name": "document_storage_manifest",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "document_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "layer",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "object_path",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "gcs_uri",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "content_filename",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "source_extraction_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "document_id",
+            "layer"
+          ],
+          "row_count_metadata": 1
+        },
+        {
+          "name": "documents",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "document_type",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "original_filename",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "mime_type",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "file_size",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "checksum_sha256",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "bucket_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "object_path",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "gcs_uri",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "uploaded_by_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "uploaded_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "processing_error",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_filename",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "validation_status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "storage_path",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "storage_layer",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "path_scheme",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "curated_filename",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 7
+        },
+        {
+          "name": "gold_filing_summary",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "run_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "input_hash",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "as_booked",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "restricted_2b",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "fully_compliant",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "if_late_file",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "output_by_head",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "eligible_by_head",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "input_by_head",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "net_payable_by_head",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cash_by_head",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "eco_by_head",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cash_required",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "non_gst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "computed_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "computed_at",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 1
+        },
+        {
+          "name": "gold_gstr2b_match",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "doc_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "supplier_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_no",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "match_status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "delta",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "run_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "computed_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "computed_at",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 22
+        },
+        {
+          "name": "gold_itc_ledger",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "doc_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "line_no",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "run_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reason_code",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "rule_ref",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_no",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "description",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "eligible_igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "eligible_cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "eligible_sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "eligible_cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "blocked_igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "blocked_cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "blocked_sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "blocked_cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "deferred_igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "deferred_cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "deferred_sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "deferred_cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reversal_igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reversal_cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reversal_sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reversal_cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "non_gst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "computed_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "computed_at",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 22
+        },
+        {
+          "name": "gst_audit_log",
+          "fields": [
+            {
+              "name": "audit_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "user_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "action",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "entity_type",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "entity_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "details",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "action"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_blocked_credit_master",
+          "fields": [
+            {
+              "name": "clause",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "description",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "exception_conditions",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_active",
+              "type": "BOOLEAN",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_client_profile",
+          "fields": [
+            {
+              "name": "profile_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "gstin",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "pan",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "state_code",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "entity_code",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "legal_name",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "trade_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "constitution",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "registration_type",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "registration_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cancellation_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "filing_frequency",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "qrmp_payment_method",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "composition_scheme",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "composition_rate_pct",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "einvoice_applicable",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "einvoice_threshold_fy",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "ewaybill_applicable",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "aato_prev_fy",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "hsn_digit_requirement",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "principal_address",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "principal_pincode",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "additional_places",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "jurisdiction_centre",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "jurisdiction_state",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "authorized_signatory",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "bank_accounts",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "itc_rule_flags",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "contact_email",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "contact_mobile",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "portal_username",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "effective_from",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "effective_to",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_current",
+              "type": "BOOLEAN",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "source",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_by",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "business_nature",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_eco_9_5",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "has_rcm_supplies",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "composition_flag",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "fy_turnover_band",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "itc_rate_restricted",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "contact_phone",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "contact_person",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "gstin_verified",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "gstin"
+          ],
+          "row_count_metadata": 3
+        },
+        {
+          "name": "gst_filing_audit",
+          "fields": [
+            {
+              "name": "audit_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "from_state",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "to_state",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "actor_email",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "artefact_uri",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "content_hash",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_filing_status",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "state",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "arn",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "filed_at",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "actor_email",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "effective_from",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "effective_to",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_current",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "effective_from",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_itc_runs",
+          "fields": [
+            {
+              "name": "run_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "gstin",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "ret_period",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "scenario_name",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "input_sha256",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "result",
+              "type": "JSON",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "created_by",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "ret_period"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_purchase_invoices",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "supplier_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "supplier_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "taxable_value",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "total_amount",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "hsn_sac",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "itc_eligible",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "source",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "updated_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_reconciliation_matches",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "purchase_invoice_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "gstr2b_invoice_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "match_status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "match_confidence",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "mismatch_type",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "mismatch_amount",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "recommended_action",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reviewed_by_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reviewed_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_returns",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "return_type",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "period",
+              "type": "DATE",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "due_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "prepared_by_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reviewed_by_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "tax_liability",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "itc",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cash_payable",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "filed_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "arn",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "workflow_step",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_approval_status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "updated_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "storage_path",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "storage_layer",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "path_scheme",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_state_master",
+          "fields": [
+            {
+              "name": "state_code",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "state_name",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "is_active",
+              "type": "BOOLEAN",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_tasks",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "return_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "task",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "assigned_staff_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "due_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "priority",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "remarks",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "updated_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gst_validation_issues",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "document_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "issue_code",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "severity",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "field",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "problem",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reason",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "recommended_fix",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "resolved_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gstr2b_invoices",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "supplier_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "supplier_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "taxable_value",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "total_amount",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "itc_eligible",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "return_period",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "source_file",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "gstr_return_json",
+          "fields": [
+            {
+              "name": "return_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "gstin",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "return_type",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "ret_period",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "schema_version",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "schema_unverified",
+              "type": "BOOLEAN",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "payload",
+              "type": "JSON",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "payload_sha256",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "itc_run_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "validation_errors",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "version_no",
+              "type": "INTEGER",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "generated_by",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "generated_at",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "filed_arn",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "filed_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "generated_at",
+          "clustering": [
+            "client_id",
+            "return_type",
+            "ret_period"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "itc_reversal_detail",
+          "fields": [
+            {
+              "name": "reversal_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "run_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "invoice_ref",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reversal_type",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "tax_head",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "amount",
+              "type": "NUMERIC",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "reclaim_eligible_from",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "reversal_type"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "journal_entries",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "entry_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reference",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "description",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "source",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 7
+        },
+        {
+          "name": "journal_lines",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "journal_entry_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "account_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "debit",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "credit",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 14
+        },
+        {
+          "name": "pipeline_events",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "event_type",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "source",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "object_path",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "REQUIRED"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "event_type"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "powerbi_finance_dashboard",
+          "fields": [
+            {
+              "name": "month",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "category",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "income",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "expense",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "data_source",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 0
+        },
+        {
+          "name": "silver_gstr2b_invoice",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "import_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "supplier_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_no",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "taxable_value",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "imported_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "imported_at",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 18
+        },
+        {
+          "name": "silver_invoice_header",
+          "fields": [
+            {
+              "name": "doc_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "supplier_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "supplier_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_no",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "place_of_supply",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "taxable_value",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "total",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "extraction_confidence",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "extraction_engine",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "extracted_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "validation_status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "validation_errors",
+              "type": "STRING",
+              "mode": "REPEATED"
+            },
+            {
+              "name": "reviewed_by",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "reviewed_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "extracted_at",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 26
+        },
+        {
+          "name": "silver_invoice_line",
+          "fields": [
+            {
+              "name": "doc_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "line_no",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "description",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "hsn_sac",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "qty",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "rate",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "tax_rate",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "taxable_value",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "itc_category",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "seating_capacity",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "unpaid_days",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "blocked_clause",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "common_credit",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "capital_goods",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "extracted_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "extracted_at",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 26
+        },
+        {
+          "name": "silver_outward_invoice",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_no",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "recipient_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "place_of_supply",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sac",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "eco_9_5",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "taxable_value",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "period"
+          ],
+          "row_count_metadata": 6
+        },
+        {
+          "name": "storage_migrations",
+          "fields": [
+            {
+              "name": "run_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "object_old_path",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "object_new_path",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "size_bytes",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "checksum",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "copied_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "verified_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "db_updated_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "deleted_old_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "copied_at",
+          "clustering": [
+            "object_new_path"
+          ],
+          "row_count_metadata": 0
+        },
+        {
+          "name": "users",
+          "fields": [
+            {
+              "name": "id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "email",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "password_hash",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "full_name",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "role",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "is_active",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "must_change_password",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "session_version",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "mobile_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "mobile_verified",
+              "type": "BOOLEAN",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "last_sign_in",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": null,
+          "row_count_metadata": 7
+        }
+      ]
+    },
+    "gold": {
+      "location": "asia-south1",
+      "tables": [
+        {
+          "name": "gst_invoice",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "invoice_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "source_doc_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "financial_year",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "supplier_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "direction",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "eligibility",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "taxable_value",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_total",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "payload",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "version",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "updated_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "invoice_date",
+          "clustering": [
+            "client_id",
+            "status",
+            "supplier_gstin"
+          ],
+          "row_count_metadata": 31
+        }
+      ]
+    },
+    "silver": {
+      "location": "asia-south1",
+      "tables": [
+        {
+          "name": "gst_bills_gstr2b",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "period",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "supplier_gstin",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_number",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "payload",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "imported_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": [
+            "client_id",
+            "period",
+            "supplier_gstin"
+          ],
+          "row_count_metadata": 8
+        },
+        {
+          "name": "gst_invoice_line",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "invoice_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "line_no",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "invoice_date",
+              "type": "DATE",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "description",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "hsn_sac",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "quantity",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "unit",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "gst_rate",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "taxable_value",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "sgst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "igst",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "cess",
+              "type": "NUMERIC",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "invoice_date",
+          "clustering": [
+            "client_id",
+            "invoice_id"
+          ],
+          "row_count_metadata": 30
+        }
+      ]
+    },
+    "ops": {
+      "location": "asia-south1",
+      "tables": [
+        {
+          "name": "extraction_log",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "source_doc_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "model",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "input_tokens",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "output_tokens",
+              "type": "INTEGER",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id"
+          ],
+          "row_count_metadata": 20
+        },
+        {
+          "name": "gst_bill_audit",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "invoice_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "actor_id",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "action",
+              "type": "STRING",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "before_payload",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "after_payload",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "created_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": "created_at",
+          "clustering": [
+            "client_id",
+            "invoice_id"
+          ],
+          "row_count_metadata": 70
+        },
+        {
+          "name": "gst_bill_job",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "job_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "payload",
+              "type": "JSON",
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "updated_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": [
+            "client_id",
+            "job_id"
+          ],
+          "row_count_metadata": 3
+        },
+        {
+          "name": "gst_bill_lock",
+          "fields": [
+            {
+              "name": "client_id",
+              "type": "STRING",
+              "mode": "REQUIRED"
+            },
+            {
+              "name": "touched_at",
+              "type": "TIMESTAMP",
+              "mode": "NULLABLE"
+            }
+          ],
+          "partition_field": null,
+          "clustering": [
+            "client_id"
+          ],
+          "row_count_metadata": 1
+        }
+      ]
+    }
+  },
+  "services": {
+    "bills-voucher": {
+      "traffic": [
+        {
+          "revisionName": "bills-voucher-00096-bik",
+          "tag": "v5-api",
+          "url": "https://v5-api---bills-voucher-foovqasysa-el.a.run.app"
+        },
+        {
+          "revisionName": "bills-voucher-00098-fim",
+          "tag": "api-preview",
+          "url": "https://api-preview---bills-voucher-foovqasysa-el.a.run.app"
+        },
+        {
+          "revisionName": "bills-voucher-00101-sip",
+          "tag": "v7-api",
+          "url": "https://v7-api---bills-voucher-foovqasysa-el.a.run.app"
+        },
+        {
+          "revisionName": "bills-voucher-00113-leg",
+          "tag": "api-preview-v3",
+          "url": "https://api-preview-v3---bills-voucher-foovqasysa-el.a.run.app"
+        },
+        {
+          "percent": 100,
+          "revisionName": "bills-voucher-redtaxi-account"
+        }
+      ],
+      "template_service_account": "624683933018-compute@developer.gserviceaccount.com",
+      "env_names_only": [
+        "ALLOWED_ORIGINS",
+        "APP_ENV",
+        "BIGQUERY_DATASET",
+        "BOOTSTRAP_ADMIN_PASSWORD",
+        "CLOUD_TASKS_QUEUE",
+        "CLOUD_TASKS_SERVICE_ACCOUNT",
+        "CLOUD_TASKS_SERVICE_URL",
+        "DEMO_FALLBACK",
+        "DEMO_MODE",
+        "DOCUMENT_LANDED_TOPIC",
+        "GCP_PROJECT_ID",
+        "GCP_REGION",
+        "GCS_BUCKET_NAME",
+        "GEMINI_ENABLED",
+        "GEMINI_MODEL",
+        "GST_AGENT_AUDIENCE",
+        "GST_AGENT_SERVICE_ACCOUNT",
+        "GST_BILLS_ENABLED",
+        "GST_BILLS_QUEUE",
+        "GST_BILLS_WORKER_ACCOUNT",
+        "GST_BILLS_WORKER_AUDIENCE",
+        "GST_BILLS_WORKER_URL",
+        "INCOME_TAX_URL",
+        "MEDALLION_ENABLED",
+        "PIPELINE_PUSH_AUDIENCE",
+        "PIPELINE_PUSH_SERVICE_ACCOUNT",
+        "REQUIRE_OTP"
+      ],
+      "invocation_policy": {
+        "bindings": [
+          {
+            "members": [
+              "allUsers"
+            ],
+            "role": "roles/run.invoker"
+          }
+        ],
+        "etag": "BwZbMpSrXJI=",
+        "version": 1
+      }
+    },
+    "bills-voucher-web": {
+      "traffic": [
+        {
+          "revisionName": "bills-voucher-web-00036-zoq",
+          "tag": "preview",
+          "url": "https://preview---bills-voucher-web-foovqasysa-el.a.run.app"
+        },
+        {
+          "revisionName": "bills-voucher-web-00042-joq",
+          "tag": "preview-v2",
+          "url": "https://preview-v2---bills-voucher-web-foovqasysa-el.a.run.app"
+        },
+        {
+          "revisionName": "bills-voucher-web-00052-wuc",
+          "tag": "preview-v3",
+          "url": "https://preview-v3---bills-voucher-web-foovqasysa-el.a.run.app"
+        },
+        {
+          "percent": 100,
+          "revisionName": "bills-voucher-web-public-redtaxi-api"
+        }
+      ],
+      "template_service_account": "624683933018-compute@developer.gserviceaccount.com",
+      "env_names_only": [
+        "BACKEND_URL"
+      ],
+      "invocation_policy": {
+        "bindings": [
+          {
+            "members": [
+              "allUsers"
+            ],
+            "role": "roles/run.invoker"
+          }
+        ],
+        "etag": "BwZbTIwolDo=",
+        "version": 1
+      }
+    }
+  },
+  "runtime_project_roles": {
+    "624683933018-compute@developer.gserviceaccount.com": [
+      "roles/aiplatform.user",
+      "roles/artifactregistry.reader",
+      "roles/artifactregistry.writer",
+      "roles/bigquery.dataEditor",
+      "roles/bigquery.dataViewer",
+      "roles/bigquery.jobUser",
+      "roles/cloudbuild.builds.builder",
+      "roles/cloudtasks.enqueuer",
+      "roles/datastore.user",
+      "roles/run.admin",
+      "roles/secretmanager.secretAccessor",
+      "roles/storage.objectAdmin"
+    ]
+  },
+  "queue": {
+    "name": "projects/aidirac-503309/locations/asia-south1/queues/bills-v3",
+    "rateLimits": {
+      "maxBurstSize": 10,
+      "maxConcurrentDispatches": 1,
+      "maxDispatchesPerSecond": 1.0
+    },
+    "retryConfig": {
+      "maxAttempts": 10,
+      "maxBackoff": "300s",
+      "maxDoublings": 16,
+      "minBackoff": "10s"
+    },
+    "state": "RUNNING"
+  },
+  "bucket": {
+    "location": "ASIA-SOUTH1",
+    "public_access_prevention": "enforced",
+    "uniform_bucket_level_access": true,
+    "soft_delete_policy": {
+      "effectiveTime": "2026-09-08T14:48:24.157000+00:00",
+      "retentionDurationSeconds": "604800"
+    },
+    "retention_policy": null,
+    "versioning_enabled": null
+  }
+}

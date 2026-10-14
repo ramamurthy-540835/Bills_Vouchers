@@ -15,7 +15,7 @@ export async function WorkspacePage({view,searchParams}: {view:string;searchPara
     if(response.ok) data=await response.json()
   } catch {}
   if(response?.status===401) redirect('/login')
-  if(response?.status===403){const err=await response.json().catch(()=>({}));if(err.error?.code==='password_change_required')redirect('/settings')}
+  if(response?.status===403){const err=await response.json().catch(()=>({}));if(err.error?.code==='password_change_required')redirect('/settings');if(err.error?.code==='mobile_verification_required')redirect('/settings/account')}
   if(view==='demo'&&data)data={...data.dashboard,user:data.user,clients:[],demo_bundle:data,demo_lab:true,demo_tab:query?.tab}
   return <Workspace key={`${view}-${data?.client_id}-${data?.period}-${data?.scope||''}`} view={view} initial={data}/>
 }

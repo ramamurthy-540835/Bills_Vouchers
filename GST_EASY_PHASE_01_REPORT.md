@@ -1,5 +1,19 @@
 # Phase 01 implementation report — in progress
 
+## Continued implementation and new evidence
+
+The sections below describe the initial changeset; this section supersedes its older implementation gaps where noted. Acceptance remains open for live delivery and deployment.
+
+- Email requests now enter auth_outbox. Registration creates its verification request in the same transaction as the isolated identity. Public recovery requests no longer look up account existence or call SMTP. OIDC-authenticated Cloud Tasks workers send messages; an authenticated repair endpoint can reschedule pending deliveries. Failed delivery retains the request for retry. Token values are derived with a domain-separated HMAC and are never stored in plaintext. Repeated worker deliveries use the same single-use link.
+- Registration, email verification, password reset and mobile verification audit events are persisted transactionally. Password reset also queues a security notification atomically.
+- Identity transactions now use their own auth_guard in the configured account dataset, removing their dependency on the canonical invoice guard.
+- Mobile verification has a Twilio Verify adapter, account UI, local ten-minute expiry, per-user/number request limits, replay rejection and user/phone binding. Only an approved provider response can set mobile_verified. REQUIRE_OTP restricts unverified users to account/security actions. Credentials are absent; real SMS acceptance is pending. Provider behavior is based on https://www.twilio.com/docs/verify/api/verification-check and https://www.twilio.com/docs/verify/api/rate-limits-and-timeouts.
+- Migration 010 now includes auth_guard, auth_events and auth_outbox; migration 011 adds mobile_challenges. Neither is applied to customer datasets. Queue and OIDC worker configuration are required before deploying the new account flow. Schedule /internal/auth/mail/repair with an authorized service identity for enqueue-failure recovery.
+- Retained server-rendered password fields also receive an accessible eye control from app/static/password-input.js.
+- Backend: 185 tests pass. Six browser scenarios pass, including provider-error/expired-code UI behavior. Production build passes. Gemini requests now use explicit SDK Content objects to avoid inconsistent mixed-list inference; fresh mypy passes for 63 source files.
+- Real BigQuery integration tests passed in isolated dataset aidirac-503309.gst_easy_identity_test_271ff1f1be04 at 2026-10-14T10:34:30Z. Coverage: registration, isolated membership, concurrent duplicate insertion (one 201, one 409), verification, replay/expiry rejection, session revocation and distributed throttling. Tables expire after 24 hours. Source schemas were copied without source rows. Audit/reset transactions were optimized after real tests exposed the configured query-cost ceiling; the ceiling was not raised.
+- Remaining delivery acceptance: approved sender mailbox, SMTP/queue/OIDC configuration, live email delivery, Twilio credentials/service and live SMS verification. Outbox worker database integration and mobile database/provider integration need additional evidence beyond mocked unit/browser tests. No provider account was purchased, real SMS sent, or unrelated project's secret payload read.
+
 Date: 14 October 2026. Branch: GST_EASY. This changeset is not production-ready and does not satisfy all Phase 01 acceptance criteria.
 
 ## Implemented locally

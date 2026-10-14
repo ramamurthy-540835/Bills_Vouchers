@@ -29,14 +29,14 @@ def register(repo, body):
         raise HTTPException(422, 'Passwords do not match.')
     if not gst['valid']:
         raise HTTPException(422, gst['message'])
-    uid, cid = str(uuid4()), str(uuid4())
+    uid, cid, mail_id = str(uuid4()), str(uuid4()), str(uuid4())
     params = [param(k, v) for k, v in dict(email=email, name=name, business=business,
-        uid=uid, cid=cid, mid=str(uuid4()), pid=str(uuid4()), password=hash_password(password), mobile=mobile,
+        uid=uid, cid=cid, mid=str(uuid4()), pid=str(uuid4()), mail_id=mail_id, password=hash_password(password), mobile=mobile,
         gstin=gst['gstin'], pan=gst['pan'], state=gst['state_code'], entity=gst['entity_code']).items()]
     try:
         repo.query(f'''BEGIN TRANSACTION;
-        ASSERT (SELECT COUNT(*) FROM `{repo.settings.gcp_project_id}.ops.gst_bill_lock` WHERE client_id='__guard__')=1 AS 'Storage guard missing';
-        UPDATE `{repo.settings.gcp_project_id}.ops.gst_bill_lock` SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
+        ASSERT (SELECT COUNT(*) FROM `{repo.table('auth_guard')}` WHERE id='identity')=1 AS 'Storage guard missing';
+        UPDATE `{repo.table('auth_guard')}` SET touched_at=CURRENT_TIMESTAMP() WHERE id='identity';
         ASSERT NOT EXISTS(SELECT 1 FROM `{repo.table('users')}` WHERE LOWER(email)=@email) AS 'Account already exists';
         INSERT INTO `{repo.table('users')}` (id,email,password_hash,full_name,role,is_active,created_at,must_change_password,session_version,mobile_number,mobile_verified,email_verified)
         VALUES (@uid,@email,@password,@name,'client',TRUE,CURRENT_TIMESTAMP(),FALSE,0,@mobile,FALSE,FALSE);
@@ -48,6 +48,8 @@ def register(repo, body):
         VALUES (@email,@cid,'client',CURRENT_TIMESTAMP(),NULL,TRUE);
         INSERT INTO `{repo.table('gst_client_profile')}` (profile_id,client_id,gstin,pan,state_code,entity_code,legal_name,trade_name,contact_email,contact_person,status,filing_frequency,gstin_verified,effective_from,is_current,source,created_by,created_at)
         VALUES (@pid,@cid,@gstin,@pan,@state,@entity,@business,@business,@email,@name,'ACTIVE','monthly',FALSE,CURRENT_TIMESTAMP(),TRUE,'SELF_REGISTRATION',@uid,CURRENT_TIMESTAMP());
+        INSERT INTO `{repo.table('auth_events')}` VALUES (GENERATE_UUID(),@uid,'registration_pending_verification',CURRENT_TIMESTAMP());
+        INSERT INTO `{repo.table('auth_outbox')}` VALUES (@mail_id,@email,'verify','pending',CURRENT_TIMESTAMP(),NULL,NULL);
         COMMIT TRANSACTION;''', params)
     except (BadRequest, Conflict) as exc:
         if 'account already exists' in str(exc).lower():
@@ -55,4 +57,4 @@ def register(repo, body):
         if any(s in str(exc).lower() for s in ('concurrent', 'aborted')):
             raise HTTPException(409, 'Registration is busy. Please try again.') from None
         raise
-    return {'id': uid, 'client_id': cid, 'email': email}
+    return {'id': uid, 'client_id': cid, 'email': email, 'mail_id': mail_id}

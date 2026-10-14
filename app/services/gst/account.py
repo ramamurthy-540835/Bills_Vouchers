@@ -14,6 +14,19 @@ from .profiles import validate_gstin
 router = APIRouter()
 
 
+@router.post('/api/auth/mobile/start')
+def start_mobile(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from app.services.mobile_verification import start
+    return start(repo, user)
+
+
+@router.post('/api/auth/mobile/check')
+async def check_mobile(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from app.services.mobile_verification import check
+    body = await request.json()
+    return check(repo, user, str(body.get('challenge_id', '')), str(body.get('code', '')))
+
+
 def logo_blob(client_id):
     from google.cloud.storage import Client
     settings = get_settings()
@@ -65,6 +78,8 @@ def phone(value):
     value = str(value or '').strip()
     if value and not re.fullmatch(r'\+[1-9]\d{7,14}',value):
         raise HTTPException(422,'Use an E.164 phone number, for example +919876543210.')
+    if value.startswith('+91') and not re.fullmatch(r'\+91[6-9][0-9]{9}', value):
+        raise HTTPException(422, 'Enter a valid Indian mobile number with country code +91.')
     return value
 
 
@@ -88,8 +103,8 @@ async def save_account(request: Request, repo=Depends(get_db), user=Depends(curr
     mobile = phone(body.get('mobile_number'))
     if not name or len(name)>120:
         raise HTTPException(422,'Enter a display name of 1–120 characters.')
-    if get_settings().require_otp and mobile != (getattr(user,'mobile_number','') or ''):
-        raise HTTPException(409,{'code':'otp_verification_required','message':'Phone verification is required; OTP delivery is not configured.'})
+    if get_settings().require_otp and not mobile:
+        raise HTTPException(422, 'A mobile number is required.')
     repo.query(f"UPDATE `{repo.table('users')}` SET full_name=@name, mobile_verified=IF(COALESCE(mobile_number,'')=@mobile,mobile_verified,FALSE),mobile_number=@mobile WHERE id=@id",
         [param('name',name),param('mobile',mobile),param('id',str(user.id))])
     return {'saved':True}
