@@ -198,3 +198,15 @@ test('workspace access queues invitations and revokes a member',async({page})=>{
  await page.getByRole('button',{name:'Revoke access',exact:true}).click()
  await expect(page.getByRole('cell',{name:'viewer@example.test',exact:true})).toHaveCount(0)
 })
+
+test('statement history exposes scoped evidence and import validation errors',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic statement metadata only')
+ const hash='a'.repeat(64)
+ await page.route('**/api/gst/bills/gstr2b/history?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({statements:[{sha256:hash,period:'2026-09',record_count:2,imported_at:'2026-10-14T11:00:00Z'}]})}))
+ await page.goto('/gst/filing?period=2026-09')
+ await page.getByRole('button',{name:'View statement history',exact:true}).click()
+ await expect(page.getByRole('link',{name:'Download original statement',exact:true})).toHaveAttribute('href',`/api/gst/bills/gstr2b/${hash}/original?period=2026-09`)
+ await page.route('**/api/gst/bills/gstr2b?*',route=>route.fulfill({status:422,contentType:'application/json',body:JSON.stringify({detail:'Unsupported statement section.'})}))
+ await page.getByLabel('Import GSTR-2B',{exact:true}).setInputFiles({name:'statement.json',mimeType:'application/json',buffer:Buffer.from('{}')})
+ await expect(page.getByText('Unsupported statement section.',{exact:true})).toBeVisible()
+})

@@ -10,6 +10,10 @@ This is a partial implementation report, not financial acceptance.
 
 `tests/gst/test_report_and_files.py` covers wrong/missing dates, punctuation differences, duplicate candidates, missing availability and unsupported sections. Full backend regression: 215 passed. Ruff and mypy passed (65 source files).
 
+Follow-up: `app/gst/store.py` and `app/routers/gst_bills.py` now retain original statement JSON in private storage, record source metadata, preserve previous imported rows in the transactional audit and reject previously imported source hashes. GET `/api/gst/bills/gstr2b/history` and `/api/gst/bills/gstr2b/{hash}/original?period=...` expose scoped history and evidence. `frontend/app/returns-credit.tsx` provides history/download controls and explains the B2B-only scope.
+
+Nine browser journeys passed, including statement history and import error feedback. The expanded actual BigQuery check passed statement provenance, repeated-source rejection and cross-tenant history isolation as well as prior lifecycle checks. Evidence: `artifacts/gst_easy/canonical-integration.json`, dataset `aidirac-503309.gst_easy_bills_test_ea937d9feae9`, 2026-10-14 11:29 UTC. Only synthetic rows were used; tables expire in 24 hours. Browser history was mocked and the integration uses a synthetic object reference, so actual GCS statement round-trip still needs preview evidence.
+
 ## Official-source review
 
 Reviewed on 14 October 2026: [GST portal GSTR-2B FAQ](https://tutorial.gst.gov.in/userguide/returns/FAQ_gstr2b.htm). The portal describes additional eligibility restrictions beyond the availability shown on the statement. Its coverage includes more than B2B invoices, so the current B2B adapter must not imply complete statement coverage.
@@ -18,10 +22,10 @@ Reviewed on 14 October 2026: [GST portal GSTR-2B FAQ](https://tutorial.gst.gov.i
 
 ## Compatibility, migration and rollback
 
-No schema migration or deployment was performed. Existing statement rows without invoice dates/availability evidence now remain unmatched or unavailable; re-import supported source statements after accountant review. Do not backfill invented dates or eligibility. Raw original statement retention and complete import version history still need implementation.
+No schema migration or deployment was performed. Existing statement rows without invoice dates/availability evidence now remain unmatched or unavailable; re-import supported source statements after accountant review. Do not backfill invented dates or eligibility. Earlier source files cannot be reconstructed from missing historical evidence; the new version history applies prospectively.
 
 Rollback by reverting this isolated code changeset and deploying an approved prior preview. That reintroduces the previous match weaknesses, so it requires review before real financial use. Customer data, production traffic and previous preview tags remain unchanged.
 
 ## Remaining work
 
-Accountant-approved examples and current official schema/validator verification; supported amendments and credit/debit-note imports; complete source preservation/version history; duplicate import handling; manual exception decisions; line-level eligibility evidence; opening/utilization/reversal/reclaim/carry-forward credit ledger; date/rate/RCM and tax-head rule acceptance; actual UI/API and genuine-data verification. Phase 04 is not complete.
+Accountant-approved examples and current official schema/validator verification; supported amendments and credit/debit-note imports; live source-storage validation and semantic duplicate policy; manual exception decisions; line-level eligibility evidence; opening/utilization/reversal/reclaim/carry-forward credit ledger; date/rate/RCM and tax-head rule acceptance; actual preview UI/API and genuine-data verification. Phase 04 is not complete.

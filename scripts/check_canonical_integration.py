@@ -62,6 +62,15 @@ def main():
         raise AssertionError('Deleted evidence silently recreated')
     except HTTPException as exc:
         assert exc.status_code==409
+    source={'sha256':'a'*64,'period':'2026-09','raw_ref':'synthetic-only-no-gcs-object','record_count':0,'parser_version':'b2b-2'}
+    store.save_matching('2026-09',[],'synthetic-actor',source)
+    assert store.statement_history('2026-09')[0]['sha256']==source['sha256']
+    assert Store(repo,'synthetic-b').statement_history('2026-09')==[]
+    try:
+        store.save_matching('2026-09',[],'synthetic-actor',source)
+        raise AssertionError('Duplicate statement accepted')
+    except HTTPException as exc:
+        assert exc.status_code==409
     restored=store.deleted_invoice(invoice.invoice_id)
     restored.version+=1
     restored.status='needs_review'
@@ -103,7 +112,7 @@ def main():
             assert exc.status_code==409
     assert store.get(invoice.invoice_id).version==restored.version
     report={'utc':datetime.now(timezone.utc).isoformat(),'dataset':dataset_id,'result':'passed',
-            'checks':['canonical_save','tenant_isolation','audited_delete','deleted_reupload_blocked','concurrent_restore','restore_needs_review','durable_job_history','single_retry_claim','frozen_period_delete_import_and_date_move_blocked'],
+            'checks':['canonical_save','tenant_isolation','audited_delete','deleted_reupload_blocked','concurrent_restore','restore_needs_review','durable_job_history','single_retry_claim','statement_history_duplicate_and_tenant_checks','frozen_period_delete_import_and_date_move_blocked'],
             'concurrent_restore_statuses':outcomes,'table_expiry_hours':24}
     target=Path('artifacts/gst_easy/canonical-integration.json')
     target.parent.mkdir(parents=True,exist_ok=True)

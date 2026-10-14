@@ -191,18 +191,37 @@ class BillStore:
                 raise HTTPException(409, 'This bill changed. Refresh before deleting.') from None
             raise
 
-    def save_matching(self, period, records, actor):
+    def save_matching(self, period, records, actor, source=None):
         self.assert_writable(period)
-        self.query(f'''BEGIN TRANSACTION;
+        try:
+            self.query(f'''DECLARE previous_rows JSON;
+            BEGIN TRANSACTION;
             UPDATE {self.table('ops', 'gst_bill_lock')} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
             ASSERT @@row_count=1 AS 'Storage guard missing';
             {self.writable_sql()}
+            ASSERT @source='null' OR NOT EXISTS(SELECT 1 FROM {self.table('ops','gst_bill_audit')}
+                WHERE client_id=@client_id AND action='gstr2b_source' AND JSON_VALUE(after_payload,'$.sha256')=JSON_VALUE(@source,'$.sha256')) AS 'Statement already imported';
+            SET previous_rows=(SELECT TO_JSON(ARRAY_AGG(payload)) FROM {self.table('silver','gst_bills_gstr2b')} WHERE client_id=@client_id AND period=@period);
             DELETE FROM {self.table('silver', 'gst_bills_gstr2b')} WHERE client_id=@client_id AND period=@period;
             INSERT INTO {self.table('silver', 'gst_bills_gstr2b')}
             SELECT @client_id,@period,JSON_VALUE(row,'$.supplier_gstin'),JSON_VALUE(row,'$.invoice_number'),PARSE_JSON(row),CURRENT_TIMESTAMP()
             FROM UNNEST(JSON_QUERY_ARRAY(@payload)) row;
-            INSERT INTO {self.table('ops', 'gst_bill_audit')} VALUES (@client_id,NULL,@actor,'import_gstr2b',NULL,PARSE_JSON(@payload),CURRENT_TIMESTAMP());
-            COMMIT TRANSACTION;''', [param('period', period),param('previous_period',period), param('payload', json.dumps(records, default=str)), param('actor', str(actor))])
+            INSERT INTO {self.table('ops', 'gst_bill_audit')} VALUES (@client_id,NULL,@actor,'import_gstr2b',previous_rows,PARSE_JSON(@payload),CURRENT_TIMESTAMP());
+            IF @source!='null' THEN
+              INSERT INTO {self.table('ops','gst_bill_audit')} VALUES (@client_id,NULL,@actor,'gstr2b_source',NULL,PARSE_JSON(@source),CURRENT_TIMESTAMP());
+            END IF;
+            COMMIT TRANSACTION;''', [param('period', period),param('previous_period',period), param('payload', json.dumps(records, default=str)), param('actor', str(actor)),param('source',json.dumps(source))])
+        except (BadRequest,Conflict) as exc:
+            if any(word in str(exc).lower() for word in ('statement already imported','concurrent','aborted')):
+                raise HTTPException(409, 'This statement was already imported or another import changed the period. Refresh before retrying.') from None
+            raise
+
+    def statement_history(self,period):
+        rows=self.query(f'''SELECT after_payload AS payload,created_at,actor_id FROM {self.table('ops','gst_bill_audit')}
+            WHERE client_id=@client_id AND action='gstr2b_source' AND JSON_VALUE(after_payload,'$.period')=@period
+            ORDER BY created_at DESC LIMIT 100''',[param('period',period)])
+        return [{**(json.loads(r['payload']) if isinstance(r['payload'],str) else r['payload']),
+                 'imported_at':str(r['created_at']),'actor_id':r['actor_id']} for r in rows]
 
     def job(self, job_id, payload=None):
         table = self.table('ops', 'gst_bill_job')

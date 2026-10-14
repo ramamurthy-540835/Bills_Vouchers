@@ -244,8 +244,29 @@ async def import_gstr2b(request: Request, period: str, repo=Depends(get_db), use
         records = parse_gstr2b(content, profile_for(repo, client.id, period), period)
     except (ValueError, TypeError, KeyError, InvalidOperation):
         raise HTTPException(422, 'Check that this is the GSTR-2B JSON for your GSTIN and selected period, without repeated invoices.') from None
-    store.save_matching(period, records, user.id)
+    store.assert_writable(period)
+    digest=hashlib.sha256(content).hexdigest()
+    ref=store.upload_object(content,str(uuid5(NAMESPACE_URL,f'{client.id}/gstr2b/{digest}')),f'GSTR2B-{period}-{digest[:12]}.json','bronze','application/json')
+    source={'sha256':digest,'period':period,'raw_ref':ref,'parser_version':'b2b-2','record_count':len(records)}
+    store.save_matching(period, records, user.id,source)
     return {'imported': len(records)}
+
+
+@router.get('/gstr2b/history')
+def statement_history(request: Request,period: str,repo=Depends(get_db),user=Depends(current_user)):
+    _,store=scope(request,repo,user)
+    return {'statements':[{key:value for key,value in row.items() if key!='raw_ref'} for row in store.statement_history(period_value(period))]}
+
+
+@router.get('/gstr2b/{digest}/original')
+def statement_original(digest: str,request: Request,period: str,repo=Depends(get_db),user=Depends(current_user)):
+    _,store=scope(request,repo,user)
+    period=period_value(period)
+    row=next((row for row in store.statement_history(period) if row['sha256']==digest),None)
+    if row is None:
+        raise HTTPException(404,'Statement not found.')
+    return Response(store.download_object(row['raw_ref']),media_type='application/json',
+        headers={'Content-Disposition':f'attachment; filename="GSTR2B-{period}.json"','Cache-Control':'private, no-store'})
 
 
 @router.get('/working-papers')
