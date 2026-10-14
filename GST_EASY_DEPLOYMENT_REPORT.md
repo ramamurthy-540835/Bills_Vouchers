@@ -10,7 +10,7 @@ Deployed application source: `d7fc2cbe1a27b322cb490b82da28a9bf4c99ed12` on `GST_
 
 | Component | Cloud Build | Cloud Run revision | Image SHA-256 |
 |---|---|---|---|
-| API | f95320c2-add4-4191-90fe-94de7fb99886 | bills-voucher-00114-bel | 2a553b8246b910c747f0504b735e37cdac26f209ef62a6bcebef49aaa1ad3d98 |
+| API | f95320c2-add4-4191-90fe-94de7fb99886 | bills-voucher-00116-poj | 2a553b8246b910c747f0504b735e37cdac26f209ef62a6bcebef49aaa1ad3d98 |
 | Frontend | d666a574-b914-4a92-b44a-84a1cf59ce69 | bills-voucher-web-00053-kat | a7712c7f7d7152eadfa730cb2ef84a9051d095f9ddd08bb13fc5dc17ad3a5769 |
 
 Both builds succeeded. Deployment used new `gst-easy` tags and zero production traffic. Existing tags and production routing were compared before/after and remained identical. Production remains 100% on `bills-voucher-redtaxi-account` and `bills-voucher-web-public-redtaxi-api`; preview-v3 still points to its previous revisions.
@@ -36,7 +36,11 @@ New queues: `gst-easy-bills` and `gst-easy-auth`, asia-south1, max two concurren
 
 [Preview monitoring dashboard](https://console.cloud.google.com/monitoring/dashboards/builder/156a57ed-0435-4575-8ff9-253faae16f1f?project=aidirac-503309) shows request rate and per-series p95 latency for the two new revisions. No alert recipients were changed. Dashboard implementation follows the [Cloud Monitoring dashboard API](https://docs.cloud.google.com/monitoring/dashboards/api-dashboard).
 
-SMTP host/user/password/sender and Twilio Verify service/API credentials are absent from runtime configuration. Thus registration verification, recovery delivery, invitations and mobile verification are not end-to-end operational. No delivery success was fabricated. Existing authorized accounts can use sign-in; authenticated live customer UAT has not been performed in this deployment check.
+After the user selected `ai@aidirac.com`, SMTP was configured with `smtppro.zoho.in:587` and STARTTLS. Authentication succeeded against the existing `ZOHO_SMTP_PASSWORD:1` secret. Server settings follow [Zoho SMTP documentation](https://www.zoho.com/mail/help/imap-access.html); the domain MX records identify Zoho's India region. Secret values were never printed or committed. The first follow-up probe exposed a missing application signing-secret binding. Revision `00116-poj` also binds the existing `bills-voucher-app-secret:1`, validated to meet the worker's length requirement. Existing preview sessions may need a fresh sign-in.
+
+At 12:24:19 UTC the registration request through the frontend passed mail/worker readiness and reached normal mobile-field validation (422 for an intentionally empty form). No test account was created and no message was sent; actual inbox arrival, verification, recovery and invitation delivery still require end-to-end acceptance. Twilio credentials remain absent. Operational evidence is in `artifacts/gst_easy/mail-configuration.json` and `registration-readiness.json`. Production and all other preview routes remain unchanged. The monitoring dashboard currently filters the original API revision `00114-bel`; its filter needs updating to track this configuration-only revision.
+
+To roll back this configuration change, inspect current routing and move only the API `gst-easy` tag to `bills-voucher-00114-bel`. That restores the original missing-mail configuration and blocks registration again. Do not rotate/delete the shared secrets or change production routing as part of this rollback.
 
 The shared compute runtime identity remains a least-privilege concern. Full credit-ledger functionality, accountant financial acceptance, verified official exports, full recovery/load/security evidence and genuine-client UAT remain open. This deployment is a review preview, not completion of all Phases 00–09.
 
