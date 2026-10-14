@@ -13,14 +13,25 @@ _MAX_FAILURES = 5
 
 
 def password_is_strong(password: str) -> bool:
-    return len(password) >= 12 and any(c.isupper() for c in password) and any(c.islower() for c in password) and any(c.isdigit() for c in password)
+    return password_encoding_valid(password) and len(password) >= 12 and any(c.isupper() for c in password) and any(c.islower() for c in password) and any(c.isdigit() for c in password)
+
+
+def password_encoding_valid(password: str) -> bool:
+    try:
+        return '\x00' not in password and 0 < len(password.encode('utf-8')) <= 72
+    except UnicodeEncodeError:
+        return False
 
 
 def hash_password(password: str) -> str:
+    if not password_encoding_valid(password):
+        raise ValueError('Password must contain 1–72 UTF-8 bytes and no null characters.')
     return pwd_context.hash(password)
 
 
 def verify_password(password: str, password_hash: str) -> bool:
+    if not password_encoding_valid(password):
+        return False
     return pwd_context.verify(password, password_hash)
 
 

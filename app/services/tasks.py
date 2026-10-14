@@ -39,7 +39,7 @@ def dispatch_scan(background_tasks: Any, callback: Callable[..., Any], document_
 
 
 def enqueue_scan(document_id: str, service_url: str, queue_path: str, service_account: str = "", client_id: str = "", user_id: str = "") -> str:
-    from google.cloud import tasks_v2  # type: ignore[attr-defined]
+    import google.cloud.tasks_v2 as tasks_v2
 
     client = tasks_v2.CloudTasksClient()
     payload = {"document_id": document_id, "client_id": client_id, "user_id": user_id}

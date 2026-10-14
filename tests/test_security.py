@@ -29,7 +29,7 @@ def test_login_replaces_expired_session(monkeypatch, endpoint):
     user = SimpleNamespace(id='user-1', email='test@example.test', full_name='Test',
                            password_hash=hash_password('test-password'), role='client',
                            session_version=2, must_change_password=False)
-    repo = SimpleNamespace(user_by_email=lambda email: user,
+    repo = SimpleNamespace(settings=SimpleNamespace(gcp_project_id='test'), user_by_email=lambda email: user,
                            user_by_id=lambda uid: user if uid == user.id else None,
                            table=lambda name: 'test.'+name, query=lambda *args: [],
                            audit=lambda *args: None)

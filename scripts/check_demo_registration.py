@@ -27,7 +27,7 @@ class Probe:
         client.query(sql,job_config=bigquery.QueryJobConfig(query_parameters=params)).result()
 
 result=register(Probe(),dict(email=f'rollback-{uuid4()}@example.invalid',full_name='Rollback test',
-    business_name='Rollback test',gstin='33ABCDE1234F1Z7',password='RegistrationCheck2026'))
+    business_name='Rollback test',gstin='33ABCDE1234F1Z7',password='RegistrationCheck2026',confirm='RegistrationCheck2026',country_code='+91',mobile_number='9876543210'))
 count=list(client.query('SELECT COUNT(*) AS n FROM `aidirac-503309.finance_analytics.users` WHERE id=@id',
     job_config=bigquery.QueryJobConfig(query_parameters=[param('id',result['id'])])).result())[0]['n']
 assert count==0

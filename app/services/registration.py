@@ -8,6 +8,7 @@ from google.api_core.exceptions import BadRequest, Conflict
 from app.security import hash_password, password_is_strong
 from app.services.gst.medallion import param
 from app.services.gst.profiles import validate_gstin
+from app.services.identity_validation import registration_mobile
 
 
 def register(repo, body):
@@ -15,26 +16,30 @@ def register(repo, body):
     name = str(body.get('full_name', '')).strip()
     business = str(body.get('business_name', '')).strip()
     password = str(body.get('password', ''))
-    gst = validate_gstin(str(body.get('gstin', '')))
+    mobile = registration_mobile(body)
+    gstin = str(body.get('gstin', '')).strip()
+    gst = validate_gstin(gstin) if gstin else dict(valid=True, gstin='', pan='', state_code='', entity_code='')
     if len(email) > 254 or not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
         raise HTTPException(422, 'Enter a valid email address.')
     if not name or len(name) > 120 or not business or len(business) > 200:
         raise HTTPException(422, 'Enter your name and business name.')
     if not password_is_strong(password):
-        raise HTTPException(422, 'Use at least 12 characters, including uppercase, lowercase and a number.')
+        raise HTTPException(422, 'Use at least 12 characters and at most 72 UTF-8 bytes, including uppercase, lowercase and a number.')
+    if password != body.get('confirm'):
+        raise HTTPException(422, 'Passwords do not match.')
     if not gst['valid']:
         raise HTTPException(422, gst['message'])
     uid, cid = str(uuid4()), str(uuid4())
     params = [param(k, v) for k, v in dict(email=email, name=name, business=business,
-        uid=uid, cid=cid, mid=str(uuid4()), pid=str(uuid4()), password=hash_password(password),
+        uid=uid, cid=cid, mid=str(uuid4()), pid=str(uuid4()), password=hash_password(password), mobile=mobile,
         gstin=gst['gstin'], pan=gst['pan'], state=gst['state_code'], entity=gst['entity_code']).items()]
     try:
         repo.query(f'''BEGIN TRANSACTION;
         ASSERT (SELECT COUNT(*) FROM `{repo.settings.gcp_project_id}.ops.gst_bill_lock` WHERE client_id='__guard__')=1 AS 'Storage guard missing';
         UPDATE `{repo.settings.gcp_project_id}.ops.gst_bill_lock` SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
         ASSERT NOT EXISTS(SELECT 1 FROM `{repo.table('users')}` WHERE LOWER(email)=@email) AS 'Account already exists';
-        INSERT INTO `{repo.table('users')}` (id,email,password_hash,full_name,role,is_active,created_at,must_change_password,session_version)
-        VALUES (@uid,@email,@password,@name,'client',TRUE,CURRENT_TIMESTAMP(),FALSE,0);
+        INSERT INTO `{repo.table('users')}` (id,email,password_hash,full_name,role,is_active,created_at,must_change_password,session_version,mobile_number,mobile_verified,email_verified)
+        VALUES (@uid,@email,@password,@name,'client',TRUE,CURRENT_TIMESTAMP(),FALSE,0,@mobile,FALSE,FALSE);
         INSERT INTO `{repo.table('clients')}` (id,code,name,gstin,address,is_active,created_at,storage_slug,is_test)
         VALUES (@cid,@cid,@business,@gstin,'',TRUE,CURRENT_TIMESTAMP(),@cid,FALSE);
         INSERT INTO `{repo.table('client_memberships')}` (id,client_id,user_id,access_role,is_active,created_at)

@@ -18,7 +18,7 @@ class GCSObjectStore:
         self.bucket = bucket
 
     def _bucket(self):
-        from google.cloud import storage  # type: ignore[attr-defined]
+        import google.cloud.storage as storage
 
         return storage.Client(project=get_settings().gcp_project_id).bucket(self.bucket)
 

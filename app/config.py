@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     gst_bills_worker_audience: str = ''
     gst_bills_worker_account: str = ''
     require_otp: bool = False
+    auth_public_url: str = ''
+    smtp_host: str = ''
+    smtp_port: int = 587
+    smtp_username: str = ''
+    smtp_password: str = ''
+    smtp_sender: str = ''
     medallion_enabled: bool = False
     document_landed_topic: str = ""
     pipeline_push_audience: str = ""

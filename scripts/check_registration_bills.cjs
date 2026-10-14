@@ -16,7 +16,7 @@ const {chromium, request}=require('../frontend/node_modules/@playwright/test');
   let total=0,factor=2;
   for(const char of [...prefix].reverse()){const value=alphabet.indexOf(char)*factor;total+=Math.floor(value/36)+value%36;factor=factor===2?1:2}
   const gstin=prefix+alphabet[(36-total%36)%36];
-  const duplicate=await api.post('/api/auth/register',{headers:{Origin:base},data:{email:process.env.BV_TEST_EMAIL,full_name:'Registration check',business_name:'Registration check',gstin,password:'RegistrationCheck2026'}});
+  const duplicate=await api.post('/api/auth/register',{headers:{Origin:base},data:{email:process.env.BV_TEST_EMAIL,full_name:'Registration check',business_name:'Registration check',gstin,password:'RegistrationCheck2026',confirm:'RegistrationCheck2026',country_code:'+91',mobile_number:'9876543210'}});
   if(duplicate.status()!==409)throw Error('Duplicate registration should return 409, received '+duplicate.status()+': '+await duplicate.text());
   console.log('PASS duplicate registration blocked');
   const {token}=await (await api.get('/api/auth/csrf')).json();

@@ -16,7 +16,7 @@ from app.routes import current_user
 def test_registration_creates_only_own_membership(profile):
     repo=Mock(settings=SimpleNamespace(gcp_project_id='test-project'))
     repo.table.side_effect=lambda name:'test-project.finance.'+name
-    body=dict(email=' New@Example.com ',full_name='New User',business_name='New Business',gstin=profile['gstin'],password='StrongPassword123')
+    body=dict(email=' New@Example.com ',full_name='New User',business_name='New Business',gstin=profile['gstin'],password='StrongPassword123',confirm='StrongPassword123',country_code='+91',mobile_number='9876543210')
     result=register(repo,body)
     sql,params=repo.query.call_args.args
     values={p.name:p.value for p in params}
@@ -28,10 +28,10 @@ def test_registration_creates_only_own_membership(profile):
     assert 'LOWER(email)=@email' in sql
 
 
-@pytest.mark.parametrize('change',[{'email':'bad'},{'password':'weak'},{'gstin':'invalid'},{'full_name':''}])
+@pytest.mark.parametrize('change',[{'email':'bad'},{'password':'weak'},{'gstin':'invalid'},{'full_name':''},{'mobile_number':''},{'confirm':'different'}])
 def test_invalid_registration_does_not_write(profile,change):
     repo=Mock()
-    body=dict(email='a@example.com',full_name='Name',business_name='Business',gstin=profile['gstin'],password='StrongPassword123')
+    body=dict(email='a@example.com',full_name='Name',business_name='Business',gstin=profile['gstin'],password='StrongPassword123',confirm='StrongPassword123',country_code='+91',mobile_number='9876543210')
     with pytest.raises(HTTPException) as exc:register(repo,{**body,**change})
     assert exc.value.status_code==422
     repo.query.assert_not_called()

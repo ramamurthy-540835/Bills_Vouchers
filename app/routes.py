@@ -23,6 +23,7 @@ from .services.gst.validation import validate_document
 from .services.gst.compliance import RETURN_STATUSES, RETURN_TYPES, gst_health_score
 from .services.tasks import dispatch_scan
 from .services.ocr import decimal_or_none
+from .services import auth_identity
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
@@ -38,6 +39,9 @@ def current_user(request: Request, repo=Depends(get_db)):
     user = FinanceRepository(repo).user_by_id(request.session.get("user_id"))
     if not user:
         raise HTTPException(401, "Please log in.")
+    if getattr(user, 'email_verified', None) is False:
+        request.session.clear()
+        raise HTTPException(403, 'Verify your email address before signing in.')
     session_version = int(getattr(user, "session_version", 0) or 0)
     if request.session.get("session_version") is not None and int(str(request.session.get("session_version"))) != session_version:
         request.session.clear()
@@ -134,6 +138,7 @@ def login_page(request: Request):
 
 @router.post("/login")
 def login(request: Request, email: str = Form(...), password: str = Form(...), repo=Depends(get_db)):
+    auth_identity.throttle(repo, 'login:' + email.strip().lower())
     if email.strip().lower() == "stephenraj":
         email = get_settings().bootstrap_admin_email
     key = f"{request.client.host if request.client else 'unknown'}:{email.strip().lower()}"
@@ -144,6 +149,8 @@ def login(request: Request, email: str = Form(...), password: str = Form(...), r
         record_login_failure(key)
         return page("login.html", request, status_code=400, error="Invalid email or password")
     record_login_success(key)
+    if not getattr(user, 'is_active', True) or getattr(user, 'email_verified', None) is False:
+        return page('login.html', request, status_code=403, error='Verify your email address before signing in.')
     request.session.clear()
     request.session["last_seen"] = str(time())
     request.session["user_id"] = user.id
@@ -153,61 +160,12 @@ def login(request: Request, email: str = Form(...), password: str = Form(...), r
 
 @router.get("/signup")
 def signup_page(request: Request):
-    if get_settings().app_env == "production":
-        raise HTTPException(404, "Not found.")
-    return page("signup.html", request)
+    return RedirectResponse("/register", 303)
 
 
 @router.post("/signup")
-def signup(
-    request: Request,
-    email: str = Form(...),
-    full_name: str = Form(...),
-    password: str = Form(...),
-    repo=Depends(get_db),
-):
-    if get_settings().app_env == "production":
-        raise HTTPException(404, "Not found.")
-    email = email.strip().lower()
-    full_name = full_name.strip()
-    if not password_is_strong(password):
-        return page("signup.html", request, status_code=400, error="Use a password with at least 12 characters including upper, lower, and numeric characters.")
-    if fr(repo).user_by_email(email):
-        return page("signup.html", request, status_code=400, error="An account already exists for this email.")
-    from uuid import uuid4
-
-    user_id = str(uuid4())
-    repo.insert(
-        "users",
-        {
-            "id": user_id,
-            "email": email,
-            "password_hash": hash_password(password),
-            "must_change_password": False,
-            "session_version": 0,
-            "full_name": full_name or email,
-            "role": "admin",
-            "is_active": True,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        },
-        user_id,
-    )
-    # New test users receive access to every existing client as administrators.
-    for client in fr(repo).clients():
-        repo.insert(
-            "client_memberships",
-            {
-                "id": str(uuid4()),
-                "client_id": client.id,
-                "user_id": user_id,
-                "access_role": "admin",
-                "is_active": True,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-            str(uuid4()),
-        )
-    request.session["user_id"] = user_id
-    return RedirectResponse("/", 303)
+def signup(request: Request):
+    raise HTTPException(410, "Use the isolated business registration flow at /register.")
 
 
 @router.post("/logout")
@@ -1331,6 +1289,7 @@ async def api_login(request: Request, repo=Depends(get_db)):
     email = str(body.get("email", "")).strip().lower()
     if email == "stephenraj":
         email = get_settings().bootstrap_admin_email
+    auth_identity.throttle(repo, 'login:' + email)
     key = f"{request.client.host if request.client else 'unknown'}:{email}"
     if not login_allowed(key):
         raise HTTPException(429, "Too many attempts. Try again later.")
@@ -1339,6 +1298,8 @@ async def api_login(request: Request, repo=Depends(get_db)):
         record_login_failure(key)
         raise HTTPException(401, "Invalid email or password.")
     record_login_success(key)
+    if not getattr(user, 'is_active', True) or getattr(user, 'email_verified', None) is False:
+        raise HTTPException(403, 'Verify your email address before signing in.')
     request.session.clear()
     request.session["last_seen"] = str(time())
     request.session["user_id"] = user.id
@@ -1351,14 +1312,57 @@ async def api_login(request: Request, repo=Depends(get_db)):
 @router.post('/api/auth/register', status_code=201)
 async def api_register(request: Request, repo=Depends(get_db)):
     from .services.registration import register
-    key = f"register:{request.client.host if request.client else 'unknown'}"
+    auth_identity.delivery_ready()
+    body = await request.json()
+    key = 'register:' + str(body.get('email', '')).strip().lower()
     if not login_allowed(key):
         raise HTTPException(429, 'Too many attempts. Try again later.')
     record_login_failure(key)
-    result = register(repo, await request.json())
+    auth_identity.throttle(repo, key)
+    result = register(repo, body)
     request.session.clear()
-    request.session.update(user_id=result['id'], client_id=result['client_id'], session_version=0, last_seen=str(time()))
-    return result
+    auth_identity.issue(repo, result['id'], result['email'], 'verify')
+    fr(repo).audit(result['id'], 'registration_pending_verification', 'user', result['id'])
+    return {'verification_required': True}
+
+
+@router.post('/api/auth/request-link')
+async def request_identity_link(request: Request, repo=Depends(get_db)):
+    auth_identity.delivery_ready()
+    body = await request.json()
+    email = str(body.get('email', '')).strip().lower()
+    purpose = str(body.get('purpose', 'reset'))
+    if purpose not in {'reset', 'verify'} or len(email) > 254:
+        raise HTTPException(422, 'Invalid request.')
+    auth_identity.throttle(repo, 'link:' + email)
+    user = fr(repo).user_by_email(email)
+    if user and getattr(user, 'is_active', True):
+        if purpose == 'reset' or getattr(user, 'email_verified', None) is False:
+            try:
+                auth_identity.issue(repo, user.id, email, purpose)
+            except HTTPException as exc:
+                if exc.status_code != 503:
+                    raise
+                # Keep the public result identical for existing and unknown accounts.
+    return {'message': 'If this account can receive a link, an email will arrive shortly.'}
+
+
+@router.post('/api/auth/verify-email')
+async def verify_identity_email(request: Request, repo=Depends(get_db)):
+    body = await request.json()
+    auth_identity.throttle(repo, 'verify-token:' + str(body.get('token', '')))
+    auth_identity.consume(repo, body.get('token'), 'verify')
+    request.session.clear()
+    return {'message': 'Email verified. You can now sign in.'}
+
+
+@router.post('/api/auth/reset-password')
+async def reset_identity_password(request: Request, repo=Depends(get_db)):
+    body = await request.json()
+    auth_identity.throttle(repo, 'reset-token:' + str(body.get('token', '')))
+    auth_identity.consume(repo, body.get('token'), 'reset', str(body.get('password', '')), str(body.get('confirm', '')))
+    request.session.clear()
+    return {'message': 'Password changed. Sign in with your new password.'}
 
 
 @router.get("/api/auth/csrf")
@@ -1586,7 +1590,7 @@ def readyz(repo=Depends(get_db)):
     repo.one("SELECT 1 AS ready")
     settings = get_settings()
     if settings.gcs_bucket_name:
-        from google.cloud import storage  # type: ignore[attr-defined]
+        import google.cloud.storage as storage
         storage.Client(project=settings.gcp_project_id).get_bucket(settings.gcs_bucket_name, timeout=3)
     return {"status": "ready", "persistence": "bigquery", "gcs": bool(settings.gcs_bucket_name)}
 
