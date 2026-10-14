@@ -266,7 +266,13 @@ def transition(store, actor, target, arn=None, filed_at=None, uri=None, digest=N
             raise HTTPException(422, "A valid, non-future filing date is required.")
     params = store.params + [param("expected", state), param("target", target), param("actor", actor.email),
                             param("arn", arn), param("filed_at", filed_at, "DATE"), param("audit_id", str(uuid4())), param("uri", uri), param("hash", digest)]
+    canonical_guard = ''
+    if get_settings().gst_bills_enabled:
+        from app.gst.store import BillStore
+        guard = BillStore(store.repo, store.client_id).table('ops','gst_bill_lock')
+        canonical_guard = f"UPDATE {guard} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__'; ASSERT @@row_count=1 AS 'Storage guard missing';"
     store.repo.query(f"""BEGIN TRANSACTION;
+      {canonical_guard}
       ASSERT COALESCE((SELECT state FROM `{store.repo.table('gst_filing_status')}` WHERE client_id=@client_id AND period=@period AND is_current=TRUE LIMIT 1),'draft')=@expected AS 'FILING_STATE_CONFLICT';
       UPDATE `{store.repo.table('gst_filing_status')}` SET is_current=FALSE,effective_to=CURRENT_TIMESTAMP() WHERE client_id=@client_id AND period=@period AND is_current=TRUE;
       INSERT INTO `{store.repo.table('gst_filing_status')}` (client_id,period,state,arn,filed_at,actor_email,effective_from,is_current)

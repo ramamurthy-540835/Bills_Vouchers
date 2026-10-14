@@ -14,7 +14,9 @@ def api(monkeypatch,invoice,profile):
     repo=SimpleNamespace()
     user=SimpleNamespace(id='u',role='viewer')
     items={invoice.invoice_id:invoice}
+    deleted={}
     class Store:
+        def assert_writable(self,period):pass
         def __init__(self,repo,client_id):self.client_id=client_id
         def list(self,*args):return [i for i in items.values() if i.client_id==self.client_id]
         def get(self,id):
@@ -22,7 +24,10 @@ def api(monkeypatch,invoice,profile):
             if not inv or inv.client_id!=self.client_id:raise HTTPException(404,'Bill not found.')
             return inv
         def save(self,inv,*args,**kwargs):items[inv.invoice_id]=inv
-        def delete(self,inv,*args):del items[inv.invoice_id]
+        def delete(self,inv,*args):deleted[inv.invoice_id]=inv;del items[inv.invoice_id]
+        def deleted_invoice(self,id):
+            if id not in deleted or deleted[id].client_id!=self.client_id:raise HTTPException(404)
+            return deleted[id]
     monkeypatch.setattr(gst_bills,'BillStore',Store)
     monkeypatch.setattr(gst_bills,'active_client',lambda *a:SimpleNamespace(id='a'))
     monkeypatch.setattr(gst_bills,'profile_for',lambda *a:profile)
@@ -44,6 +49,7 @@ def test_viewer_read_export_but_no_writes(api,invoice):
     assert client.post(f'/api/gst/bills/{invoice.invoice_id}/confirm').status_code==403
     assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',json={'invoice_number':'CHANGE'}).status_code==403
     assert client.delete(f'/api/gst/bills/{invoice.invoice_id}').status_code==403
+    assert client.post('/api/gst/bills/upload/other-client-job/retry').status_code==403
 
 
 def test_delete_checks_version_and_removes_bill(api,invoice):
@@ -97,6 +103,51 @@ def test_missing_profile_prevents_confirmation(api,invoice,monkeypatch):
     client,user,_=api;user.role='client'
     monkeypatch.setattr(gst_bills,'profile_for',lambda *a:{})
     assert client.post(f'/api/gst/bills/{invoice.invoice_id}/confirm').status_code==409
+
+
+def test_rejection_requires_reason_and_preserves_original(api,invoice):
+    client,user,items=api;user.role='client'
+    url=f'/api/gst/bills/{invoice.invoice_id}/reject'
+    for body in ({}, {'reason':' '}, {'reason':123}, {'reason':'x'*1001}):
+        assert client.post(url,json=body).status_code==422
+        assert items[invoice.invoice_id].status==invoice.status
+    response=client.post(url,json={'reason':' Supplier correction required. '},headers={'If-Match':str(invoice.version)})
+    assert response.status_code==200
+    assert response.json()['rejection_reason']=='Supplier correction required.'
+    assert response.json()['version']==invoice.version+1
+    assert invoice.status!='rejected'
+    assert client.post(url,json={'reason':'Old edit'},headers={'If-Match':str(invoice.version)}).status_code==409
+
+
+def test_restore_requires_write_permission_and_returns_to_review(api,invoice):
+    client,user,items=api;user.role='client'
+    invoice.status='confirmed'
+    assert client.delete(f'/api/gst/bills/{invoice.invoice_id}').status_code==200
+    user.role='viewer'
+    url=f'/api/gst/bills/{invoice.invoice_id}/restore'
+    assert client.post(url).status_code==403
+    user.role='client'
+    assert client.post('/api/gst/bills/other-client/restore').status_code==404
+    assert client.post(url,headers={'If-Match':'999'}).status_code==409
+    result=client.post(url,headers={'If-Match':str(invoice.version)})
+    assert result.status_code==200
+    assert result.json()['status']=='needs_review'
+    assert result.json()['version']==invoice.version+1
+
+
+def test_line_sum_uses_decimal_and_does_not_write(api,invoice):
+    client,user,items=api
+    body={'line_items':[{'taxable_value':'0.10'},{'taxable_value':'0.20','igst':'0.05'}]}
+    assert client.post('/api/gst/bills/sum-lines',json=body).status_code==403
+    user.role='client'
+    original=invoice.model_dump_json()
+    result=client.post('/api/gst/bills/sum-lines',json=body)
+    assert result.status_code==200
+    assert result.json()['taxable_value']=='0.30'
+    assert result.json()['invoice_total']=='0.35'
+    assert items[invoice.invoice_id].model_dump_json()==original
+    body['line_items'][0]['taxable_value']=0.1
+    assert client.post('/api/gst/bills/sum-lines',json=body).status_code==422
 
 
 def test_stale_edit_and_payment_authority(api,invoice):

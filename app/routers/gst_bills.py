@@ -3,7 +3,7 @@ import logging
 import mimetypes
 import hashlib
 from datetime import date
-from decimal import InvalidOperation
+from decimal import Decimal, InvalidOperation
 from io import BytesIO, StringIO
 from pathlib import Path
 from typing import Any
@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import Response
 from openpyxl import Workbook
 from pydantic import ValidationError
+from google.api_core.exceptions import InvalidArgument, PermissionDenied, FailedPrecondition
 
 from app.db import get_db
 from app.config import get_settings
@@ -20,7 +21,7 @@ from app.repository import FinanceRepository
 from app.routes import active_client, current_user
 from app.services.gst.account import can
 from app.services.gst.medallion import Medallion, clean, period_value
-from app.gst.schemas.invoice import GstInvoice
+from app.gst.schemas.invoice import GstInvoice, LineItem, Totals
 from app.gst.store import BillStore
 from app.gst.naming import bill_filename
 from app.gst.template import template_bytes
@@ -79,6 +80,7 @@ def template(request: Request, repo=Depends(get_db), user=Depends(current_user))
 def upload(request: Request, files: list[UploadFile] = File(...), period: str = '', repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user, 'bills:write')
     period = selected_period(request, client, store, period)
+    store.assert_writable(period)
     profile = profile_for(repo, client.id, period)
     if not 1 <= len(files) <= 20:
         raise HTTPException(422, 'Choose between 1 and 20 bills.')
@@ -108,13 +110,16 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
     if get_settings().gst_bills_queue:
         try:
             enqueue(str(client.id), job_id)
-        except Exception:
+        except (InvalidArgument, PermissionDenied, FailedPrecondition):
             logger.exception('Bill job could not be queued')
             job['status'] = 'needs_attention'
             for entry in job['files']:
                 entry.update(status='needs_attention', reason='Your original is saved, but reading could not start. Please retry this upload.')
             store.job(job_id, job)
             raise HTTPException(503, 'Your original bills were saved, but reading could not start. Please retry shortly.') from None
+        except Exception:
+            logger.exception('Bill enqueue outcome unknown',extra={'job_id':job_id})
+            raise HTTPException(503, 'Your original bills are saved. Dispatch could not be confirmed; check upload history before uploading again.') from None
     else:
         process_job(store, profile, str(user.id), job)
     return public_job(job)
@@ -144,6 +149,64 @@ async def worker(request: Request, repo=Depends(get_db)):
 def progress(job_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
     _, store = scope(request, repo, user)
     return public_job(store.job(job_id))
+
+
+@router.get('/history')
+def upload_history(request: Request, period: str = '', repo=Depends(get_db), user=Depends(current_user)):
+    client, store = scope(request, repo, user)
+    return {'jobs':[public_job(job) for job in store.job_history(selected_period(request,client,store,period))]}
+
+
+@router.post('/upload/{job_id}/retry')
+def retry_upload(job_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    client,store=scope(request,repo,user,'bills:write')
+    job=store.retry_job(job_id)
+    if get_settings().gst_bills_queue:
+        try:
+            enqueue(str(client.id),job_id,uuid4().hex)
+        except Exception:
+            # A timeout can mean Cloud Tasks accepted the request. Leave the job queued
+            # rather than racing a possibly active worker with an unconditional write.
+            logger.exception('Bill retry enqueue outcome unknown',extra={'job_id':job_id})
+            raise HTTPException(503, 'Retry dispatch could not be confirmed. Your original is retained; check upload history before retrying.') from None
+    else:
+        process_job(store,profile_for(repo,client.id,job['period']),str(user.id),job)
+    return public_job(job)
+
+
+@router.post('/sum-lines')
+async def sum_lines(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    scope(request,repo,user,'bills:write')
+    try:
+        body=await request.json()
+        values=body.get('line_items') if isinstance(body,dict) else None
+        if not isinstance(values,list) or not 1 <= len(values) <= 2000:
+            raise ValueError('Invalid line count')
+        lines=[LineItem.model_validate(value) for value in values]
+        totals={head:sum((getattr(line,head) for line in lines),Decimal('0')) for head in ('taxable_value','cgst','sgst','igst','cess')}
+        result=Totals(**totals,invoice_total=sum(totals.values(),Decimal('0')))
+    except (ValueError,ValidationError,InvalidOperation):
+        raise HTTPException(422, 'Enter valid decimal amounts for between 1 and 2000 line items.') from None
+    return result.model_dump(mode='json')
+
+
+@router.get('/deleted')
+def deleted_bills(request: Request, period: str = '', repo=Depends(get_db), user=Depends(current_user)):
+    client, store = scope(request,repo,user,'bills:write')
+    return {'invoices':[{**inv.model_dump(mode='json'),'filename':bill_filename(inv)} for inv in store.deleted(selected_period(request,client,store,period))]}
+
+
+@router.post('/{invoice_id}/restore')
+def restore_bill(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    client, store = scope(request,repo,user,'bills:write')
+    previous = store.deleted_invoice(invoice_id)
+    check_version(request,previous)
+    period = previous.invoice_date.strftime('%Y-%m') if previous.invoice_date else previous.selected_period
+    invoice = validate_invoice(previous,profile_for(repo,client.id,period),store.list())
+    invoice.status = 'needs_review'
+    invoice.version = previous.version+1
+    store.save(invoice,user.id,'restore',selected_period=period)
+    return invoice.model_dump(mode='json')
 
 
 @router.get('')
@@ -278,7 +341,7 @@ async def edit(invoice_id: str, request: Request, repo=Depends(get_db), user=Dep
     previous = store.get(invoice_id)
     check_version(request, previous)
     body = await request.json()
-    owned = {'client_id', 'invoice_id', 'source_doc_id', 'selected_period', 'extraction', 'itc', 'status', 'review_reasons', 'sample', 'version', 'supply_type'}
+    owned = {'client_id', 'invoice_id', 'source_doc_id', 'selected_period', 'extraction', 'itc', 'status', 'review_reasons', 'rejection_reason', 'sample', 'version', 'supply_type'}
     if owned.intersection(body):
         raise HTTPException(422, 'Only bill details may be edited.')
     if 'reverse_charge_paid_reference' in body and user.role not in {'admin', 'tax_admin'}:
@@ -313,12 +376,20 @@ def confirm(invoice_id: str, request: Request, repo=Depends(get_db), user=Depend
 
 
 @router.post('/{invoice_id}/reject')
-def reject(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+async def reject(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
     _, store = scope(request, repo, user, 'bills:write')
     previous = store.get(invoice_id)
     check_version(request, previous)
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(422, 'Enter a rejection reason.') from None
+    reason = body.get('reason') if isinstance(body, dict) else None
+    if not isinstance(reason, str) or not 3 <= len(reason.strip()) <= 1000:
+        raise HTTPException(422, 'Enter a rejection reason between 3 and 1000 characters.')
     invoice = previous.model_copy(deep=True)
     invoice.status = 'rejected'
+    invoice.rejection_reason = reason.strip()
     invoice.version += 1
     store.save(invoice, user.id, 'reject', previous, (previous.invoice_date or date.today()).strftime('%Y-%m'))
     return invoice.model_dump(mode='json')

@@ -86,5 +86,6 @@ class GstInvoice(Model):
     extraction: Extraction = Field(default_factory=Extraction)
     status: Literal['extracted', 'needs_review', 'confirmed', 'rejected'] = 'extracted'
     review_reasons: list[str] = Field(default_factory=list)
+    rejection_reason: str = Field(default='', max_length=1000)
     version: int = 1
     sample: bool = False

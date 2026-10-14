@@ -18,7 +18,8 @@ async function api(path:string,method='GET',body?:any,version?:number){
 }
 export default function BillsPanel({data}:{data:any}){
  const [bills,setBills]=useState<any[]>([]),[selected,setSelected]=useState<any>(null),[jobs,setJobs]=useState<any[]>([]),[status,setStatus]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true)
- const [dirty,setDirty]=useState(false),[opening,setOpening]=useState(false)
+ const [dirty,setDirty]=useState(false),[opening,setOpening]=useState(false),[rejectionReason,setRejectionReason]=useState('')
+ const [history,setHistory]=useState<any[]>([]),[deleted,setDeleted]=useState<any[]>([])
  const dialog=useRef<HTMLDialogElement>(null),openSequence=useRef(0)
  useEffect(()=>{if(selected&&!dialog.current?.open)dialog.current?.showModal()},[selected])
  function close(){if(busy)return;if(dirty&&!window.confirm('Discard unsaved bill changes?'))return;setSelected(null);setDirty(false)}
@@ -26,6 +27,10 @@ export default function BillsPanel({data}:{data:any}){
  const jobKey=`gst-bill-job:${data.client_id}:${period}`
  const reload=useCallback(async()=>{const result=await api(`?period=${period}&status=${status}`);setBills(result.invoices);setLoading(false)},[period,status])
  useEffect(()=>{reload().catch(e=>{setMessage(e.message);setLoading(false)})},[reload])
+ useEffect(()=>{setRejectionReason('')},[selected?.invoice_id])
+ async function loadHistory(){try{setHistory((await api(`/history?period=${period}`)).jobs);if(write)setDeleted((await api(`/deleted?period=${period}`)).invoices)}catch(e){setMessage((e as Error).message)}}
+ async function retryUpload(id:string){setBusy(true);try{let job=await api(`/upload/${id}/retry`,'POST');sessionStorage.setItem(jobKey,id);while(!['completed','needs_attention'].includes(job.status)){setJobs(job.files);await new Promise(resolve=>setTimeout(resolve,1500));job=await api(`/upload/${id}`)}sessionStorage.removeItem(jobKey);setJobs(job.files);await reload();await loadHistory()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
+ async function restore(invoice:any){if(!window.confirm('Restore this bill for review? It will require confirmation again.'))return;setBusy(true);try{await api(`/${invoice.invoice_id}/restore`,'POST',undefined,invoice.version);await reload();await loadHistory();setMessage('Bill restored for review.')}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  useEffect(()=>{let active=true;const id=sessionStorage.getItem(jobKey);if(id){setBusy(true);(async()=>{try{while(active){const job=await api(`/upload/${id}`);if(!active)return;setJobs(job.files);await reload();if(job.status==='completed'||job.status==='needs_attention'){sessionStorage.removeItem(jobKey);break}await new Promise(resolve=>setTimeout(resolve,1500))}}catch(e){if(active)setMessage((e as Error).message)}finally{if(active)setBusy(false)}})()}return()=>{active=false}},[jobKey])
  async function upload(files:FileList|File[]|null){
   if(!files?.length||busy)return
@@ -55,13 +60,18 @@ export default function BillsPanel({data}:{data:any}){
   const result=await api(`/${selected.invoice_id}`,'PATCH',body,selected.version);setSelected(result);setDirty(false);return result
  }
  async function saveChanges(){setBusy(true);setMessage('');try{await persist();await reload();setMessage(GST.saved)}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
- async function decision(action:string){setBusy(true);setMessage('');try{const current=await persist();setSelected(await api(`/${current.invoice_id}/${action}`,'POST',undefined,current.version));await reload()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
+ async function sumLines(){setBusy(true);setMessage('');try{const totals=await api('/sum-lines','POST',{line_items:selected.line_items});setSelected((current:any)=>({...current,totals}));setDirty(true);setMessage('Line amounts summed. Check against the original invoice before saving.')}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
+ async function decision(action:string){if(action==='reject'&&rejectionReason.trim().length<3){setMessage('Enter a rejection reason between 3 and 1000 characters.');return}setBusy(true);setMessage('');try{const current=await persist();setSelected(await api(`/${current.invoice_id}/${action}`,'POST',action==='reject'?{reason:rejectionReason}:undefined,current.version));setRejectionReason('');await reload()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  async function remove(){if(!window.confirm('Delete this bill from your workspace?'))return;setBusy(true);setMessage('');try{await api(`/${selected.invoice_id}`,'DELETE',undefined,selected.version);setJobs(current=>current.map(job=>({...job,invoice_ids:job.invoice_ids?.filter((id:string)=>id!==selected.invoice_id)})));setSelected(null);setDirty(false);await reload();setMessage('Bill deleted.')}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  const labels=GST.fields
  const input=(field:string,value:any,onSave:(value:string)=>void,type='text')=><label key={field}>{labels[field]}<input aria-label={labels[field]} value={value??''} type={type} disabled={!write||busy} onChange={e=>onSave(e.target.value)}/></label>
  return <>
   {!selected&&message&&<p className="notice" role="status">{message}</p>}
   {opening&&<p role="status">Opening bill...</p>}
+  <section className="bv-card"><button className="button secondary" disabled={busy} onClick={loadHistory}>Upload history and deleted bills</button>
+   {history.map(job=><div key={job.job_id}><p>Upload: {job.status}</p>{write&&job.status==='needs_attention'&&<button className="button secondary" disabled={busy} onClick={()=>retryUpload(job.job_id)}>Retry saved upload</button>}<ul>{job.files.map((file:any,index:number)=><li key={index}>{file.filename} — {file.status}{file.reason&&<p>{file.reason}</p>}</li>)}</ul></div>)}
+   {deleted.map(invoice=><p key={invoice.invoice_id}>{invoice.filename} <button className="button secondary" disabled={busy} onClick={()=>restore(invoice)}>Restore for review</button></p>)}
+  </section>
   <>
    {write?<section className="bill-drop bv-card" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();upload(e.dataTransfer.files)}}><FileUp size={28}/><h2>{GST.drop}</h2><label className="button primary">{GST.upload}<input className="visually-hidden" aria-label={GST.upload} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv" disabled={busy} onChange={e=>{upload(e.target.files);e.target.value=''}}/></label><p><Link href="/api/gst/bills/template.xlsx">{GST.template}</Link></p><small>{GST.maxFiles}</small></section>:<p>{GST.readOnly}</p>}
    {!!jobs.length&&<ul className="upload-progress" aria-live="polite">{jobs.map((j,i)=><li key={i}><strong>{j.filename}</strong><span>{j.status==='reading'?GST.reading:j.status==='ready'?GST.ready:GST.attention}</span>{j.reason&&<p>{j.reason}</p>}{j.invoice_ids?.map((id:string)=><button className="button quiet" key={id} onClick={()=>open(id)}>{GST.review}</button>)}</li>)}</ul>}
@@ -77,7 +87,9 @@ export default function BillsPanel({data}:{data:any}){
     <label>{GST.reverseCharge}<input type="checkbox" checked={selected.reverse_charge} disabled={!write||busy} onChange={e=>save({reverse_charge:e.target.checked})}/></label>
    {selected.reverse_charge&&['admin','tax_admin'].includes(data.user?.role)&&<label>{GST.paymentReference}<input value={selected.reverse_charge_paid_reference} disabled={busy} onChange={e=>save({reverse_charge_paid_reference:e.target.value})}/></label>}</div><h3>{GST.lineItems}</h3>{selected.line_items.map((line:any,index:number)=><fieldset key={index}><legend>{index+1}</legend><div className="bill-line-fields">{Object.keys(line).map(f=>input(f,line[f],v=>save({line_items:selected.line_items.map((l:any,i:number)=>i===index?{...l,[f]:v}:l)})))}</div>{write&&<button className="button quiet" disabled={busy} onClick={()=>save({line_items:selected.line_items.filter((_:any,i:number)=>i!==index)})}>{GST.remove}</button>}</fieldset>)}
    {write&&<button className="button secondary" disabled={busy} onClick={()=>save({line_items:[...selected.line_items,{description:'',hsn_sac:'',quantity:'1',unit:'NOS',taxable_value:'0',gst_rate:'0',cgst:'0',sgst:'0',igst:'0',cess:'0'}]})}>{GST.addLine}</button>}
-   <h3>{GST.total}</h3><div className="account-form">{Object.keys(selected.totals).map(f=>input(f,selected.totals[f],v=>save({totals:{...selected.totals,[f]:v}})))}</div>
+   <h3>{GST.total}</h3>{write&&<button className="button secondary" disabled={busy||!selected.line_items.length} onClick={sumLines}>Sum line totals</button>}<div className="account-form">{Object.keys(selected.totals).map(f=>input(f,selected.totals[f],v=>save({totals:{...selected.totals,[f]:v}})))}</div>
+   {selected.rejection_reason&&<p>Recorded rejection reason: {selected.rejection_reason}</p>}
+   {write&&selected.status!=='rejected'&&<label>Rejection reason<textarea value={rejectionReason} maxLength={1000} disabled={busy} onChange={event=>setRejectionReason(event.target.value)}/></label>}
    <ul className="review-reasons">{selected.review_reasons.map((r:string)=><li key={r}>{GST.reasons[r]||GST.attention}</li>)}</ul><p>{GST.confirmNote}</p><div className="filing-actions">{write&&<><button className="button secondary" disabled={busy||!dirty} onClick={saveChanges}>Save changes</button><button className="button quiet" disabled={busy} onClick={remove}>Delete bill</button><button className="button primary" disabled={busy||(!dirty&&(selected.status==='confirmed'||selected.status==='rejected'))} onClick={()=>decision('confirm')}>{GST.confirm}</button><button className="button quiet" disabled={busy||selected.status==='rejected'} onClick={()=>decision('reject')}>{GST.reject}</button></>}</div></section>
    <aside className="bv-card original-bill"><h2>{GST.original}</h2><Link href={`/api/gst/bills/${selected.invoice_id}/original`} target="_blank">{GST.originalDownload}</Link>{/\.(pdf|png|jpe?g)$/i.test(selected.extraction.raw_ref)?<iframe title={GST.original} src={`/api/gst/bills/${selected.invoice_id}/original`}/>:<p>{GST.spreadsheetOriginal}</p>}</aside></div>
   </dialog>}

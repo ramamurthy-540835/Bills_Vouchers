@@ -25,7 +25,12 @@ class BillStore:
         return f'`{self.project}.{dataset}.{name}`'
 
     def query(self, sql, params=()):
-        return self.repo.query(sql, [param('client_id', self.client_id), *params])
+        try:
+            return self.repo.query(sql, [param('client_id', self.client_id), *params])
+        except BadRequest as exc:
+            if 'filing period frozen' in str(exc).lower():
+                raise HTTPException(409, 'This filing period is frozen. An authorized reopen is required.') from None
+            raise
 
     def latest_period(self):
         rows = self.query(f'''SELECT COALESCE(MAX(IF(status='confirmed',period,NULL)),MAX(period)) AS period
@@ -51,6 +56,19 @@ class BillStore:
         payload = rows[0]['payload']
         return GstInvoice.model_validate(json.loads(payload) if isinstance(payload, str) else payload)
 
+    def writable_sql(self):
+        return f"""ASSERT NOT EXISTS(SELECT 1 FROM `{self.repo.table('gst_filing_status')}`
+            WHERE client_id=@client_id AND period IN (@period,@previous_period) AND is_current=TRUE
+            AND state NOT IN ('draft','reopened')) AS 'Filing period frozen';"""
+
+    def assert_writable(self, period):
+        try:
+            self.query(self.writable_sql(),[param('period',period),param('previous_period',period)])
+        except BadRequest as exc:
+            if 'filing period frozen' in str(exc).lower():
+                raise HTTPException(409, 'This filing period is frozen. An authorized reopen is required.') from None
+            raise
+
     def save(self, invoice, actor, action, previous=None, selected_period=None):
         if invoice.client_id != self.client_id or invoice.sample:
             raise HTTPException(403, {'code': 'sample_data_blocked', 'message': 'Illustrations cannot be saved.'})
@@ -62,6 +80,7 @@ class BillStore:
             self.name_original(invoice)
         payload = invoice.model_dump_json()
         params = [param('id', invoice.invoice_id), param('payload', payload),
+                  param('previous_period', (previous.invoice_date.strftime('%Y-%m') if previous.invoice_date else previous.selected_period) if previous else invoice.selected_period),
                   param('before', previous.model_dump_json() if previous else 'null'),
                   param('expected', previous.version if previous else 0, 'INT64'),
                   param('version', invoice.version, 'INT64'), param('actor', str(actor)), param('action', action),
@@ -72,6 +91,9 @@ class BillStore:
         sql = f'''BEGIN TRANSACTION;
         ASSERT (SELECT COUNT(*) FROM {lock} WHERE client_id='__guard__')=1 AS 'Storage guard missing';
         UPDATE {lock} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
+        {self.writable_sql()}
+        ASSERT @expected>0 OR @action='restore' OR NOT EXISTS(SELECT 1 FROM {self.table('ops', 'gst_bill_audit')} WHERE client_id=@client_id AND invoice_id=@id AND action='delete') AS 'Bill changed; restore deleted evidence explicitly';
+        ASSERT @action!='restore' OR (SELECT CAST(JSON_VALUE(before_payload,'$.version') AS INT64) FROM {self.table('ops', 'gst_bill_audit')} WHERE client_id=@client_id AND invoice_id=@id AND action='delete' ORDER BY created_at DESC LIMIT 1)=@version-1 AS 'Bill changed; reload';
         ASSERT COALESCE((SELECT version FROM {table} WHERE client_id=@client_id AND invoice_id=@id),0)=@expected AS 'Bill changed; reload';
         ASSERT @number='' OR @fy IS NULL OR NOT EXISTS(SELECT 1 FROM {table} WHERE client_id=@client_id AND supplier_gstin=@supplier AND invoice_number=@number AND financial_year=@fy AND invoice_id!=@id) AS 'Duplicate invoice';
         DELETE FROM {table} WHERE client_id=@client_id AND invoice_id=@id;
@@ -87,6 +109,8 @@ class BillStore:
         try:
             self.query(sql, params)
         except (BadRequest, Conflict) as exc:
+            if 'filing period frozen' in str(exc).lower():
+                raise HTTPException(409, 'This filing period is frozen. An authorized reopen is required.') from None
             if any(word in str(exc).lower() for word in ('duplicate invoice', 'bill changed', 'concurrent', 'transaction is aborted')):
                 raise HTTPException(409, {'code': 'bill_conflict', 'message': 'This bill was saved or changed in another request. Refresh your bills before retrying.'}) from None
             raise
@@ -95,32 +119,90 @@ class BillStore:
         rows = self.query(f'SELECT payload FROM {self.table("silver", "gst_bills_gstr2b")} WHERE client_id=@client_id AND period=@period', [param('period', period)])
         return [json.loads(r['payload']) if isinstance(r['payload'], str) else r['payload'] for r in rows]
 
+    def deleted(self, period):
+        rows = self.query(f'''SELECT a.before_payload AS payload FROM {self.table('ops', 'gst_bill_audit')} a
+            WHERE a.client_id=@client_id AND a.action='delete'
+            AND COALESCE(SUBSTR(JSON_VALUE(a.before_payload,'$.invoice_date'),1,7),JSON_VALUE(a.before_payload,'$.selected_period'))=@period
+            AND NOT EXISTS(SELECT 1 FROM {self.table('gold', 'gst_invoice')} i WHERE i.client_id=@client_id AND i.invoice_id=a.invoice_id)
+            QUALIFY ROW_NUMBER() OVER(PARTITION BY a.invoice_id ORDER BY a.created_at DESC)=1
+            ORDER BY a.created_at DESC LIMIT 100''', [param('period', period)])
+        return [GstInvoice.model_validate(json.loads(r['payload']) if isinstance(r['payload'],str) else r['payload']) for r in rows]
+
+    def deleted_invoice(self, invoice_id):
+        rows = self.query(f'''SELECT before_payload AS payload FROM {self.table('ops', 'gst_bill_audit')}
+            WHERE client_id=@client_id AND invoice_id=@id AND action='delete'
+            ORDER BY created_at DESC LIMIT 1''', [param('id',invoice_id)])
+        if not rows:
+            raise HTTPException(404, 'Deleted bill not found.')
+        payload = rows[0]['payload']
+        return GstInvoice.model_validate(json.loads(payload) if isinstance(payload,str) else payload)
+
+    def job_history(self, period):
+        rows = self.query(f'''SELECT payload FROM {self.table('ops', 'gst_bill_job')}
+            WHERE client_id=@client_id AND JSON_VALUE(payload,'$.period')=@period
+            ORDER BY updated_at DESC LIMIT 100''', [param('period',period)])
+        return [json.loads(r['payload']) if isinstance(r['payload'],str) else r['payload'] for r in rows]
+
+    def retry_job(self, job_id):
+        job = self.job(job_id)
+        self.assert_writable(job['period'])
+        if job['status']!='needs_attention':
+            raise HTTPException(409, 'Only an upload that failed to start can be retried here.')
+        job['status']='queued'
+        for entry in job['files']:
+            if not entry.get('invoice_ids'):
+                entry['status']='reading'
+                entry.pop('reason',None)
+        try:
+            self.query(f'''BEGIN TRANSACTION;
+                UPDATE {self.table('ops','gst_bill_lock')} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
+                ASSERT @@row_count=1 AS 'Storage guard missing';
+                {self.writable_sql()}
+                UPDATE {self.table('ops','gst_bill_job')} SET payload=PARSE_JSON(@payload),updated_at=CURRENT_TIMESTAMP()
+                WHERE client_id=@client_id AND job_id=@id AND JSON_VALUE(payload,'$.status')='needs_attention';
+                ASSERT @@row_count=1 AS 'Upload changed';
+                COMMIT TRANSACTION;''',[param('id',job_id),param('payload',json.dumps(job)),param('period',job['period']),param('previous_period',job['period'])])
+        except (BadRequest,Conflict) as exc:
+            if any(word in str(exc).lower() for word in ('upload changed','concurrent','aborted')):
+                raise HTTPException(409, 'This upload is already being retried. Refresh its status.') from None
+            raise
+        return job
+
     def delete(self, invoice, actor):
         if invoice.client_id != self.client_id:
             raise HTTPException(404, 'Bill not found.')
         try:
             self.query(f'''BEGIN TRANSACTION;
                 UPDATE {self.table('ops', 'gst_bill_lock')} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
+                ASSERT @@row_count=1 AS 'Storage guard missing';
+                {self.writable_sql()}
                 ASSERT (SELECT version FROM {self.table('gold', 'gst_invoice')} WHERE client_id=@client_id AND invoice_id=@id)=@expected AS 'Bill changed';
                 INSERT INTO {self.table('ops', 'gst_bill_audit')} VALUES (@client_id,@id,@actor,'delete',PARSE_JSON(@before),NULL,CURRENT_TIMESTAMP());
                 DELETE FROM {self.table('silver', 'gst_invoice_line')} WHERE client_id=@client_id AND invoice_id=@id;
                 DELETE FROM {self.table('gold', 'gst_invoice')} WHERE client_id=@client_id AND invoice_id=@id;
                 COMMIT TRANSACTION;''', [param('id', invoice.invoice_id), param('expected', invoice.version, 'INT64'),
-                    param('actor', str(actor)), param('before', invoice.model_dump_json())])
+                    param('actor', str(actor)), param('before', invoice.model_dump_json()),
+                    param('period',invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else invoice.selected_period),
+                    param('previous_period',invoice.selected_period)])
         except (BadRequest, Conflict) as exc:
+            if 'filing period frozen' in str(exc).lower():
+                raise HTTPException(409, 'This filing period is frozen. An authorized reopen is required.') from None
             if any(word in str(exc).lower() for word in ('bill changed', 'concurrent', 'aborted')):
                 raise HTTPException(409, 'This bill changed. Refresh before deleting.') from None
             raise
 
     def save_matching(self, period, records, actor):
+        self.assert_writable(period)
         self.query(f'''BEGIN TRANSACTION;
             UPDATE {self.table('ops', 'gst_bill_lock')} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
+            ASSERT @@row_count=1 AS 'Storage guard missing';
+            {self.writable_sql()}
             DELETE FROM {self.table('silver', 'gst_bills_gstr2b')} WHERE client_id=@client_id AND period=@period;
             INSERT INTO {self.table('silver', 'gst_bills_gstr2b')}
             SELECT @client_id,@period,JSON_VALUE(row,'$.supplier_gstin'),JSON_VALUE(row,'$.invoice_number'),PARSE_JSON(row),CURRENT_TIMESTAMP()
             FROM UNNEST(JSON_QUERY_ARRAY(@payload)) row;
             INSERT INTO {self.table('ops', 'gst_bill_audit')} VALUES (@client_id,NULL,@actor,'import_gstr2b',NULL,PARSE_JSON(@payload),CURRENT_TIMESTAMP());
-            COMMIT TRANSACTION;''', [param('period', period), param('payload', json.dumps(records, default=str)), param('actor', str(actor))])
+            COMMIT TRANSACTION;''', [param('period', period),param('previous_period',period), param('payload', json.dumps(records, default=str)), param('actor', str(actor))])
 
     def job(self, job_id, payload=None):
         table = self.table('ops', 'gst_bill_job')

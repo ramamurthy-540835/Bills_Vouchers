@@ -12,11 +12,13 @@ get_settings.cache_clear()
 items={}
 objects={}
 jobs={}
+deleted_items={}
 user=SimpleNamespace(id='browser-user',full_name='Browser User',email='browser@example.test',role='client')
 profile={'legal_name':'Red Taxi','business_nature':'passenger_transport','gstin':'','filing_frequency':'monthly'}
 
 
 class Store:
+    def assert_writable(self,period):pass
     def __init__(self,repo,client_id):self.client_id=client_id
     def list(self,period=None,status=None):
         return [i for i in items.values() if i.client_id==self.client_id and (not status or i.status==status)]
@@ -24,7 +26,12 @@ class Store:
         if id not in items or items[id].client_id!=self.client_id:raise HTTPException(404)
         return items[id]
     def save(self,invoice,*args,**kwargs):items[invoice.invoice_id]=invoice
-    def delete(self,invoice,*args):del items[invoice.invoice_id]
+    def delete(self,invoice,*args):deleted_items[invoice.invoice_id]=invoice;del items[invoice.invoice_id]
+    def deleted(self,period):return [i for i in deleted_items.values() if i.invoice_id not in items and i.client_id==self.client_id]
+    def deleted_invoice(self,id):
+        if id not in deleted_items or deleted_items[id].client_id!=self.client_id:raise HTTPException(404)
+        return deleted_items[id]
+    def job_history(self,period):return [job for job in jobs.values() if job['period']==period]
     def job(self,id,payload=None):
         if payload is not None:jobs[id]=payload
         return jobs[id]
@@ -69,7 +76,7 @@ def health():return {'ok':True}
 
 @app.post('/__test__/reset')
 def reset():
-    items.clear();objects.clear();jobs.clear();user.role='client';profile['gstin']=''
+    items.clear();deleted_items.clear();objects.clear();jobs.clear();user.role='client';profile['gstin']=''
     return {'ok':True}
 
 

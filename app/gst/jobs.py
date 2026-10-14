@@ -19,13 +19,13 @@ def public_job(job):
         {k:v for k,v in entry.items() if k in {'filename','status','invoice_ids','reason'}} for entry in job['files']]}
 
 
-def enqueue(client_id,job_id):
+def enqueue(client_id,job_id,attempt=None):
     from google.cloud.tasks_v2 import CloudTasksClient, HttpMethod
     settings=get_settings()
     if not settings.gst_bills_worker_url or not settings.gst_bills_worker_account:
         raise RuntimeError('Bill worker is not configured')
     CloudTasksClient().create_task(request={'parent':settings.gst_bills_queue,'task':{
-        'name':settings.gst_bills_queue+'/tasks/bill-'+job_id,
+        'name':settings.gst_bills_queue+'/tasks/bill-'+job_id+('-'+attempt if attempt else ''),
         'dispatch_deadline':{'seconds':1800},
         'http_request':{'http_method':HttpMethod.POST,
             'url':settings.gst_bills_worker_url+'/api/gst/bills/internal/process',
