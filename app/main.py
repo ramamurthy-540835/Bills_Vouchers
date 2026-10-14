@@ -102,6 +102,8 @@ def create_app():
 
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
     app.include_router(router)
+    from .services.gst.workspace_members import router as workspace_members_router
+    app.include_router(workspace_members_router)
     app.include_router(v1_router)
     app.include_router(gst_router)
     from .services.gst.workbench import router as workbench_router

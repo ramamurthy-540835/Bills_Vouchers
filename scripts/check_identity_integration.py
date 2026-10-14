@@ -4,12 +4,14 @@ Requires explicit --run. Copies schema metadata only, never source data.
 All test tables expire after 24 hours. The empty dataset can be removed later.
 """
 import argparse
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import json
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
+from unittest.mock import patch
 
 from fastapi import HTTPException
 from google.cloud import bigquery
@@ -25,6 +27,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--run', action='store_true', required=True)
     parser.add_argument('--resume-latest', action='store_true')
+    parser.add_argument('--workspace', action='store_true')
     args = parser.parse_args()
     project = 'aidirac-503309'
     client = bigquery.Client(project=project, credentials=Credentials(gcloud('auth', 'print-access-token').strip()))
@@ -59,9 +62,15 @@ def main():
                 labels={'purpose': 'gst-easy-identity-test'}))
             return list(job.result(timeout=90))
 
+        def one(self, sql, params=()):
+            rows = self.query(sql, params)
+            return rows[0] if rows else None
+
     repo = Repo()
     migration = Path('migrations/010_identity_verification.sql').read_text().replace(project + '.finance_analytics', dataset_id)
     repo.query(migration)
+    if args.workspace:
+        repo.query(Path('migrations/012_workspace_onboarding.sql').read_text().replace(project + '.finance_analytics', dataset_id))
     run_id = uuid4().hex
     concurrent_email = 'concurrent-' + run_id + '@example.invalid'
     body = dict(email='synthetic-' + run_id + '@example.invalid', full_name='Synthetic Identity', business_name='Synthetic Business',
@@ -83,10 +92,10 @@ def main():
     assert sorted(outcomes) == [201, 409], outcomes
     assert len(repo.query(f"SELECT id FROM `{repo.table('users')}` WHERE email=@email", [param('email', concurrent_email)])) == 1
 
-    def token(value, purpose, expired=False):
+    def token(value, purpose, expired=False, target=None):
         repo.query(f'''INSERT INTO `{repo.table('auth_tokens')}` VALUES
         (@hash,@uid,@purpose,CURRENT_TIMESTAMP(),TIMESTAMP_ADD(CURRENT_TIMESTAMP(),INTERVAL @minutes MINUTE),NULL)''',
-        [param('hash', auth_identity.digest(value)), param('uid', user['id']), param('purpose', purpose), param('minutes', -1 if expired else 30, 'INT64')])
+        [param('hash', auth_identity.digest(value)), param('uid', target or user['id']), param('purpose', purpose), param('minutes', -1 if expired else 30, 'INT64')])
 
     verify = 'synthetic-verify-' + uuid4().hex
     token(verify, 'verify')
@@ -115,11 +124,55 @@ def main():
         raise AssertionError('Rate limit not enforced')
     except HTTPException as exc:
         assert exc.status_code == 429
+    workspace_checks = []
+    if args.workspace:
+        from app.services.gst import account, workspace_members
+        from app.services import auth_mail
+
+        class Request:
+            def __init__(self, body=None, client_id=None):
+                self.body = body or {}
+                self.session = {'client_id': client_id or user['client_id']}
+            async def json(self):
+                return self.body
+
+        owner = SimpleNamespace(id=user['id'], email=body['email'], role='client', email_verified=True)
+        profile_body = {'client_id':user['client_id'], 'legal_name':'Synthetic Business', 'constitution':'Proprietorship',
+                        'registration_type':'Unregistered','gstin':'','state_code':'33','principal_address':'Synthetic address',
+                        'contact_person':'Synthetic Owner','contact_email':body['email'],'contact_phone':'+919876543210',
+                        'filing_frequency':'monthly','complete_onboarding':True}
+        asyncio.run(account.save_profile(Request(profile_body), repo, owner))
+        current = repo.query(f"SELECT onboarding_completed FROM `{repo.table('gst_client_profile')}` WHERE client_id=@cid AND is_current=TRUE", [param('cid',user['client_id'])])
+        assert len(current) == 1 and current[0]['onboarding_completed'] is True
+        target = repo.query(f"SELECT id FROM `{repo.table('users')}` WHERE email=@email", [param('email',concurrent_email)])[0]['id']
+        verification = 'workspace-verify-' + uuid4().hex
+        token(verification, 'verify', target=target)
+        auth_identity.consume(repo, verification, 'verify')
+        invited_user = SimpleNamespace(id=target, email=concurrent_email, role='client', email_verified=True)
+        with patch.object(auth_mail, 'ready', return_value=None), patch.object(auth_mail, 'schedule'), patch.object(workspace_members, 'get_settings', return_value=SimpleNamespace(app_secret_key='synthetic-integration-key-not-for-deployment')):
+            asyncio.run(workspace_members.invite(Request({'email':concurrent_email,'role':'viewer'}),repo,owner))
+            invitation = repo.query(f"SELECT id FROM `{repo.table('workspace_invitations')}` WHERE client_id=@cid AND email=@email AND revoked_at IS NULL", [param('cid',user['client_id']),param('email',concurrent_email)])[0]
+            acceptance = Request({'token':workspace_members.invite_token(invitation['id'])})
+            assert asyncio.run(workspace_members.accept(acceptance, repo, invited_user)) == {'accepted':True}
+            assert acceptance.session['client_id'] == user['client_id']
+            try:
+                asyncio.run(workspace_members.accept(acceptance, repo, invited_user))
+                raise AssertionError('Invitation replay accepted')
+            except HTTPException as exc:
+                assert exc.status_code == 409
+            try:
+                asyncio.run(workspace_members.invite(Request({'email':'blocked@example.invalid','role':'admin'}),repo,invited_user))
+                raise AssertionError('Non-owner could invite')
+            except HTTPException as exc:
+                assert exc.status_code == 403
+            assert workspace_members.revoke_member(target, Request(), repo, owner) == {'revoked':True}
+            assert not repo.query(f"SELECT 1 FROM `{repo.table('client_memberships')}` WHERE client_id=@cid AND user_id=@uid AND is_active=TRUE", [param('cid',user['client_id']),param('uid',target)])
+        workspace_checks = ['onboarding_profile_version','email_bound_invitation','invitation_replay_rejection','non_owner_rejection','membership_revocation']
     report = {'utc': datetime.now(timezone.utc).isoformat(), 'dataset': dataset_id,
               'location': source.location, 'table_expiry_hours': 24,
               'checks': ['registration', 'isolated_membership', 'concurrent_duplicate', 'email_verification',
                          'replay_rejection', 'expiry_rejection', 'session_revocation', 'distributed_rate_limit'],
-              'concurrent_registration_statuses': outcomes, 'result': 'passed'}
+              'concurrent_registration_statuses': outcomes, 'workspace_checks': workspace_checks, 'result': 'passed'}
     output = Path('artifacts/gst_easy/identity-integration.json')
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2))

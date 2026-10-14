@@ -43,7 +43,7 @@ def register(repo, body):
         INSERT INTO `{repo.table('clients')}` (id,code,name,gstin,address,is_active,created_at,storage_slug,is_test)
         VALUES (@cid,@cid,@business,@gstin,'',TRUE,CURRENT_TIMESTAMP(),@cid,FALSE);
         INSERT INTO `{repo.table('client_memberships')}` (id,client_id,user_id,access_role,is_active,created_at)
-        VALUES (@mid,@cid,@uid,'client',TRUE,CURRENT_TIMESTAMP());
+        VALUES (@mid,@cid,@uid,'owner',TRUE,CURRENT_TIMESTAMP());
         INSERT INTO `{repo.table('client_user_role')}` (email,client_id,role,effective_from,effective_to,is_current)
         VALUES (@email,@cid,'client',CURRENT_TIMESTAMP(),NULL,TRUE);
         INSERT INTO `{repo.table('gst_client_profile')}` (profile_id,client_id,gstin,pan,state_code,entity_code,legal_name,trade_name,contact_email,contact_person,status,filing_frequency,gstin_verified,effective_from,is_current,source,created_by,created_at)

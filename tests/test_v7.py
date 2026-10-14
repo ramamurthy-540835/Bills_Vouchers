@@ -128,7 +128,9 @@ def test_sql_binds_tenant(repo):
     queries=[n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='query']
     for call in queries:
         sql=ast.unparse(call.args[0])
-        assert ('WHERE id=@id' in sql or 'client_id=@client_id' in sql) and len(call.args)>1
+        scoped_write = 'WHERE id=@id' in sql or 'client_id=@client_id' in sql
+        scoped_audit_insert = 'INSERT INTO' in sql and 'profile_audit' in sql and '@client_id' in sql
+        assert (scoped_write or scoped_audit_insert) and len(call.args)>1
 
 
 def test_real_summary_displaces_previously_seeded_sample(repo):

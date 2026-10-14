@@ -56,7 +56,7 @@ def account_data():
             'user':{'id':user.id,'email':user.email,'full_name':user.full_name,'role':user.role,
                     'mobile_number':'+919876543210','mobile_verified':False},
             'clients':[{'id':'browser-client','name':'Synthetic Business'}],
-            'can_edit_profile':user.role!='viewer','require_otp':True}
+            'can_edit_profile':user.role!='viewer','is_owner':True,'require_otp':True}
 
 
 @app.post('/api/workspace/period')

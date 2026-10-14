@@ -22,7 +22,7 @@ def test_registration_creates_only_own_membership(profile):
     values={p.name:p.value for p in params}
     assert values['email']=='new@example.com'
     assert result['client_id']==values['cid'] and result['id']==values['uid']
-    assert "VALUES (@mid,@cid,@uid,'client'" in sql
+    assert "VALUES (@mid,@cid,@uid,'owner'" in sql
     assert "'admin'" not in sql and 'COMMIT TRANSACTION' in sql
     assert values['password']!=body['password']
     assert 'LOWER(email)=@email' in sql
@@ -38,12 +38,13 @@ def test_invalid_registration_does_not_write(profile,change):
 
 
 def test_logo_validates_content_permissions_and_normalizes(monkeypatch):
-    user=SimpleNamespace(id='u',role='client');blob=Mock()
+    user=SimpleNamespace(id='u',role='client');blob=Mock();blob.generation=1
     monkeypatch.setattr(account,'active_client',lambda *a:SimpleNamespace(id='only-this-client'))
     monkeypatch.setattr(account,'can',lambda user,*a:user.role=='client')
     factory=Mock(return_value=blob);monkeypatch.setattr(account,'logo_blob',factory)
     app=FastAPI();app.include_router(account.router)
-    app.dependency_overrides[get_db]=lambda:object()
+    repo=Mock();repo.table.return_value='test.profile_audit'
+    app.dependency_overrides[get_db]=lambda:repo
     app.dependency_overrides[current_user]=lambda:user
     client=TestClient(app);url='/api/settings/profile/logo'
     assert client.post(url,files={'file':('logo.png',b'<svg/>','image/png')}).status_code==422

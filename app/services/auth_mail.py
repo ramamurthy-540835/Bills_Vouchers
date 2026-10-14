@@ -66,8 +66,19 @@ def process(repo, mail_id):
         COMMIT TRANSACTION;''', [param('id', mail_id)])
     except (BadRequest, Conflict):
         raise HTTPException(503, 'Email request is being processed.') from None
+    if mail['purpose'] == 'invite':
+        from app.services.gst.workspace_members import invite_token
+        invitations = repo.query(f'''SELECT id FROM `{repo.table('workspace_invitations')}`
+            WHERE id=@id AND email=@email AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP()''',
+            [param('id',mail_id),param('email',mail['email'])])
+        if invitations:
+            auth_identity.send_email(mail['email'], 'You are invited to a GST Easy workspace',
+                'Sign in with this email address and accept your invitation within 48 hours:\n'
+                + settings.auth_public_url.rstrip('/') + '/accept-invitation#token=' + invite_token(mail_id))
+        repo.query(f"UPDATE `{repo.table('auth_outbox')}` SET status='sent',sent_at=CURRENT_TIMESTAMP(),lease_until=NULL WHERE id=@id", [param('id',mail_id)])
+        return
     users = repo.query(f"SELECT id,email_verified FROM `{repo.table('users')}` WHERE LOWER(email)=@email AND is_active=TRUE", [param('email', mail['email'])])
-    if len(users) != 1 or (mail['purpose'] == 'verify' and users[0]['email_verified'] is not False):
+    if len(users) != 1 or (mail['purpose'] == 'verify' and users[0]['email_verified'] is True):
         repo.query(f"UPDATE `{repo.table('auth_outbox')}` SET status='ignored',lease_until=NULL WHERE id=@id", [param('id', mail_id)])
         return
     if mail['purpose'] == 'password_changed':

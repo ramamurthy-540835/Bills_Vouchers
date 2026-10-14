@@ -152,3 +152,42 @@ test('mobile verification shows provider errors and preserves unverified state',
  await expect(page.locator('.bv-card [role="alert"]')).toHaveText('The code is invalid or expired.')
  await expect(page.getByText('Your saved mobile number is verified.')).toHaveCount(0)
 })
+
+test('onboarding saves draft progress and exposes completion validation',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic onboarding only')
+ let saved:any={}
+ await page.route('**/api/settings/profile',async route=>{
+  saved=route.request().postDataJSON()
+  expect(saved.client_id).toBe('browser-client')
+  if(saved.complete_onboarding)return route.fulfill({status:422,contentType:'application/json',body:JSON.stringify({error:{message:'Complete the required contact fields.'}})})
+  return route.fulfill({status:200,contentType:'application/json',body:'{"saved":true}'})
+ })
+ await page.route('**/api/settings/account',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({profile:{...saved,profile_id:'version-2',onboarding_completed:false}})}))
+ await page.goto('/settings/onboarding')
+ await page.getByLabel('Business legal name',{exact:true}).fill('Synthetic business draft')
+ await page.getByLabel('Business type',{exact:true}).selectOption('Proprietorship')
+ await page.getByRole('button',{name:'Save progress',exact:true}).click()
+ await expect(page.getByText('Progress saved.',{exact:true})).toBeVisible()
+ await expect(page.getByLabel('Business legal name',{exact:true})).toHaveValue('Synthetic business draft')
+ await page.getByRole('button',{name:'3. Address and contact',exact:true}).click()
+ await page.getByRole('button',{name:'Complete onboarding',exact:true}).click()
+ await expect(page.locator('.bv-card [role="alert"]')).toHaveText('Complete the required contact fields.')
+})
+
+test('workspace access queues invitations and revokes a member',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic access administration only')
+ let members=[{user_id:'owner',email:'owner@example.test',full_name:'Owner',access_role:'owner'},{user_id:'viewer',email:'viewer@example.test',full_name:'Viewer',access_role:'viewer'}]
+ const invitations:any[]=[]
+ await page.route('**/api/settings/members',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({members,invitations})}))
+ await page.route('**/api/settings/invitations',route=>{const body=route.request().postDataJSON();expect(body.role).toBe('viewer');invitations.push({id:'invite',...body,expires_at:'2099-01-01T00:00:00Z'});return route.fulfill({status:200,contentType:'application/json',body:'{"invited":true}'})})
+ await page.route('**/api/settings/members/viewer',route=>{expect(route.request().method()).toBe('DELETE');members=members.filter(member=>member.user_id!=='viewer');return route.fulfill({status:200,contentType:'application/json',body:'{"revoked":true}'})})
+ await page.goto('/settings/members')
+ await page.getByLabel('Invitation email',{exact:true}).fill('new@example.test')
+ await page.getByRole('button',{name:'Send invitation',exact:true}).click()
+ await expect(page.getByText('Invitation queued for email delivery.',{exact:true})).toBeVisible()
+ await expect(page.getByRole('cell',{name:'new@example.test',exact:true})).toBeVisible()
+ await expect(page.locator('tr').filter({hasText:'owner@example.test'}).getByRole('button')).toHaveCount(0)
+ page.once('dialog',dialog=>dialog.accept())
+ await page.getByRole('button',{name:'Revoke access',exact:true}).click()
+ await expect(page.getByRole('cell',{name:'viewer@example.test',exact:true})).toHaveCount(0)
+})
