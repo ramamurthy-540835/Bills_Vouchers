@@ -2,7 +2,6 @@
 from decimal import Decimal
 
 from app.services.gst.rules import HEADS, ZERO, rule, set_off
-from app.services.gst.validation import normalize_invoice_number
 
 
 def line_eligibility(line, profile, invoice=None):
@@ -23,7 +22,10 @@ def calculate(invoices, profile, two_b):
     non_gst = ZERO
     decisions = []
     matches = {'matched': 0, 'unmatched': 0, 'amount_mismatch': 0}
-    index = {(r['supplier_gstin'], normalize_invoice_number(r['invoice_number'])): r for r in two_b}
+    index: dict[tuple, list] = {}
+    for row in two_b:
+        key=(row['supplier_gstin'],str(row['invoice_number']).strip().upper(),str(row.get('invoice_date','')))
+        index.setdefault(key,[]).append(row)
     for inv in confirmed:
         sign = Decimal('-1') if inv.invoice_type == 'credit_note' else Decimal('1')
         if inv.direction == 'sale':
@@ -31,7 +33,8 @@ def calculate(invoices, profile, two_b):
             for h in HEADS:
                 target[h] += sign * getattr(inv.totals, h)
             continue
-        row = index.get((inv.supplier_gstin, normalize_invoice_number(inv.invoice_number)))
+        candidates=index.get((inv.supplier_gstin,inv.invoice_number.strip().upper(),str(inv.invoice_date)),[])
+        row=candidates[0] if len(candidates)==1 else None
         match = 'unmatched' if row is None else 'matched' if all(abs(Decimal(str(row.get(h, '0'))) - getattr(inv.totals, h)) <= Decimal('1') for h in ('taxable_value', *HEADS)) else 'amount_mismatch'
         matches[match] += 1
         for line in inv.line_items:
@@ -42,7 +45,7 @@ def calculate(invoices, profile, two_b):
                 amount = sign * getattr(line, h)
                 pools['recorded'][h] += amount
                 # Supplier credit notes reduce claimed credit even before matching.
-                if sign < 0 or (match == 'matched' and row is not None and row.get('itc_available', True)):
+                if sign < 0 or (match == 'matched' and row is not None and row.get('itc_available', False)):
                     pools['matched'][h] += amount
                     if bucket == 'eligible':
                         pools['eligible'][h] += amount
