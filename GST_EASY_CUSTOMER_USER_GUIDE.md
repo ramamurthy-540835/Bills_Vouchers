@@ -1,0 +1,12 @@
+# GST Easy preview guide
+
+1. Sign in with an existing authorized account. Registration asks for full name, email, country/mobile, business name, password and confirmation. Real email verification requires configured delivery. Never share passwords in support reports.
+2. Open Business onboarding from the account menu. Save progress, complete business details and manage the private logo. GSTIN format validation does not prove government registration.
+3. Owners can invite staff from Workspace access. Invitations bind to the invited verified email. Revoked memberships lose business access.
+4. Upload supported invoices in Bills. Open Review, compare the original, correct fields and save. Sum line totals adds the entered values; verify the result against the invoice. Confirm only after checks pass. Rejection requires a reason.
+5. Upload history lists durable processing jobs. Deleted bills can be restored for review; they need confirmation again. Original evidence and audit remain retained. Frozen periods reject bill changes.
+6. Returns & Credit imports the supported B2B GSTR-2B scope. Dates and explicit availability matter. Unsupported populated sections are rejected. History retains authorized original statements and version evidence.
+7. Prepare a return snapshot, then submit it for review. A different tax administrator must approve it. Reopen requires a reason. An approved working paper is not a verified government upload or proof of filing.
+8. Search and the assistant use the selected business and period. The assistant is read-only and uses limited retrieval; rely on deterministic reports and source documents for figures.
+
+The preview has incomplete release gates. Credit-ledger coverage, official exports, delivery configuration, genuine-client UAT and accountant acceptance are still required for the intended full client-ready scope.
