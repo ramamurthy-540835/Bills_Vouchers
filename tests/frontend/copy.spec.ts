@@ -1,5 +1,39 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 
+test('reconciliation reviews preserve failed edits, record history and restrict client controls',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic review workflow is local only')
+ let version=0,fail=true,canReview=true
+ await page.route('**/api/gst/returns?*',route=>route.fulfill({json:{state:'prepared',source_changed:version>0}}))
+ const row:any={id:'bill:review-one',invoice_id:'review-one',supplier_gstin:'33ABCDE1234F1Z7',invoice_number:'REVIEW-ONE',invoice_date:'2026-09-01',status:'missing_statement',statement_candidates:[]}
+ await page.route('**/api/gst/bills/reconciliation?*',route=>route.fulfill({json:{can_review:canReview,source_hash:'a'.repeat(64),confirmed_purchase_count:1,statement_count:0,counts:{missing_statement:1},cases:[{...row,review:version?{version,decision:'awaiting_supplier',reason:'Supplier correction requested.',stale:false}:null}]}}))
+ await page.route('**/api/gst/bills/reconciliation/review?*',route=>{
+  const body=route.request().postDataJSON();expect(body.case_id).toBe(row.id);expect(body.version).toBe(0);expect(body.reason).toBe('Supplier correction requested.')
+  if(fail){fail=false;return route.fulfill({status:409,json:{detail:'Source evidence changed. Refresh before reviewing.'}})}
+  version=1;return route.fulfill({json:{saved:true,version:1,financial_override:false}})
+ })
+ await page.route('**/api/gst/bills/reconciliation/history?*',route=>route.fulfill({json:{history:[{version:1,decision:'awaiting_supplier',reason:'Supplier correction requested.',actor_id:'accountant-1',created_at:'2026-10-14'}],next_before_version:null}}))
+ await page.goto('/gst/filing?period=2026-09')
+ await page.getByText('Compare evidence for REVIEW-ONE',{exact:true}).click()
+ await expect(page.getByRole('button',{name:'Save review decision'})).toBeDisabled()
+ await page.getByLabel('Review outcome').selectOption('awaiting_supplier')
+ await page.getByLabel('Review reason').fill('Supplier correction requested.')
+ await page.getByRole('button',{name:'Save review decision'}).click()
+ await expect(page.getByRole('region',{name:'Reconciliation evidence'}).getByRole('alert')).toContainText('Source evidence changed')
+ await expect(page.getByLabel('Review reason')).toHaveValue('Supplier correction requested.')
+ await page.getByRole('button',{name:'Save review decision'}).click()
+ await expect(page.getByText('Review recorded. Financial calculations are unchanged.')).toBeVisible()
+ await expect(page.getByText('Source data changed. Reopen if needed and prepare a fresh snapshot before approval.')).toBeVisible()
+ await page.getByText('Compare evidence for REVIEW-ONE',{exact:true}).click()
+ await page.getByRole('button',{name:'View review history'}).click()
+ await expect(page.getByText(/Reviewer accountant-1/)).toBeVisible()
+ await page.setViewportSize({width:390,height:844})
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+ canReview=false;await page.reload()
+ await page.getByText('Compare evidence for REVIEW-ONE',{exact:true}).click()
+ await expect(page.getByRole('button',{name:'Save review decision'})).toHaveCount(0)
+ await expect(page.getByRole('button',{name:'View review history'})).toBeVisible()
+})
+
 test('administrator sign-in is separate from client registration',async({page,context})=>{
  await context.clearCookies()
  await page.goto('/admin/login')

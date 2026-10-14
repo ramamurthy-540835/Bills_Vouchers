@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4, uuid5, NAMESPACE_URL
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Query
 from fastapi.responses import Response
 from openpyxl import Workbook
 from pydantic import ValidationError
@@ -29,6 +29,7 @@ from app.gst.validate_invoice import validate_invoice
 from app.gst.file_checks import validate_file
 from app.gst.report import calculate
 from app.gst.reconciliation import compare, FIELDS
+from app.gst import reconciliation_reviews
 from app.gst.matching import parse_gstr2b
 from app.gst.jobs import enqueue, process_job, public_job
 from app.services.tasks import verify_cloud_tasks_request
@@ -255,9 +256,24 @@ async def import_gstr2b(request: Request, period: str, repo=Depends(get_db), use
 
 @router.get('/reconciliation')
 def reconciliation(request: Request, period: str, repo=Depends(get_db), user=Depends(current_user)):
-    _, store = scope(request, repo, user)
+    client, store = scope(request, repo, user)
     period = period_value(period)
-    return clean({'period': period, **compare(store.list(period), store.matching_rows(period))})
+    return clean({'period': period, 'can_review': user.role in {'admin','tax_admin'} and not getattr(client,'is_test',False),
+                  **reconciliation_reviews.view(store, period)})
+
+
+@router.post('/reconciliation/review')
+async def record_reconciliation_review(request: Request, period: str, repo=Depends(get_db), user=Depends(current_user)):
+    client, store = scope(request, repo, user, 'bills:write')
+    if getattr(client, 'is_test', False):
+        raise HTTPException(403, 'Synthetic workspaces cannot record financial review decisions.')
+    return reconciliation_reviews.record(store, period_value(period), user, await request.json())
+
+
+@router.get('/reconciliation/history')
+def reconciliation_history(request: Request, period: str, case_id: str, before_version: int | None = Query(None,ge=1,le=2**63-1), repo=Depends(get_db), user=Depends(current_user)):
+    _, store = scope(request, repo, user)
+    return clean(reconciliation_reviews.history(store, period_value(period), case_id, before_version))
 
 
 @router.get('/gstr2b/history')
@@ -320,6 +336,11 @@ def working_papers(request: Request, period: str, repo=Depends(get_db), user=Dep
                             *[safe_cell(candidate[key]) for key in ('invoice_number', 'invoice_date', 'source_sha256')],
                             str(candidate['itc_available']),
                             *[str(candidate['amounts'][head]) if candidate['amounts'][head] is not None else '' for head in FIELDS]])
+    reviews = workbook.create_sheet('Reconciliation reviews')
+    reviews.append(['Workflow review only; not an ITC override. Revalidate against current evidence before use.'])
+    reviews.append(['Case ID', 'Version', 'Decision', 'Reason', 'Reviewer ID', 'Reviewed at', 'Evidence hash'])
+    for review in reconciliation_reviews.latest(store, period):
+        reviews.append([safe_cell(review[key]) for key in ('case_id','version','decision','reason','actor_id','created_at','source_hash')])
     output = BytesIO()
     workbook.save(output)
     return Response(output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={'Content-Disposition': f'attachment; filename="GST-Easy-CA-working-papers-{period}.xlsx"'})

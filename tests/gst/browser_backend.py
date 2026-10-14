@@ -18,6 +18,8 @@ profile={'legal_name':'Red Taxi','business_nature':'passenger_transport','gstin'
 
 
 class Store:
+    def query(self,*args):return []
+    def table(self,*args):return 'synthetic.table'
     def assert_writable(self,period):pass
     def __init__(self,repo,client_id):self.client_id=client_id
     def list(self,period=None,status=None):
@@ -43,6 +45,7 @@ class Store:
 
 
 gst_bills.BillStore=Store
+gst_bills.reconciliation_reviews.returns.fingerprint=lambda *args:'a'*64
 gst_bills.active_client=lambda *args:SimpleNamespace(id='browser-client')
 gst_bills.profile_for=lambda *args:profile
 gst_bills.can=lambda user,action,*args:action=='bills:read' or user.role!='viewer'

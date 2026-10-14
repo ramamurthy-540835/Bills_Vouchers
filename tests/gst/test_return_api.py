@@ -15,6 +15,7 @@ def api(monkeypatch,invoice,profile):
     client=SimpleNamespace(id='a',is_test=False)
     user=SimpleNamespace(id='maker',role='client')
     store=Mock();store.list.return_value=[invoice];store.matching_rows.return_value=[]
+    store.query.return_value=[]
     invoice.status='confirmed'
     monkeypatch.setattr(gst_returns,'scope',lambda *args:(client,store))
     monkeypatch.setattr(gst_returns,'profile_for',lambda *args:profile)

@@ -16,6 +16,8 @@ def api(monkeypatch,invoice,profile):
     items={invoice.invoice_id:invoice}
     deleted={}
     class Store:
+        def query(self,*args):return []
+        def table(self,*args):return 'synthetic.table'
         def assert_writable(self,period):pass
         def __init__(self,repo,client_id):self.client_id=client_id
         def list(self,*args):return [i for i in items.values() if i.client_id==self.client_id]
@@ -30,6 +32,7 @@ def api(monkeypatch,invoice,profile):
             if id not in deleted or deleted[id].client_id!=self.client_id:raise HTTPException(404)
             return deleted[id]
     monkeypatch.setattr(gst_bills,'BillStore',Store)
+    monkeypatch.setattr(gst_bills.reconciliation_reviews.returns,'fingerprint',lambda *args:'a'*64)
     monkeypatch.setattr(gst_bills,'active_client',lambda *a:SimpleNamespace(id='a'))
     monkeypatch.setattr(gst_bills,'profile_for',lambda *a:profile)
     import app.services.gst.account as account
@@ -51,6 +54,7 @@ def test_viewer_read_export_but_no_writes(api,invoice):
     assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',json={'invoice_number':'CHANGE'}).status_code==403
     assert client.delete(f'/api/gst/bills/{invoice.invoice_id}').status_code==403
     assert client.post('/api/gst/bills/upload/other-client-job/retry').status_code==403
+    assert client.post('/api/gst/bills/reconciliation/review?period=2026-09',json={}).status_code==403
 
 
 def test_reconciliation_is_scoped_and_export_retains_evidence(api, invoice):
@@ -73,6 +77,10 @@ def test_reconciliation_is_scoped_and_export_retains_evidence(api, invoice):
     assert workbook['Reconciliation evidence']['A3'].value == invoice.invoice_id
     assert workbook['Reconciliation evidence']['E3'].value == 'missing_statement'
     assert 'Statement candidates' in workbook.sheetnames
+    assert 'Reconciliation reviews' in workbook.sheetnames
+    assert not client.get('/api/gst/bills/reconciliation?period=2026-09').json()['can_review']
+    user.role='client'
+    assert client.post('/api/gst/bills/reconciliation/review?period=2026-09',json={}).status_code==403
 
 
 def test_delete_checks_version_and_removes_bill(api,invoice):

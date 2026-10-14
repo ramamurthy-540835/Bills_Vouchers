@@ -13,7 +13,7 @@ from google.oauth2.credentials import Credentials
 
 from app.gst.store import BillStore
 from app.gst.schemas.invoice import GstInvoice
-from app.gst import returns
+from app.gst import returns, reconciliation_reviews
 from deploy_v3 import gcloud
 
 
@@ -42,7 +42,7 @@ def main():
 
         def query(self,sql,params=()):
             return list(client.query(sql,location='asia-south1',job_config=bigquery.QueryJobConfig(
-                query_parameters=list(params),maximum_bytes_billed=100000000,
+                query_parameters=list(params),maximum_bytes_billed=500000000,
                 labels={'purpose':'gst-easy-bills-test'})).result(timeout=90))
 
     class Store(BillStore):
@@ -51,6 +51,7 @@ def main():
 
     repo=Repo()
     repo.query(Path('migrations/013_canonical_return_workflow.sql').read_text().replace(project+'.ops',dataset_id))
+    repo.query(Path('migrations/015_reconciliation_reviews.sql').read_text().replace(project+'.ops',dataset_id))
     repo.query(f"INSERT INTO `{dataset_id}.gst_bill_lock` VALUES ('__guard__',CURRENT_TIMESTAMP())")
     store=Store(repo,'synthetic-a')
     invoice=GstInvoice(client_id='synthetic-a',source_doc_id='synthetic-document',selected_period='2026-09',invoice_number='SYNTHETIC-1',invoice_date='2026-09-01')
@@ -123,6 +124,53 @@ def main():
     reopened=returns.change(store,'2026-09',reviewer,'reopen',approved['version'],reason='Synthetic correction test')
     assert reopened['state']=='reopened'
     store.assert_writable('2026-09')
+    previous=store.get(invoice.invoice_id)
+    restored=previous.model_copy(deep=True);restored.status='confirmed';restored.version+=1
+    store.save(restored,'synthetic-actor','confirm',previous)
+    evidence_hash=returns.fingerprint(store,'2026-09',False)
+    assert returns.fingerprint(store,'2026-09')==evidence_hash, 'Empty reviews changed old snapshot hashes'
+    body={'case_id':'bill:'+invoice.invoice_id,'source_hash':evidence_hash,'version':0,
+          'decision':'needs_correction','reason':'Synthetic supplier evidence check'}
+    reconciliation_reviews.record(store,'2026-09',reviewer,body)
+    assert returns.fingerprint(store,'2026-09',False)==evidence_hash
+    assert returns.fingerprint(store,'2026-09')!=evidence_hash
+    assert not reconciliation_reviews.view(store,'2026-09')['cases'][0]['review']['stale']
+    assert reconciliation_reviews.history(Store(repo,'synthetic-b'),'2026-09',body['case_id'])['history']==[]
+    def concurrent_review(_):
+        try:
+            reconciliation_reviews.record(store,'2026-09',reviewer,{**body,'version':1,'decision':'awaiting_supplier'})
+            return 200
+        except HTTPException as exc:
+            return exc.status_code
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        review_outcomes=list(pool.map(concurrent_review,range(2)))
+    assert sorted(review_outcomes)==[200,409],review_outcomes
+    assert len(reconciliation_reviews.history(store,'2026-09',body['case_id'])['history'])==2
+    prepared=returns.change(store,'2026-09',maker,'prepare',reopened['version'],returns.fingerprint(store,'2026-09'),{'synthetic_review_test':True})
+    reconciliation_reviews.record(store,'2026-09',reviewer,{**body,'version':2,'decision':'reviewed'})
+    try:
+        returns.change(store,'2026-09',maker,'review',prepared['version'])
+        raise AssertionError('A review edit did not invalidate a prepared return')
+    except HTTPException as exc:
+        assert exc.status_code==409
+    previous=restored
+    restored=restored.model_copy(deep=True);restored.version+=1;restored.invoice_number='SYNTHETIC-CORRECTED'
+    store.save(restored,'synthetic-actor','edit',previous)
+    assert reconciliation_reviews.view(store,'2026-09')['cases'][0]['review']['stale']
+    try:
+        reconciliation_reviews.record(store,'2026-09',reviewer,{**body,'version':3})
+        raise AssertionError('Stale review evidence accepted')
+    except HTTPException as exc:
+        assert exc.status_code==409
+    body.update(source_hash=returns.fingerprint(store,'2026-09',False),version=3)
+    prepared=returns.change(store,'2026-09',maker,'prepare',prepared['version'],returns.fingerprint(store,'2026-09'),{'synthetic_lock_test':True})
+    under_review=returns.change(store,'2026-09',maker,'review',prepared['version'])
+    try:
+        reconciliation_reviews.record(store,'2026-09',reviewer,body)
+        raise AssertionError('Locked-period review accepted')
+    except HTTPException as exc:
+        assert exc.status_code==409
+    returns.change(store,'2026-09',reviewer,'reopen',under_review['version'],reason='Synthetic lock check complete')
     repo.query(f"INSERT INTO `{dataset_id}.gst_filing_status` (client_id,period,state,is_current) VALUES ('synthetic-a','2026-09','locked',TRUE)")
     moved=restored.model_copy(deep=True)
     moved.invoice_date=moved.invoice_date.replace(month=10)
@@ -137,7 +185,9 @@ def main():
     assert store.get(invoice.invoice_id).version==restored.version
     report={'utc':datetime.now(timezone.utc).isoformat(),'dataset':dataset_id,'result':'passed',
             'checks':['canonical_save','tenant_isolation','audited_delete','deleted_reupload_blocked','concurrent_restore','restore_needs_review','durable_job_history','single_retry_claim','statement_history_duplicate_and_tenant_checks','stale_snapshot_rejected','review_approval_lock_and_reopen','frozen_period_delete_import_and_date_move_blocked'],
-            'concurrent_restore_statuses':outcomes,'table_expiry_hours':24}
+            'concurrent_restore_statuses':outcomes,'concurrent_review_statuses':review_outcomes,
+            'reconciliation_checks':['append_only_history','tenant_history_isolation','stale_evidence_denied','stale_reviews_visible','prepared_return_invalidated','period_locks','empty_review_hash_compatibility'],
+            'table_expiry_hours':24}
     target=Path('artifacts/gst_easy/canonical-integration.json')
     target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(json.dumps(report,indent=2))

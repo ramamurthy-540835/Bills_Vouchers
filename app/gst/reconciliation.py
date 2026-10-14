@@ -1,6 +1,7 @@
 """Two-sided reconciliation evidence. Never grants or overrides tax credit."""
 from collections import Counter, defaultdict
 from decimal import Decimal, InvalidOperation
+import json
 
 FIELDS = ('taxable_value', 'cgst', 'sgst', 'igst', 'cess')
 
@@ -23,6 +24,9 @@ def amounts(row):
 
 def compare(invoices, statements):
     """Keep every statement row, with date-only candidates explicitly unapproved."""
+    # BigQuery row order is unspecified. Stable ordering keeps case identifiers
+    # attached to the same statement evidence when a reader refreshes the page.
+    statements = sorted(statements, key=lambda row: json.dumps(row, sort_keys=True, default=str))
     books = [inv for inv in invoices if inv.status == 'confirmed' and not inv.sample
              and inv.direction == 'purchase']
     by_identity = defaultdict(list)

@@ -80,3 +80,9 @@ def test_empty_statement_keeps_unmatched_books(invoice):
     result = compare([invoice], [])
     assert result['statement_count'] == 0
     assert result['counts'] == {'missing_statement': 1}
+
+
+def test_statement_case_ids_do_not_depend_on_query_row_order(invoice):
+    invoice.status='confirmed'
+    rows=[statement(invoice),statement(invoice,invoice_number='ORPHAN'),statement(invoice,invoice_number='ANOTHER')]
+    assert compare([invoice],rows)==compare([invoice],list(reversed(rows)))

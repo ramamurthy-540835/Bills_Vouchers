@@ -2,10 +2,10 @@
 import {useCallback,useEffect,useState} from 'react'
 import Link from 'next/link'
 
-export default function ReturnWorkflow({period,canWrite}:{period:string,canWrite:boolean}){
+export default function ReturnWorkflow({period,canWrite,refreshKey,reviewRevision=0}:{period:string,canWrite:boolean,refreshKey?:unknown,reviewRevision?:number}){
  const [data,setData]=useState<any>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[reason,setReason]=useState('')
  const load=useCallback(async()=>{const response=await fetch(`/api/gst/returns?period=${period}`,{cache:'no-store'});if(!response.ok)throw Error('Could not load return preparation.');setData(await response.json())},[period])
- useEffect(()=>{setData(null);load().catch(e=>setError(e.message))},[load])
+ useEffect(()=>{setData(null);setError('');load().catch(e=>setError(e.message))},[load,refreshKey,reviewRevision])
  async function act(action:string){setBusy(true);setError('');try{
   const csrf=await fetch('/api/auth/csrf');const {token}=await csrf.json()
   const response=await fetch(`/api/gst/returns/${action}?period=${period}`,{method:'POST',headers:{'content-type':'application/json','x-csrf-token':token},body:JSON.stringify({version:data.version,reason})})

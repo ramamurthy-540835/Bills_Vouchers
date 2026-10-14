@@ -8,8 +8,8 @@ from google.api_core.exceptions import BadRequest, Conflict
 from app.services.gst.medallion import param
 
 
-def fingerprint_sql(store):
-    return f'''(SELECT TO_HEX(SHA256(TO_JSON_STRING(STRUCT(
+def fingerprint_sql(store, include_reviews=True):
+    base = f'''(SELECT TO_HEX(SHA256(TO_JSON_STRING(STRUCT(
         ARRAY(SELECT AS STRUCT invoice_id,version FROM {store.table('gold','gst_invoice')}
               WHERE client_id=@client_id AND period=@period ORDER BY invoice_id) AS invoices,
         ARRAY(SELECT TO_JSON_STRING(payload) FROM {store.table('silver','gst_bills_gstr2b')}
@@ -17,10 +17,16 @@ def fingerprint_sql(store):
         ARRAY(SELECT CAST(profile_id AS STRING) FROM `{store.repo.table('gst_client_profile')}`
               WHERE client_id=@client_id AND is_current=TRUE ORDER BY profile_id) AS profiles
     )))))'''
+    if not include_reviews:
+        return base
+    # Preserve pre-migration snapshot hashes where no review has been recorded.
+    reviews = f"FROM {store.table('ops','gst_reconciliation_review')} WHERE client_id=@client_id AND period=@period"
+    return f'''IF(EXISTS(SELECT 1 {reviews}),
+        TO_HEX(SHA256(CONCAT({base},TO_JSON_STRING(ARRAY(SELECT AS STRUCT case_id,version {reviews} ORDER BY case_id,version))))),{base})'''
 
 
-def fingerprint(store,period):
-    return store.query(f'SELECT {fingerprint_sql(store)} AS source_digest',[param('period',period)])[0]['source_digest']
+def fingerprint(store,period,include_reviews=True):
+    return store.query(f'SELECT {fingerprint_sql(store,include_reviews)} AS source_digest',[param('period',period)])[0]['source_digest']
 
 
 def current(store,period):

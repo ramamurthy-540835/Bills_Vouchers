@@ -6,7 +6,7 @@ from fastapi.responses import Response
 
 from app.db import get_db
 from app.routes import current_user
-from app.gst import returns
+from app.gst import returns, reconciliation_reviews
 from app.gst.report import calculate
 from app.services.gst.medallion import clean, period_value
 from app.services.gst.profiles import validate_gstin
@@ -53,6 +53,7 @@ async def change_return(action: str,request: Request,period: str,repo=Depends(ge
         payload={'draft':True,'portal_upload_ready':False,'format':'gst-easy-working-paper-v1',
                  'period':period,'gstin':profile['gstin'],'prepared_at':datetime.now(timezone.utc).isoformat(),
                  'invoices':[inv.model_dump(mode='json') for inv in confirmed],
+                 'reconciliation_reviews':clean(reconciliation_reviews.latest(store,period)),
                  'profile':clean(profile),'statement':clean(statement),'summary':clean(calculate(confirmed,profile,statement))}
     return clean(returns.change(store,period,user,action,body['version'],source_hash,payload,body.get('reason','')))
 
