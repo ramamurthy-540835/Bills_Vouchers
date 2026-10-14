@@ -19,3 +19,7 @@ Browser coverage: dashboard/navigation/empty states; CSV upload, exact duplicate
 Python interpreter: C:/Users/BIS/Stephen/GST/Bills_Vouchers/.venv/Scripts/python.exe, with PYTHONPATH set to repository .testdeps. Sandbox execution initially failed to load cryptography DLLs; approved execution outside the sandbox passed. Node: C:/Users/BIS/Stephen/ITR/income-tax/.tools/node-v22.22.0-win-x64/node.exe. Browser: installed Chrome. Local test API: tests.gst.browser_backend on 8103; frontend on 3100 with BACKEND_URL pointing to that API. Do not deploy the synthetic test backend.
 
 No newly implemented verification, recovery, OTP or migration is included in these baseline results.
+
+## Follow-up validation
+
+The initial 11 type errors were corrected. Checking again with .testdeps on PYTHONPATH exposed two additional pre-existing Gemini heterogeneous-input inference errors in app/gst/extract.py and app/services/gemini.py. Explicit SDK ContentListUnion annotations fix those without altering the request payload. Fresh mypy with this dependency path passes for all 61 source files; the extraction regression and Ruff pass. See GST_EASY_PHASE_01_REPORT.md for subsequent account tests and outstanding acceptance requirements.
