@@ -23,6 +23,14 @@ const url='https://gst-easy---bills-voucher-web-foovqasysa-el.a.run.app'
    await input.fill('')
    await page.screenshot({path:path.join(__dirname,`../artifacts/gst_easy/preview-register-${name}.png`),fullPage:true})
    checks.push({viewport:name,width,registration_fields:true,password_visibility:true,no_horizontal_overflow:true})
+   await page.goto(url+'/admin/login',{waitUntil:'domcontentloaded'})
+   await page.getByRole('heading',{name:'Administrator sign-in'}).waitFor()
+   await page.getByLabel('Email',{exact:true}).waitFor()
+   if(await page.getByRole('link',{name:'Create an account'}).count())throw Error('Admin page exposes public registration')
+   await page.getByRole('link',{name:'Client sign-in'}).click()
+   await page.getByRole('heading',{name:'Welcome back'}).waitFor()
+   if(!await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))throw Error('Login horizontal overflow at '+width)
+   checks.push({viewport:name,separate_admin_sign_in:true,client_link:true,no_horizontal_overflow:true})
    await page.close()
   }
  }finally{await browser.close()}

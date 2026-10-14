@@ -89,3 +89,24 @@ def test_workspace_admin_mapping_cannot_grant_platform_access():
     assert workspace_role('admin') == workspace_role('owner') == 'client'
     assert workspace_role(None) == 'viewer'
     assert workspace_role('accountant') == 'tax_admin'
+
+
+@pytest.mark.parametrize('membership,expected', [('admin','client'), ('viewer','viewer'), (None,'viewer')])
+def test_missing_workspace_role_uses_membership_not_identity_privileges(monkeypatch, membership, expected):
+    from starlette.requests import Request
+    monkeypatch.setenv('MEDALLION_ENABLED', 'true')
+    monkeypatch.setenv('REQUIRE_OTP', 'false')
+    get_settings.cache_clear()
+    user = SimpleNamespace(id='legacy', role='admin', email='legacy@example.test', session_version=0)
+    owned = SimpleNamespace(id='owned')
+    monkeypatch.setattr(routes, 'FinanceRepository', lambda _: SimpleNamespace(
+        user_by_id=lambda uid:user, clients=lambda uid:[owned]))
+    repo = SimpleNamespace(table=lambda name:'test.'+name,
+        one=lambda sql, params: None if 'client_user_role' in sql or membership is None else SimpleNamespace(role=membership))
+    request = Request({'type':'http','method':'GET','path':'/api/auth/me','headers':[],
+                       'query_string':b'','session':{'user_id':'legacy','client_id':'not-authorized'},
+                       'server':('test',80),'scheme':'http'})
+    resolved = routes.current_user(request, repo)
+    assert resolved.role == expected and resolved.is_platform_admin is False
+    assert request.session['client_id'] == 'owned'
+    get_settings.cache_clear()

@@ -4,7 +4,17 @@ Frontend: https://gst-easy---bills-voucher-web-foovqasysa-el.a.run.app
 
 API: https://gst-easy---bills-voucher-foovqasysa-el.a.run.app
 
-Current deployed application source: `13565e6996da5b3d243cc11085fff2f43f0360e0` on `GST_EASY`. The reconciliation update is live. Earlier deployment details below remain historical evidence.
+Current deployed application source: `d43b3523429c4a32bd501d2af0becc5a8c4c7629` on `GST_EASY`. Client/platform administration separation is live. Earlier deployment details below remain historical evidence.
+
+## Access separation update — 14 October, 13:25 UTC
+
+- API build `f2fc368a-a212-40c1-a71e-654ef806ccec`, revision `bills-voucher-00118-tad`, image SHA256 `99a6fa083544fbdcff99ede5632774f85869a1950171741596f8b51f3ce96a06`.
+- Web build `9120bc71-d0f5-4a92-b193-e10d590ba8ca`, revision `bills-voucher-web-00055-ceh`, image SHA256 `3f1201ca1a4036997f73e638c6956739c7cbff719999a2841b78587d337a6fa6`.
+- Successful immutable builds deployed only to `gst-easy`; production percentages and every other tag remained unchanged. SMTP/signing secrets retained. `PLATFORM_ADMIN_EMAILS=ai@aidirac.com` is configured.
+- Migration 014 and audited account assignment completed: migration job `8b69cf10-1d74-4303-b7a3-89b8882df35b`, assignment job `f8677d9f-45d9-4989-9870-d2b96da7163e`. The client identity role was verified as `client` afterward. The administrator grant is separate from legacy identity roles. Both accounts' previous sessions were revoked. Identity-table changes apply across deployments sharing that database, although production traffic was not moved. Passwords, verification, memberships and business records were preserved.
+- 254 backend tests passed, followed by 25 focused final checks and 10 access tests (including three additional missing-workspace-role cases). Ruff/mypy and the Next build passed. Twelve local browser journeys passed. Live desktop/mobile public browser checks passed; admin login rejected synthetic invalid credentials with 401, and normal registration reached validation rather than a configuration error. No real login credential was used or account/email created by these smoke checks.
+- Existing monitoring dashboard refreshed to the new revisions. `GST_EASY_ACCESS_SEPARATION.md` records implementation, changed files and policy. Actual administrator mailbox verification is still pending; no verified state was fabricated.
+- Prior revisions are API `bills-voucher-00117-ner` and web `bills-voucher-web-00054-mel`. Rolling application code back reintroduces legacy role inheritance; prefer disabling the admin allowlist/grant while preserving the client restriction. Never restore the client's global admin role, erase audit history or reinstate revoked sessions automatically.
 
 ## Reconciliation preview update — 14 October, 12:59 UTC
 

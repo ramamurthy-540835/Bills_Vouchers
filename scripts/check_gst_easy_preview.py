@@ -11,7 +11,7 @@ from deploy_gst_easy import WEB,API
 def main():
     results=[]
     with httpx.Client(timeout=60,follow_redirects=False) as client:
-        for path in ('/login','/register','/forgot-password','/reset-password'):
+        for path in ('/login','/admin/login','/register','/forgot-password','/reset-password'):
             response=client.get(WEB+path)
             assert response.status_code==200,(path,response.status_code)
             results.append({'path':path,'status':response.status_code})
@@ -21,6 +21,9 @@ def main():
         response=client.get(API+'/readyz')
         assert response.status_code==200,('readiness',response.status_code)
         results.append({'path':'readyz','status':response.status_code})
+        response=client.post(WEB+'/api/auth/admin/login',json={'email':'preview-probe@example.invalid','password':'invalid-probe'},headers={'Origin':WEB})
+        assert response.status_code==401,('admin/login',response.status_code)
+        results.append({'path':'admin/login','status':response.status_code,'invalid_credentials_denied':True})
         for path in ('/api/gst/bills?period=2026-09','/api/gst/bills/reconciliation?period=2026-09','/api/gst/returns?period=2026-09','/api/settings/members'):
             response=client.get(API+path)
             assert response.status_code in (401,403),(path,response.status_code)
