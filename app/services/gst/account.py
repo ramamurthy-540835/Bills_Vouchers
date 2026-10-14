@@ -224,8 +224,14 @@ async def save_profile(request: Request, repo=Depends(get_db), user=Depends(curr
     if 'gstin' in changes:
         replacements.append('FALSE AS gstin_verified')
     from google.api_core.exceptions import BadRequest, Conflict
+    canonical_guard = ''
+    if get_settings().gst_bills_enabled:
+        from app.gst.store import BillStore
+        guard = BillStore(repo,client.id).table('ops','gst_bill_lock')
+        canonical_guard = f"UPDATE {guard} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__'; ASSERT @@row_count=1 AS 'Storage guard missing';"
     try:
         repo.query(f"""BEGIN TRANSACTION;
+          {canonical_guard}
           ASSERT (SELECT COUNT(*) FROM `{repo.table('gst_client_profile')}` WHERE client_id=@client_id AND profile_id=@previous AND is_current=TRUE)=1 AS 'Profile changed; reload';
           INSERT INTO `{repo.table('gst_client_profile')}` SELECT * REPLACE ({','.join(replacements)}) FROM `{repo.table('gst_client_profile')}` WHERE client_id=@client_id AND profile_id=@previous AND is_current=TRUE;
           UPDATE `{repo.table('gst_client_profile')}` SET is_current=FALSE,effective_to=CURRENT_TIMESTAMP() WHERE client_id=@client_id AND profile_id=@previous AND is_current=TRUE;

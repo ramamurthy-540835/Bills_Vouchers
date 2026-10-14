@@ -210,3 +210,17 @@ test('statement history exposes scoped evidence and import validation errors',as
  await page.getByLabel('Import GSTR-2B',{exact:true}).setInputFiles({name:'statement.json',mimeType:'application/json',buffer:Buffer.from('{}')})
  await expect(page.getByText('Unsupported statement section.',{exact:true})).toBeVisible()
 })
+
+test('return workflow submits a snapshot and requires a distinct reviewer',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic return workflow only')
+ let state:any={state:'draft',version:0,user_id:'maker',can_review:true,is_test:false}
+ await page.route('**/api/gst/returns?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(state)}))
+ await page.route('**/api/gst/returns/prepare?*',route=>{expect(route.request().postDataJSON().version).toBe(0);state={...state,state:'prepared',version:1,maker_id:'maker'};return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(state)})})
+ await page.route('**/api/gst/returns/review?*',route=>{expect(route.request().postDataJSON().version).toBe(1);state={...state,state:'under_review',version:2};return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(state)})})
+ await page.goto('/gst/filing?period=2026-09')
+ await page.getByRole('button',{name:'Prepare snapshot',exact:true}).click()
+ await page.getByRole('button',{name:'Submit for review',exact:true}).click()
+ await expect(page.getByText('Status: under review',{exact:true})).toBeVisible()
+ await expect(page.getByRole('button',{name:'Approve snapshot',exact:true})).toHaveCount(0)
+ await expect(page.getByRole('button',{name:'Reopen period',exact:true})).toBeDisabled()
+})

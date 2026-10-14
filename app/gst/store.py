@@ -59,7 +59,10 @@ class BillStore:
     def writable_sql(self):
         return f"""ASSERT NOT EXISTS(SELECT 1 FROM `{self.repo.table('gst_filing_status')}`
             WHERE client_id=@client_id AND period IN (@period,@previous_period) AND is_current=TRUE
-            AND state NOT IN ('draft','reopened')) AS 'Filing period frozen';"""
+            AND state NOT IN ('draft','reopened')) AS 'Filing period frozen';
+            ASSERT NOT EXISTS(SELECT 1 FROM {self.table('ops','gst_return_current')}
+            WHERE client_id=@client_id AND period IN (@period,@previous_period)
+            AND state IN ('under_review','approved','exported','filed')) AS 'Filing period frozen';"""
 
     def assert_writable(self, period):
         try:

@@ -13,6 +13,7 @@ from google.oauth2.credentials import Credentials
 
 from app.gst.store import BillStore
 from app.gst.schemas.invoice import GstInvoice
+from app.gst import returns
 from deploy_v3 import gcloud
 
 
@@ -29,7 +30,7 @@ def main():
     dataset.labels={'purpose':'gst-easy-bills-integration','synthetic':'true'}
     client.create_dataset(dataset)
     print('Isolated synthetic dataset: '+dataset_id,flush=True)
-    for source,name in [('gold','gst_invoice'),('silver','gst_invoice_line'),('silver','gst_bills_gstr2b'),('ops','gst_bill_audit'),('ops','gst_bill_lock'),('ops','gst_bill_job'),('finance_analytics','gst_filing_status')]:
+    for source,name in [('gold','gst_invoice'),('silver','gst_invoice_line'),('silver','gst_bills_gstr2b'),('ops','gst_bill_audit'),('ops','gst_bill_lock'),('ops','gst_bill_job'),('finance_analytics','gst_filing_status'),('finance_analytics','gst_client_profile')]:
         original=client.get_table(f'{project}.{source}.{name}')
         client.create_table(bigquery.Table(dataset_id+'.'+name,schema=original.schema))
 
@@ -49,6 +50,7 @@ def main():
             return f'`{dataset_id}.{name}`'
 
     repo=Repo()
+    repo.query(Path('migrations/013_canonical_return_workflow.sql').read_text().replace(project+'.ops',dataset_id))
     repo.query(f"INSERT INTO `{dataset_id}.gst_bill_lock` VALUES ('__guard__',CURRENT_TIMESTAMP())")
     store=Store(repo,'synthetic-a')
     invoice=GstInvoice(client_id='synthetic-a',source_doc_id='synthetic-document',selected_period='2026-09',invoice_number='SYNTHETIC-1',invoice_date='2026-09-01')
@@ -99,6 +101,28 @@ def main():
         raise AssertionError('Duplicate retry accepted')
     except HTTPException as exc:
         assert exc.status_code==409
+    maker=SimpleNamespace(id='maker',role='client');reviewer=SimpleNamespace(id='reviewer',role='tax_admin')
+    prepared=returns.change(store,'2026-09',maker,'prepare',0,returns.fingerprint(store,'2026-09'),{'synthetic_sql_test':True})
+    changed=restored.model_copy(deep=True);changed.version+=1
+    store.save(changed,'synthetic-actor','edit',restored)
+    try:
+        returns.change(store,'2026-09',maker,'review',prepared['version'])
+        raise AssertionError('Stale snapshot accepted')
+    except HTTPException as exc:
+        assert exc.status_code==409
+    restored=changed
+    prepared=returns.change(store,'2026-09',maker,'prepare',prepared['version'],returns.fingerprint(store,'2026-09'),{'synthetic_sql_test':True})
+    review=returns.change(store,'2026-09',maker,'review',prepared['version'])
+    approved=returns.change(store,'2026-09',reviewer,'approve',review['version'],reason='Synthetic workflow check only')
+    try:
+        store.delete(restored,'synthetic-actor')
+        raise AssertionError('Approved snapshot did not lock invoices')
+    except HTTPException as exc:
+        assert exc.status_code==409
+    assert returns.snapshot(store,'2026-09',approved)=={'synthetic_sql_test':True}
+    reopened=returns.change(store,'2026-09',reviewer,'reopen',approved['version'],reason='Synthetic correction test')
+    assert reopened['state']=='reopened'
+    store.assert_writable('2026-09')
     repo.query(f"INSERT INTO `{dataset_id}.gst_filing_status` (client_id,period,state,is_current) VALUES ('synthetic-a','2026-09','locked',TRUE)")
     moved=restored.model_copy(deep=True)
     moved.invoice_date=moved.invoice_date.replace(month=10)
@@ -112,7 +136,7 @@ def main():
             assert exc.status_code==409
     assert store.get(invoice.invoice_id).version==restored.version
     report={'utc':datetime.now(timezone.utc).isoformat(),'dataset':dataset_id,'result':'passed',
-            'checks':['canonical_save','tenant_isolation','audited_delete','deleted_reupload_blocked','concurrent_restore','restore_needs_review','durable_job_history','single_retry_claim','statement_history_duplicate_and_tenant_checks','frozen_period_delete_import_and_date_move_blocked'],
+            'checks':['canonical_save','tenant_isolation','audited_delete','deleted_reupload_blocked','concurrent_restore','restore_needs_review','durable_job_history','single_retry_claim','statement_history_duplicate_and_tenant_checks','stale_snapshot_rejected','review_approval_lock_and_reopen','frozen_period_delete_import_and_date_move_blocked'],
             'concurrent_restore_statuses':outcomes,'table_expiry_hours':24}
     target=Path('artifacts/gst_easy/canonical-integration.json')
     target.parent.mkdir(parents=True,exist_ok=True)

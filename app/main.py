@@ -116,6 +116,8 @@ def create_app():
     app.include_router(account_router)
     from .routers.gst_bills import router as bills_router
     app.include_router(bills_router)
+    from .routers.gst_returns import router as returns_router
+    app.include_router(returns_router)
 
     @app.on_event("startup")
     def startup():
