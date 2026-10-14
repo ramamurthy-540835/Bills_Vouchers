@@ -14,6 +14,7 @@ AUDIENCE='https://bills-voucher-foovqasysa-el.a.run.app'
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--api-build',required=True);parser.add_argument('--web-build',required=True)
+    parser.add_argument('--platform-admin-email')
     args=parser.parse_args()
     images={}
     for kind,build_id in [('api',args.api_build),('web',args.web_build)]:
@@ -46,6 +47,9 @@ def main():
             'GST_BILLS_WORKER_URL':API,'GST_BILLS_WORKER_AUDIENCE':AUDIENCE,'GST_BILLS_WORKER_ACCOUNT':account,
             'AUTH_MAIL_QUEUE':f'projects/{PROJECT}/locations/{REGION}/queues/gst-easy-auth',
             'AUTH_WORKER_URL':API,'AUTH_WORKER_AUDIENCE':AUDIENCE,'AUTH_WORKER_ACCOUNT':account,'RELEASE_REVISION':revision}
+    if args.platform_admin_email:
+        from email_validator import validate_email
+        values['PLATFORM_ADMIN_EMAILS']=validate_email(args.platform_admin_email,check_deliverability=False).normalized.lower()
     common=['--project',PROJECT,'--region',REGION,'--no-traffic','--tag',TAG,'--quiet']
     gcloud('run','deploy','bills-voucher','--image',images['api'],'--update-env-vars','^~^'+'~'.join(k+'='+v for k,v in values.items()),
            '--remove-secrets','RED_TAXI_CLIENT_BOOTSTRAP','--timeout','1800','--memory','1Gi','--concurrency','4',*common)

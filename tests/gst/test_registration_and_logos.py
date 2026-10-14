@@ -17,13 +17,14 @@ def test_registration_creates_only_own_membership(profile):
     repo=Mock(settings=SimpleNamespace(gcp_project_id='test-project'))
     repo.table.side_effect=lambda name:'test-project.finance.'+name
     body=dict(email=' New@Example.com ',full_name='New User',business_name='New Business',gstin=profile['gstin'],password='StrongPassword123',confirm='StrongPassword123',country_code='+91',mobile_number='9876543210')
-    result=register(repo,body)
+    result=register(repo,{**body,'role':'admin','access_role':'admin','is_platform_admin':True})
     sql,params=repo.query.call_args.args
     values={p.name:p.value for p in params}
     assert values['email']=='new@example.com'
     assert result['client_id']==values['cid'] and result['id']==values['uid']
     assert "VALUES (@mid,@cid,@uid,'owner'" in sql
     assert "'admin'" not in sql and 'COMMIT TRANSACTION' in sql
+    assert 'platform_admin_grants' not in sql
     assert values['password']!=body['password']
     assert 'LOWER(email)=@email' in sql
 

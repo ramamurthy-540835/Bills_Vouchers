@@ -21,7 +21,9 @@ def test_real_auth_allows_customer_upload_while_legacy_sample_is_read_only(monke
         with pytest.raises(HTTPException) as exc:routes.current_user(request('/api/gst/bills/upload'),repo)
         assert exc.value.status_code==expected
     else:
-        assert routes.current_user(request('/api/gst/bills/upload'),repo).role==role
+        resolved=routes.current_user(request('/api/gst/bills/upload'),repo)
+        assert resolved.role==('client' if role=='admin' else role)
+        assert resolved.is_platform_admin is False
         with pytest.raises(HTTPException):routes.current_user(request('/api/pipeline/upload'),repo)
     get_settings.cache_clear()
 

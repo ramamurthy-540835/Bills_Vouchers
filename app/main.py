@@ -51,7 +51,7 @@ def create_app():
                     },
                     status_code=403,
                 )
-            if request.url.path not in {"/login", "/signup", "/api/auth/login", "/api/auth/register", "/api/auth/request-link", "/api/auth/verify-email", "/api/auth/reset-password", "/api/auth/csrf", "/internal/auth/mail", "/internal/auth/mail/repair", "/internal/pipeline/document", "/internal/tasks/scan", "/api/gst/bills/internal/process"}:
+            if request.url.path not in {"/login", "/signup", "/api/auth/login", "/api/auth/admin/login", "/api/auth/register", "/api/auth/request-link", "/api/auth/verify-email", "/api/auth/reset-password", "/api/auth/csrf", "/internal/auth/mail", "/internal/auth/mail/repair", "/internal/pipeline/document", "/internal/tasks/scan", "/api/gst/bills/internal/process"}:
                 expected = request.cookies.get("csrf_token")
                 supplied = request.headers.get("x-csrf-token")
                 if not supplied:
@@ -122,6 +122,8 @@ def create_app():
     @app.on_event("startup")
     def startup():
         if s.bootstrap_admin_password:
+            if not s.bootstrap_admin_email:
+                raise RuntimeError('Set an explicit bootstrap email before provisioning a legacy identity.')
             FinanceRepository(get_repository()).ensure_admin(
                 hash_password(s.bootstrap_admin_password), s.bootstrap_admin_email
             )

@@ -8,8 +8,9 @@ class Settings(BaseSettings):
     app_secret_key: str = "development-only-change-me"
     allowed_origins: str = ""
     max_upload_mb: int = 15
-    bootstrap_admin_email: str = "stephenraj040899@gmail.com"
+    bootstrap_admin_email: str = ""
     bootstrap_admin_password: str = ""
+    platform_admin_emails: str = ""
     red_taxi_client_bootstrap: str = ""
     demo_fallback: bool = False
     gst_bills_enabled: bool = False

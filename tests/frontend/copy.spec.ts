@@ -1,5 +1,20 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 
+test('administrator sign-in is separate from client registration',async({page,context})=>{
+ await context.clearCookies()
+ await page.goto('/admin/login')
+ await expect(page.getByRole('heading',{name:'Administrator sign-in'})).toBeVisible()
+ await expect(page.getByRole('link',{name:'Create an account'})).toHaveCount(0)
+ await page.route('**/api/auth/admin/login',route=>route.fulfill({status:403,json:{detail:'This account is not provisioned for platform administration.'}}))
+ await page.getByLabel('Email',{exact:true}).fill('client@example.test')
+ await page.getByLabel('Password',{exact:true}).fill('SyntheticPassword123')
+ await page.getByRole('button',{name:'Sign in',exact:true}).click()
+ await expect(page.getByText('This account is not provisioned for platform administration.')).toBeVisible()
+ await page.getByRole('link',{name:'Client sign-in'}).click()
+ await expect(page.getByRole('heading',{name:'Welcome back'})).toBeVisible()
+ await expect(page.getByRole('link',{name:'Create an account'})).toBeVisible()
+})
+
 test('reconciliation filters, evidence, retry and mobile layout',async({page})=>{
  test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic reconciliation evidence is local only')
  let fail=true

@@ -1,0 +1,19 @@
+# Client and platform administrator separation
+
+The reported account `stephenraj040899@gmail.com` was an existing legacy identity with `users.role=admin`, a demo-workspace admin membership, and no current workspace role row. It was not created by self-service registration. The prior fallback inherited that global role.
+
+Ordinary `/login` and `/api/auth/login` now establish client-mode sessions. Legacy workspace `admin` memberships map to client business access; missing workspace roles fall back to an explicit membership, not an identity's admin privileges. Existing cookies without an explicit admin mode do not grant platform administration. Tenant membership checks remain mandatory.
+
+Platform sign-in is separately available at `/admin/login` and `/api/auth/admin/login`. It requires all of: configured `PLATFORM_ADMIN_EMAILS`, an active user-ID-bound grant in `platform_admin_grants`, an active identity, verified email, and the normal password check. The grant is rechecked for each admin request and revocation clears the session. Public registration cannot create these grants, regardless of submitted role fields. Client sign-in does not accept an admin mode supplied in the request body. Legacy administrative endpoints explicitly require platform-admin authorization.
+
+Approved identities: `ai@aidirac.com` for administration, `stephenraj040899@gmail.com` for client use. Provisioning preserves passwords, email verification and business memberships, and revokes prior sessions. The administrator's email currently has no recorded verification; admin login remains blocked until the real email-verification flow succeeds. No OTP, password or email confirmation was fabricated. The admin's existing legacy identity role is preserved; the new grant is independent and does not elevate the identity in old deployments.
+
+Migration `014_platform_admin_grants.sql` is additive. `scripts/provision_platform_access.py` requires two existing distinct active identities and applies the approved assignment under the identity transaction guard with audit events. It changes the client's legacy identity role to client, inserts the administrator grant, and advances session versions. It does not change invoices, passwords, profiles or memberships. An initial transaction exceeded the 100 MB script budget and rolled back; the retry uses a bounded 500 MB budget. Job evidence is saved under `artifacts/gst_easy/platform-access.json` after success.
+
+Changed implementation: `app/services/access.py`, `app/routes.py`, `app/config.py`, `app/main.py`, shared frontend login form and dedicated admin sign-in page. Deployment accepts an explicit administrator-email configuration argument. The personal default bootstrap email and username alias were removed. Bootstrap remains disabled in preview.
+
+Validation: 254 backend tests passed; final bootstrap/registration/security adjustments passed 25 focused tests. Ruff and mypy (70 files) passed. Next production build passed with the new admin route. Twelve browser journeys passed, including separate admin sign-in denial and the client registration link. Admin grant and login provider responses in browser/unit tests are synthetic; genuine mailbox verification remains pending.
+
+Release: deploy to `gst-easy` preview only with migration applied and `--platform-admin-email ai@aidirac.com`. Preserve SMTP/signing-secret references, production traffic and other tags. Final build/revision evidence is recorded in the deployment report.
+
+Rollback: prefer disabling the admin allowlist/revoking the grant while retaining the client restriction. Restoring older application code reintroduces legacy role inheritance, so review that risk before rollback. Do not restore the client's identity admin role automatically, undo verification, drop the grant/audit tables or delete business records. Old sessions were invalidated and must not be reinstated.
