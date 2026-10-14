@@ -19,6 +19,7 @@ def api(monkeypatch,invoice,profile):
         def assert_writable(self,period):pass
         def __init__(self,repo,client_id):self.client_id=client_id
         def list(self,*args):return [i for i in items.values() if i.client_id==self.client_id]
+        def matching_rows(self,period):return []
         def get(self,id):
             inv=items.get(id)
             if not inv or inv.client_id!=self.client_id:raise HTTPException(404,'Bill not found.')
@@ -50,6 +51,28 @@ def test_viewer_read_export_but_no_writes(api,invoice):
     assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',json={'invoice_number':'CHANGE'}).status_code==403
     assert client.delete(f'/api/gst/bills/{invoice.invoice_id}').status_code==403
     assert client.post('/api/gst/bills/upload/other-client-job/retry').status_code==403
+
+
+def test_reconciliation_is_scoped_and_export_retains_evidence(api, invoice):
+    from io import BytesIO
+    from openpyxl import load_workbook
+    client, user, items = api
+    invoice.status = 'confirmed'
+    other = invoice.model_copy(deep=True)
+    other.invoice_id = 'private-other-client'
+    other.client_id = 'b'
+    items[other.invoice_id] = other
+    response = client.get('/api/gst/bills/reconciliation?period=2026-09')
+    assert response.status_code == 200
+    assert response.json()['counts'] == {'missing_statement': 1}
+    assert other.invoice_id not in response.text
+    assert client.get('/api/gst/bills/reconciliation?period=bad').status_code == 422
+    response = client.get('/api/gst/bills/working-papers?period=2026-09')
+    assert response.status_code == 200
+    workbook = load_workbook(BytesIO(response.content))
+    assert workbook['Reconciliation evidence']['A3'].value == invoice.invoice_id
+    assert workbook['Reconciliation evidence']['E3'].value == 'missing_statement'
+    assert 'Statement candidates' in workbook.sheetnames
 
 
 def test_delete_checks_version_and_removes_bill(api,invoice):

@@ -1,5 +1,26 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 
+test('reconciliation filters, evidence, retry and mobile layout',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic reconciliation evidence is local only')
+ let fail=true
+ await page.route('**/api/gst/bills/reconciliation?*',route=>route.fulfill({status:fail?503:200,json:fail?{detail:'unavailable'}:{confirmed_purchase_count:1,statement_count:2,counts:{date_mismatch:1,missing_book:1},cases:[
+  {id:'bill:one',invoice_id:'one',supplier_gstin:'33ABCDE1234F1Z7',invoice_number:'CHECK-1',invoice_date:'2026-09-01',status:'date_mismatch',book_amounts:{cgst:'90.00'},statement_amounts:{cgst:'89.00'},differences:{cgst:'1.00'},statement_candidates:[{position:0,invoice_number:'CHECK-1',invoice_date:'2026-09-02',itc_available:true,source_sha256:'a'.repeat(64),amounts:{cgst:'89.00'}}]},
+  {id:'statement:1',invoice_id:null,supplier_gstin:'33ABCDE1234F1Z7',invoice_number:'ONLY-STATEMENT',invoice_date:'2026-09-03',status:'missing_book',statement_candidates:[]}
+ ]}}))
+ await page.goto('/gst/filing?period=2026-09')
+ await expect(page.getByText('Could not load reconciliation evidence.')).toBeVisible()
+ fail=false
+ await page.getByRole('button',{name:'Retry reconciliation'}).click()
+ await expect(page.getByText('ONLY-STATEMENT',{exact:true})).toBeVisible()
+ await page.getByLabel('Show reconciliation cases').selectOption('date_mismatch')
+ await expect(page.getByText('ONLY-STATEMENT',{exact:true})).toHaveCount(0)
+ await page.getByText('Compare evidence for CHECK-1',{exact:true}).click()
+ await expect(page.getByRole('link',{name:'Download source statement'})).toHaveAttribute('href',/gstr2b\/a{64}\/original\?period=2026-09/)
+ await expect(page.getByRole('link',{name:'CHECK-1',exact:true})).toHaveAttribute('href','/bills?period=2026-09&invoice=one')
+ await page.setViewportSize({width:390,height:844})
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+})
+
 test.beforeEach(async({context,request,baseURL})=>{
  if(process.env.BV_TEST_URL){
   const result=await request.post('/api/auth/login',{data:{email:process.env.BV_TEST_EMAIL,password:process.env.BV_TEST_PASSWORD}})

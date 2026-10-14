@@ -28,6 +28,7 @@ from app.gst.template import template_bytes
 from app.gst.validate_invoice import validate_invoice
 from app.gst.file_checks import validate_file
 from app.gst.report import calculate
+from app.gst.reconciliation import compare, FIELDS
 from app.gst.matching import parse_gstr2b
 from app.gst.jobs import enqueue, process_job, public_job
 from app.services.tasks import verify_cloud_tasks_request
@@ -252,6 +253,13 @@ async def import_gstr2b(request: Request, period: str, repo=Depends(get_db), use
     return {'imported': len(records)}
 
 
+@router.get('/reconciliation')
+def reconciliation(request: Request, period: str, repo=Depends(get_db), user=Depends(current_user)):
+    _, store = scope(request, repo, user)
+    period = period_value(period)
+    return clean({'period': period, **compare(store.list(period), store.matching_rows(period))})
+
+
 @router.get('/gstr2b/history')
 def statement_history(request: Request,period: str,repo=Depends(get_db),user=Depends(current_user)):
     _,store=scope(request,repo,user)
@@ -276,7 +284,8 @@ def working_papers(request: Request, period: str, repo=Depends(get_db), user=Dep
     invoices = store.list(period)
     if any(i.sample for i in invoices):
         raise HTTPException(403, {'code': 'sample_data_blocked', 'message': 'Illustrations cannot be exported.'})
-    report = calculate(invoices, profile_for(repo, client.id, period), store.matching_rows(period))
+    statement = store.matching_rows(period)
+    report = calculate(invoices, profile_for(repo, client.id, period), statement)
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = 'GST Easy summary'
@@ -293,6 +302,24 @@ def working_papers(request: Request, period: str, repo=Depends(get_db), user=Dep
     decisions.append(['Invoice', 'Supplier', 'Description', 'Matching', 'Eligibility', 'Rule', 'GST'])
     for row in report['decisions']:
         decisions.append([safe_cell(row[k]) for k in ('invoice_number', 'supplier_name', 'description', 'matching', 'eligibility', 'rule', 'tax')])
+    reconciliation_sheet = workbook.create_sheet('Reconciliation evidence')
+    reconciliation_sheet.append(['Comparison only; no manual credit approval. Differences = books minus statement.'])
+    reconciliation_sheet.append(['Invoice ID', 'Supplier GSTIN', 'Invoice', 'Book date', 'Status',
+                                 'Candidate count', *['Difference ' + head for head in FIELDS]])
+    comparison = compare(invoices, statement)
+    for case in comparison['cases']:
+        reconciliation_sheet.append([safe_cell(case[key]) for key in
+                                     ('invoice_id', 'supplier_gstin', 'invoice_number', 'invoice_date', 'status')]
+                                    + [len(case['statement_candidates'])]
+                                    + [str(case['differences'][head]) if case['differences'] and case['differences'][head] is not None else '' for head in FIELDS])
+    sources = workbook.create_sheet('Statement candidates')
+    sources.append(['Case ID', 'Statement row', 'Invoice', 'Date', 'Source SHA256', 'ITC available', *FIELDS])
+    for case in comparison['cases']:
+        for candidate in case['statement_candidates']:
+            sources.append([safe_cell(case['id']), candidate['position'],
+                            *[safe_cell(candidate[key]) for key in ('invoice_number', 'invoice_date', 'source_sha256')],
+                            str(candidate['itc_available']),
+                            *[str(candidate['amounts'][head]) if candidate['amounts'][head] is not None else '' for head in FIELDS]])
     output = BytesIO()
     workbook.save(output)
     return Response(output.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={'Content-Disposition': f'attachment; filename="GST-Easy-CA-working-papers-{period}.xlsx"'})

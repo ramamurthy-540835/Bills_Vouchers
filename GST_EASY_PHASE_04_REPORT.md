@@ -28,4 +28,14 @@ Rollback by reverting this isolated code changeset and deploying an approved pri
 
 ## Remaining work
 
+### Two-sided reconciliation follow-up
+
+Implemented `app/gst/reconciliation.py`, the scoped GET `/api/gst/bills/reconciliation?period=YYYY-MM`, and `frontend/app/reconciliation-panel.tsx`. The Returns & Credit screen now filters exact matches, per-head rounding differences, date mismatches, amount mismatches, ambiguous candidates, missing statement/book records, incomplete evidence and unsupported document types. Every candidate remains visible; date-only/duplicate candidates are never automatically approved. Bill links open the individual review drawer; statement links use the existing authorized original-download endpoint. Private object references are excluded.
+
+Working-paper XLSX exports include reconciliation cases and statement candidates with per-head Decimal differences, source hashes and invoice identifiers. No calculation rule, tax credit, financial record or database schema changes. Comparison is read-only; authorized manual exception decisions and credit-ledger work remain outstanding. Existing four cash scenarios are unchanged.
+
+Validation: 247 backend tests passed, Ruff and mypy (69 files) passed, production frontend build passed, and 11 browser tests passed. Browser coverage includes filter/retry/evidence links and 390px layout; reconciliation browser responses are synthetic. A mobile select overflow discovered by the test was corrected. The initial sandbox test run could not load cryptography DLLs; the permitted full run passed. No genuine financial acceptance is implied.
+
+Deployment: pending isolated preview build at the time of this changeset; final revision/build evidence will be recorded in `GST_EASY_DEPLOYMENT_REPORT.md`. Rollback uses the previous API/frontend immutable images and only the `gst-easy` tags. No data migration or destructive rollback is required; retain SMTP and signing-secret bindings.
+
 Accountant-approved examples and current official schema/validator verification; supported amendments and credit/debit-note imports; live source-storage validation and semantic duplicate policy; manual exception decisions; line-level eligibility evidence; opening/utilization/reversal/reclaim/carry-forward credit ledger; date/rate/RCM and tax-head rule acceptance; actual preview UI/API and genuine-data verification. Phase 04 is not complete.
