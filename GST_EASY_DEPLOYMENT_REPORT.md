@@ -4,7 +4,18 @@ Frontend: https://gst-easy---bills-voucher-web-foovqasysa-el.a.run.app
 
 API: https://gst-easy---bills-voucher-foovqasysa-el.a.run.app
 
-Current deployed application source: `d43b3523429c4a32bd501d2af0becc5a8c4c7629` on `GST_EASY`. Client/platform administration separation is live. Earlier deployment details below remain historical evidence.
+Current deployed application source: `311d7ccc4f31a519075910e10af27c27825d8949` on `GST_EASY`. Auditable reconciliation reviews and automatic stale-return refresh are live; client/platform administration separation remains enforced. Earlier deployment details below remain historical evidence.
+
+## Reconciliation review release - 14 October, 14:00 UTC
+
+- API build `9bcb45a1-f07b-4e5d-84e7-f6ed1d1340f0`, revision `bills-voucher-00119-dex`, image SHA256 `f04f4b6666a799c76bb4cc9ae216ad40500c0f747b79b77c4c63d632ea01fa94`.
+- Web build `fee46a85-a31c-4535-b6f3-fcaa36773a48`, revision `bills-voucher-web-00056-zag`, image SHA256 `3d07552d5cc43e9508f5e97bbc04ec1fdf7d7450b2ecd96eafbf3ef24c5c61c3`.
+- Both immutable builds succeeded. Only the `gst-easy` tags moved, with zero production traffic. Production percentages and all other preview tags were asserted unchanged. SMTP/signing-secret bindings and the separate administrator allowlist were retained.
+- Additive migration 015 applied before deployment: job `5a8715f7-db4b-4106-9b91-d870a125ff90`. No financial backfill, evidence purge or historical seed scripts ran. New review history is retained in `ops.gst_reconciliation_review`.
+- Validation: 272 backend tests; Ruff/mypy (71 files); production frontend build; 13 local browser journeys. Actual synthetic BigQuery integration passed concurrent review 200/409, tenant history isolation, stale evidence denial, immutable history, period locks, return invalidation and unchanged fingerprints for periods without reviews. Phase 04 report records the dataset and detailed scope.
+- Live public/access smoke passed at 13:59 UTC: healthy/ready API, 401 for unauthenticated reconciliation/history/returns, 403 for unauthorized workers, and rejected invalid admin credentials. Registration returned expected mobile validation (422), proving the configuration gate is passed without creating an account or sending mail. Live desktop/mobile registration/password visibility and separate admin page checks passed at 14:00 UTC.
+- Monitoring dashboard updated in place to the new revisions; notification channels unchanged. Actual authenticated customer review acceptance, mailbox delivery and accountant acceptance remain pending. Local browser evidence mocks comparison/history; its synthetic backend lacks the source-statement download fixture and logged prefetch errors. The passing browser suite is not proof of an original-GCS-download round trip.
+- Rollback: verify current routing, then move only API `gst-easy` to `bills-voucher-00118-tad` and web `gst-easy` to `bills-voucher-web-00055-ceh`. Retain migration 015 and all review history. Earlier return code ignores review versions; prevent approval of affected snapshots until a reviewed mitigation or forward fix is in place. Preserve separate admin grants, client restrictions, SMTP and signing configuration. Never change production routing as part of this rollback.
 
 ## Access separation update — 14 October, 13:25 UTC
 

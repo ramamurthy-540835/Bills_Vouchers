@@ -1,22 +1,21 @@
-# Module status — 14 October 2026
+# Module status - 14 October 2026
 
-Statuses describe the inspected source and recorded test scope, not general production certification.
+This current summary supersedes the initial Phase 00 inventory. Implementation and automated evidence are distinct from real-customer acceptance; historical phase reports retain their original checkpoints.
 
-| Module | Status | Outstanding acceptance |
+| Module | Implemented and tested scope | Outstanding acceptance |
 |---|---|---|
-| Registration/login | Partially implemented | Mobile, ownership verification, recovery, shared throttling |
-| Business profile/logo | Partially implemented | Onboarding, removal/audit, invitations |
-| Bills upload and review | Partially implemented | Restore, rejection reason, lock integration, failure recovery |
-| Exact/business duplicates | Partially implemented | Local regression passes; production concurrency/load evidence pending |
-| GST Easy dashboard | Partially implemented | Accountant acceptance and drill-down coverage |
-| GSTR-2B reconciliation | Partially implemented | Supported B2B only; amendment and exception review gaps |
-| ITC ledger | Partially implemented | Opening/closing/reversal/reclaim evidence and reviewed rules |
-| Return workflow | Partially implemented | Medallion/canonical integration and verified exports |
-| Search and assistant | Partially implemented | Canonical retrieval, injection and cross-client evidence |
-| Notifications | Not implemented | Verified transactional delivery journeys |
-| Desktop/mobile UI | Partially implemented | Four local baseline journeys pass, full journey inventory pending |
-| Tenant security | Not verified | Existing backend checks and tests are not a complete security audit |
-| Cloud operations | Not verified | Traffic checked; IAM, restoration and measured SLOs pending |
-| Real-client UAT | Not verified | Genuine evidence, accountant and owner acceptance required |
+| Registration/login | Required mobile, password eyes, verification/recovery tokens, isolated registration, distributed throttling, durable email outbox, separate administrator sign-in | Actual mailbox/recovery delivery, SMS configuration and provider verification, load measurements |
+| Business profile/logo | Saved onboarding, versioning, private logo management, invitations and revocation | Real invitation delivery, live storage evidence, customer role acceptance |
+| Bills upload/review | Review/reject/delete/restore, durable history/retry claims, duplicates, Decimal summation and period locks | Queue failure injection, stale-job repair, live extraction and refresh evidence, retention approval |
+| GST Easy dashboard | Canonical calculations and four independent cash scenarios | Accountant acceptance, full drilldowns/filter coverage |
+| GSTR-2B reconciliation | B2B provenance/history, two-sided comparison, authorized append-only review decisions and stale evidence detection | Amendments/notes, broader sections, genuine evidence, financial exception policy |
+| ITC ledger | Existing deterministic report calculations | Opening/utilization/reversal/reclaim/carry-forward ledger, line-level evidence and reviewed rules |
+| Return workflow | Canonical immutable snapshots, maker-checker approvals, stale-source protection including review versions, period locks/reopen | Official schemas/validators and supported exports, accountant UAT |
+| Search/assistant | Scoped canonical retrieval and read-only summaries with source references | Live Gemini/injection evidence, complete retrieval/report coverage |
+| Notifications | Durable transactional outbox and configured SMTP | Actual recipient delivery and remaining workflow notification coverage |
+| Desktop/mobile UI | 13 local browser journeys, 390px layout, failed-edit recovery and review/return refresh | Complete action inventory and genuine customer journeys |
+| Tenant security | Automated access/concurrency tests and actual isolated BigQuery checks; explicit platform grants | Independent security review and full deployed authenticated UAT |
+| Cloud operations | Immutable preview releases, isolated queues, routing preservation and monitoring dashboard | Least-privilege runtime identity, backups/restore, measured SLOs, delivered alerts |
+| Real-client UAT | Public preview smoke checks only | Authorized genuine evidence, accountant and owner acceptance |
 
-No phase is marked complete solely from source presence or a passing build.
+Latest automated checkpoint: 272 backend tests, Ruff, mypy (71 files), production frontend build and 13 browser tests pass. Actual BigQuery review integration passed with synthetic expiring tables. See Phase 04 and deployment reports for exact scope and evidence. No phase is certified complete solely from source presence or passing tests.

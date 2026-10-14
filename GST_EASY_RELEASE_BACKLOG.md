@@ -1,18 +1,16 @@
-# Ordered release backlog
+# Remaining release backlog
 
-The user's Phase 00–09 master prompt is the acceptance contract. This backlog supersedes the older handoff's proposed phase numbering.
+The Phase 00-09 master prompt remains the acceptance contract. This list supersedes the initial inventory; implemented work is summarized in GST_EASY_MODULE_STATUS.md. Cross-cutting fixes do not waive earlier acceptance gates.
 
-1. Phase 00: preserve October changes; finish cloud/schema/infrastructure evidence and resolve baseline type defects. Current audit reports are provisional.
-2. Phase 01: shared accessible password controls; mandatory mobile and confirmation validation; disable unsafe signup; secure email ownership/recovery tokens and session revocation; configurable verified delivery; provider-backed mobile verification; transactional distributed rate limiting and authentication audits. Real delivery must be tested before acceptance.
-3. Phase 02: saved onboarding, profile versions/logo removal and audit, expiring invitations and scoped memberships.
-4. Phase 03: durable job history/retry, reasoned review, restore/retention policy, concurrent duplicate correctness, canonical period locks and refresh tests.
-5. Phase 04: current official GST specifications and accountant fixtures, supported 2B sections and exception review, line-level decisions and credit-ledger movements.
-6. Phase 05: canonical return snapshots, maker-checker approval, stale-data prevention, universal locks, versioned official-schema exports.
-7. Phase 06: drilldowns, secure reports, scoped read-only canonical assistant/search.
-8. Phase 07: full screen/action inventory, navigation/refresh/mobile/accessibility and notification delivery evidence.
-9. Phase 08: tenant/object security, IAM and secret configuration, measured load/cost, queue recovery, monitoring and tested restoration.
-10. Phase 09: authorized genuine customer UAT, independent accountant acceptance, immutable preview builds and rollback plan; explicit owner authorization before production promotion.
+1. Phase 00: complete current cloud/schema/IAM inventory and reproducible release evidence. Keep historical baseline failures separate from current passing checks.
+2. Phase 01: verify actual email verification/recovery/security notification delivery across recipient providers; configure and test approved SMS verification; review mobile-duplicate policy; measure registration/throttling concurrency and cost. SMTP is configured, but inbox delivery is not proven.
+3. Phase 02: validate actual invitation delivery, private logo storage round trips, revoked-access UI and customer role policy.
+4. Phase 03: implement audited stale-job/uncertain-dispatch recovery; inject failures around storage, enqueue, extraction and writes; verify durable refresh, live extraction and retention/restore policy.
+5. Phase 04: obtain accountant examples and verified current rules; implement evidence-backed credit-ledger movements and line-level eligibility; extend supported statement sections/amendments/notes according to verified specifications. Auditable review acknowledgement is implemented; it does not resolve financial mismatches or override ITC.
+6. Phase 05: add verified versioned GSTR-1/GSTR-3B exports and validators, nil-return coverage and accountant maker-checker acceptance. Canonical snapshots, locks and review-dependent stale-data prevention are implemented.
+7. Phase 06: complete reports/PDF exports, KPI drilldowns and period coverage; validate scoped assistant behavior against prompt injection and genuine source evidence.
+8. Phase 07: complete all visible-action/accessibility/refresh audits and actual notification journeys. Thirteen local browser scenarios pass, not the entire acceptance inventory.
+9. Phase 08: replace overprivileged shared identity safely; measure API/query/AI/queue costs and latency; deliver alerts; demonstrate backup restoration and recovery; obtain retention and independent security review.
+10. Phase 09: authorized genuine-client UAT, independent accountant acceptance, immutable release/rollback evidence and owner approval before production promotion.
 
-External dependencies: configured email/SMS delivery credentials through Secret Manager; approved SMS sender/templates where required; accountant-approved examples; retention decisions; genuine customer UAT authorization and evidence; owner production release approval. User requests familiar commerce/banking account UX, but no specific delivery provider is configured by that preference.
-
-Keep each changeset reviewable. Never mark the unimplemented backlog complete. No actual return submission, payment, evidence purge or production traffic promotion is authorized by this backlog.
+External gates: verified email delivery, approved SMS configuration, accountant-approved calculations and current official schemas, retention policy, genuine customer evidence/UAT, owner production release authorization. Do not fabricate these approvals. Never submit actual returns, initiate payments, purge evidence or move production traffic under this development authorization.
