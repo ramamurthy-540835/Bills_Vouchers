@@ -1,4 +1,4 @@
-"""Create a preview-only monitoring dashboard; no notification recipients changed."""
+"""Create or refresh the recorded preview dashboard; no alert recipients changed."""
 import json
 from pathlib import Path
 
@@ -24,7 +24,20 @@ def main():
         for metric in ('run.googleapis.com/request_count','run.googleapis.com/request_latencies'):
             response=client.get(f'https://monitoring.googleapis.com/v3/projects/{PROJECT}/metricDescriptors/{metric}')
             response.raise_for_status()
-        response=client.post(f'https://monitoring.googleapis.com/v1/projects/{PROJECT}/dashboards',json=dashboard)
+        recorded=Path('artifacts/gst_easy/monitoring-dashboard.json')
+        if recorded.exists():
+            name=json.loads(recorded.read_text())['name']
+            if not name.startswith(('projects/'+PROJECT+'/dashboards/', 'projects/624683933018/dashboards/')):
+                raise RuntimeError('Recorded dashboard belongs to another project.')
+            existing=client.get('https://monitoring.googleapis.com/v1/'+name)
+            existing.raise_for_status()
+            previous=existing.json()
+            if previous.get('displayName')!=dashboard['displayName']:
+                raise RuntimeError('Recorded dashboard identity changed; review before replacing.')
+            dashboard.update(name=name,etag=previous['etag'])
+            response=client.patch('https://monitoring.googleapis.com/v1/'+name,json=dashboard)
+        else:
+            response=client.post(f'https://monitoring.googleapis.com/v1/projects/{PROJECT}/dashboards',json=dashboard)
         response.raise_for_status()
         result=response.json()
     Path('artifacts/gst_easy/monitoring-dashboard.json').write_text(json.dumps(result,indent=2))

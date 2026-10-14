@@ -21,7 +21,7 @@ def main():
         response=client.get(API+'/readyz')
         assert response.status_code==200,('readiness',response.status_code)
         results.append({'path':'readyz','status':response.status_code})
-        for path in ('/api/gst/bills?period=2026-09','/api/gst/returns?period=2026-09','/api/settings/members'):
+        for path in ('/api/gst/bills?period=2026-09','/api/gst/bills/reconciliation?period=2026-09','/api/gst/returns?period=2026-09','/api/settings/members'):
             response=client.get(API+path)
             assert response.status_code in (401,403),(path,response.status_code)
             results.append({'path':path,'status':response.status_code,'unauthenticated_denied':True})

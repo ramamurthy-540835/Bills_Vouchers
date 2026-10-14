@@ -8,4 +8,6 @@ Deployment follow-up: both immutable images are live on new zero-traffic tags; o
 
 Outstanding: replace the overprivileged shared compute runtime identity with reviewed least-privilege identities; measured load/latency/cost budgets; stale-job/uncertain-dispatch repair; full backups and restoration; retention acceptance; delivered alerts; independent security review. These remain open despite the successful preview deployment.
 
+Reconciliation release follow-up: monitoring now updates the recorded dashboard in place with an etag and verifies its project/display name before replacement. The actual update succeeded for API `00117-ner` and web `00054-mel`; no duplicate dashboard or notification changes. Live smoke includes the new reconciliation authorization boundary. SMTP/signing-secret configuration remains active after deployment.
+
 Rollback uses saved traffic-before evidence and prior immutable image digests. Do not drop additive tables, audit history or retained evidence during application rollback. Production promotion requires separate explicit authorization.

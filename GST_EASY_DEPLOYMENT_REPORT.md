@@ -4,9 +4,19 @@ Frontend: https://gst-easy---bills-voucher-web-foovqasysa-el.a.run.app
 
 API: https://gst-easy---bills-voucher-foovqasysa-el.a.run.app
 
-Deployed application source: `d7fc2cbe1a27b322cb490b82da28a9bf4c99ed12` on `GST_EASY`. Later commits add release evidence and operational scripts, not different deployed application code.
+Current deployed application source: `13565e6996da5b3d243cc11085fff2f43f0360e0` on `GST_EASY`. The reconciliation update is live. Earlier deployment details below remain historical evidence.
 
-## Immutable builds and revisions
+## Reconciliation preview update — 14 October, 12:59 UTC
+
+- API build `0aafbbd8-edd1-45a2-ace4-b2cb650d15d3`, revision `bills-voucher-00117-ner`, image SHA256 `02cc6305a0a3b0f70ddaab8ac115adebbbb306c5977df6dab73a71c9f840fe3b`.
+- Web build `0832cb93-9acf-4ebe-bd3b-6bd331e3b764`, revision `bills-voucher-web-00054-mel`, image SHA256 `adfac3a60bc21e88273d39b66a94e00904eab58b69833d0a7214b2a23a254f20`.
+- Both builds succeeded. Only the existing `gst-easy` tags moved; production and every other tag remained identical. SMTP and signing-secret bindings were retained.
+- Added read-only two-sided reconciliation, source drilldowns, mobile filters/retry and XLSX evidence sheets. No database migrations or financial writes.
+- 247 backend tests, Ruff, mypy (69 files), Next build and 11 local browser tests passed. The final blank-value export adjustment also passed all 12 permission/export tests. Live smoke passed, including 401 on unauthenticated reconciliation. Registration still passes mail readiness and rejects an empty form with normal 422 validation. No account or email was created by these probes; authenticated customer acceptance remains pending.
+- Existing monitoring dashboard updated in place to these revisions using its current etag, following the [dashboard update API](https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v1/projects.dashboards/patch). No notification channels changed.
+- Rollback: after checking current routing, move only the API `gst-easy` tag to `bills-voucher-00116-poj` and web `gst-easy` to `bills-voucher-web-00053-kat`. Those are the pre-update revisions with working mail configuration. Do not change production routing, shared secrets or retained data.
+
+## Previous immutable builds and revisions
 
 | Component | Cloud Build | Cloud Run revision | Image SHA-256 |
 |---|---|---|---|
