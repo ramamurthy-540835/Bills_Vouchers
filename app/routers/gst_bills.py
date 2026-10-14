@@ -1,11 +1,12 @@
 import csv
 import logging
 import mimetypes
+import hashlib
 from datetime import date
 from decimal import InvalidOperation
 from io import BytesIO, StringIO
 from pathlib import Path
-from uuid import uuid4
+from uuid import uuid4, uuid5, NAMESPACE_URL
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import Response
@@ -20,6 +21,7 @@ from app.services.gst.account import can
 from app.services.gst.medallion import Medallion, clean, period_value
 from app.gst.schemas.invoice import GstInvoice
 from app.gst.store import BillStore
+from app.gst.naming import bill_filename
 from app.gst.template import template_bytes
 from app.gst.validate_invoice import validate_invoice
 from app.gst.file_checks import validate_file
@@ -98,7 +100,7 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
     job_id = str(uuid4())
     job = {'job_id': job_id, 'status': 'queued', 'actor_id': str(user.id), 'period': period, 'files': []}
     for filename, content in content_files:
-        doc_id = str(uuid4())
+        doc_id = str(uuid5(NAMESPACE_URL, f'{client.id}/{hashlib.sha256(content).hexdigest()}'))
         raw_ref = store.upload_object(content, doc_id, filename, 'bronze', mimetypes.guess_type(filename)[0] or 'application/octet-stream')
         job['files'].append({'filename': filename, 'doc_id': doc_id, 'raw_ref': raw_ref, 'status': 'reading', 'invoice_ids': []})
     store.job(job_id, job)
@@ -147,7 +149,7 @@ def progress(job_id: str, request: Request, repo=Depends(get_db), user=Depends(c
 def list_bills(request: Request, period: str = '', status: str = '', repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user)
     period = selected_period(request, client, store, period)
-    return {'invoices': [i.model_dump(mode='json') for i in store.list(period, status)],
+    return {'invoices': [{**i.model_dump(mode='json'), 'filename': bill_filename(i)} for i in store.list(period, status)],
             'client_id': str(client.id), 'can_write': can(user, 'bills:write', client.id, repo)}
 
 
@@ -250,13 +252,23 @@ def original(invoice_id: str, request: Request, repo=Depends(get_db), user=Depen
     ref = invoice.extraction.raw_ref
     mime = mimetypes.guess_type(ref)[0] or 'application/octet-stream'
     return Response(store.download_object(ref), media_type=mime,
-                    headers={'Content-Disposition': 'inline', 'Cache-Control': 'private, no-store'})
+                    headers={'Content-Disposition': f'inline; filename="{bill_filename(invoice)}"', 'Cache-Control': 'private, no-store'})
 
 
 @router.get('/{invoice_id}')
 def get_bill(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
     _, store = scope(request, repo, user)
-    return store.get(invoice_id).model_dump(mode='json')
+    invoice = store.get(invoice_id)
+    return {**invoice.model_dump(mode='json'), 'filename': bill_filename(invoice)}
+
+
+@router.delete('/{invoice_id}')
+def delete_bill(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    _, store = scope(request, repo, user, 'bills:write')
+    invoice = store.get(invoice_id)
+    check_version(request, invoice)
+    store.delete(invoice, user.id)
+    return {'deleted': True, 'invoice_id': invoice_id}
 
 
 @router.patch('/{invoice_id}')
@@ -276,6 +288,8 @@ async def edit(invoice_id: str, request: Request, repo=Depends(get_db), user=Dep
         raise HTTPException(422, 'Check the bill fields and enter amounts as decimal text.') from None
     period = invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else previous.selected_period or date.today().strftime('%Y-%m')
     invoice = validate_invoice(invoice, profile_for(repo, client.id, period), store.list())
+    if 'duplicate_invoice' in invoice.review_reasons:
+        raise HTTPException(409, 'This supplier GSTIN and invoice number already exist for the financial year.')
     store.save(invoice, user.id, 'edit', previous, period)
     return invoice.model_dump(mode='json')
 

@@ -10,6 +10,7 @@ from app.config import get_settings
 from app.services.gst.medallion import param
 from .schemas.invoice import GstInvoice
 from .validate_invoice import financial_year
+from .naming import bill_filename
 
 
 class BillStore:
@@ -57,6 +58,8 @@ class BillStore:
         lock = self.table('ops', 'gst_bill_lock')
         if selected_period and not invoice.selected_period:
             invoice.selected_period = selected_period
+        if invoice.supplier_gstin and invoice.invoice_number and invoice.extraction.raw_ref:
+            self.name_original(invoice)
         payload = invoice.model_dump_json()
         params = [param('id', invoice.invoice_id), param('payload', payload),
                   param('before', previous.model_dump_json() if previous else 'null'),
@@ -70,7 +73,7 @@ class BillStore:
         ASSERT (SELECT COUNT(*) FROM {lock} WHERE client_id='__guard__')=1 AS 'Storage guard missing';
         UPDATE {lock} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
         ASSERT COALESCE((SELECT version FROM {table} WHERE client_id=@client_id AND invoice_id=@id),0)=@expected AS 'Bill changed; reload';
-        ASSERT @status='rejected' OR NOT EXISTS(SELECT 1 FROM {table} WHERE client_id=@client_id AND supplier_gstin=@supplier AND invoice_number=@number AND financial_year=@fy AND invoice_id!=@id AND status!='rejected') AS 'Duplicate invoice';
+        ASSERT @number='' OR @fy IS NULL OR NOT EXISTS(SELECT 1 FROM {table} WHERE client_id=@client_id AND supplier_gstin=@supplier AND invoice_number=@number AND financial_year=@fy AND invoice_id!=@id) AS 'Duplicate invoice';
         DELETE FROM {table} WHERE client_id=@client_id AND invoice_id=@id;
         INSERT INTO {table} (client_id,invoice_id,source_doc_id,invoice_date,period,financial_year,supplier_gstin,invoice_number,direction,status,eligibility,taxable_value,cgst,sgst,igst,cess,invoice_total,payload,version,created_at,updated_at)
         SELECT @client_id,@id,JSON_VALUE(@payload,'$.source_doc_id'),CAST(JSON_VALUE(@payload,'$.invoice_date') AS DATE),@period,@fy,@supplier,@number,JSON_VALUE(@payload,'$.direction'),@status,JSON_VALUE(@payload,'$.itc.eligibility'),
@@ -91,6 +94,23 @@ class BillStore:
     def matching_rows(self, period):
         rows = self.query(f'SELECT payload FROM {self.table("silver", "gst_bills_gstr2b")} WHERE client_id=@client_id AND period=@period', [param('period', period)])
         return [json.loads(r['payload']) if isinstance(r['payload'], str) else r['payload'] for r in rows]
+
+    def delete(self, invoice, actor):
+        if invoice.client_id != self.client_id:
+            raise HTTPException(404, 'Bill not found.')
+        try:
+            self.query(f'''BEGIN TRANSACTION;
+                UPDATE {self.table('ops', 'gst_bill_lock')} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
+                ASSERT (SELECT version FROM {self.table('gold', 'gst_invoice')} WHERE client_id=@client_id AND invoice_id=@id)=@expected AS 'Bill changed';
+                INSERT INTO {self.table('ops', 'gst_bill_audit')} VALUES (@client_id,@id,@actor,'delete',PARSE_JSON(@before),NULL,CURRENT_TIMESTAMP());
+                DELETE FROM {self.table('silver', 'gst_invoice_line')} WHERE client_id=@client_id AND invoice_id=@id;
+                DELETE FROM {self.table('gold', 'gst_invoice')} WHERE client_id=@client_id AND invoice_id=@id;
+                COMMIT TRANSACTION;''', [param('id', invoice.invoice_id), param('expected', invoice.version, 'INT64'),
+                    param('actor', str(actor)), param('before', invoice.model_dump_json())])
+        except (BadRequest, Conflict) as exc:
+            if any(word in str(exc).lower() for word in ('bill changed', 'concurrent', 'aborted')):
+                raise HTTPException(409, 'This bill changed. Refresh before deleting.') from None
+            raise
 
     def save_matching(self, period, records, actor):
         self.query(f'''BEGIN TRANSACTION;
@@ -129,6 +149,18 @@ class BillStore:
         bucket = storage.Client(project=self.project).bucket(get_settings().gcs_bucket_name)
         bucket.blob(key).upload_from_string(content, content_type=mime)
         return f'gs://{bucket.name}/{key}'
+
+    def name_original(self, invoice):
+        ref = invoice.extraction.raw_ref
+        prefix = f'gs://{get_settings().gcs_bucket_name}/{self.client_id}/bronze/bills/'
+        if not ref.startswith(prefix):
+            raise HTTPException(404, 'Original bill not found.')
+        key = ref.split('/', 3)[3]
+        target = key.rsplit('/', 1)[0] + '/' + bill_filename(invoice)
+        if key != target:
+            bucket = storage.Client(project=self.project).bucket(get_settings().gcs_bucket_name)
+            bucket.copy_blob(bucket.blob(key), bucket, target)
+            invoice.extraction.raw_ref = f'gs://{bucket.name}/{target}'
 
     def download_object(self, ref, layer='bronze'):
         if layer not in {'bronze','silver'}:

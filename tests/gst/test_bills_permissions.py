@@ -22,6 +22,7 @@ def api(monkeypatch,invoice,profile):
             if not inv or inv.client_id!=self.client_id:raise HTTPException(404,'Bill not found.')
             return inv
         def save(self,inv,*args,**kwargs):items[inv.invoice_id]=inv
+        def delete(self,inv,*args):del items[inv.invoice_id]
     monkeypatch.setattr(gst_bills,'BillStore',Store)
     monkeypatch.setattr(gst_bills,'active_client',lambda *a:SimpleNamespace(id='a'))
     monkeypatch.setattr(gst_bills,'profile_for',lambda *a:profile)
@@ -42,6 +43,18 @@ def test_viewer_read_export_but_no_writes(api,invoice):
     assert client.post('/api/gst/bills/upload?period=2026-09',files={'files':('bill.csv',b'csv','text/csv')}).status_code==403
     assert client.post(f'/api/gst/bills/{invoice.invoice_id}/confirm').status_code==403
     assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',json={'invoice_number':'CHANGE'}).status_code==403
+    assert client.delete(f'/api/gst/bills/{invoice.invoice_id}').status_code==403
+
+
+def test_delete_checks_version_and_removes_bill(api,invoice):
+    client,user,items=api;user.role='client'
+    url=f'/api/gst/bills/{invoice.invoice_id}'
+    assert client.delete(url,headers={'If-Match':'999'}).status_code==409
+    assert invoice.invoice_id in items
+    assert client.delete('/api/gst/bills/another-client').status_code==404
+    assert client.delete(url,headers={'If-Match':str(invoice.version)}).status_code==200
+    assert client.get(url).status_code==404
+    assert client.get('/api/gst/bills?period=2026-09').json()['invoices']==[]
 
 
 def test_cross_client_id_is_not_found(api,invoice):

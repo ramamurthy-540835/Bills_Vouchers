@@ -8,6 +8,8 @@ from app.config import get_settings
 from .extract import extract
 from .schemas.invoice import GstInvoice, Extraction
 from .validate_invoice import validate_invoice
+from .naming import bill_filename
+from fastapi import HTTPException
 
 logger=logging.getLogger(__name__)
 
@@ -67,8 +69,21 @@ def process_job(store,profile,actor,job):
                 saved=next(i for i in existing if i.invoice_id==invoice.invoice_id)
             else:
                 saved=validate_invoice(invoice,profile,existing)
-                store.save(saved,actor,'upload',selected_period=job['period'])
+                if 'duplicate_invoice' in saved.review_reasons:
+                    entry['reason']='This bill already exists. No duplicate was added.'
+                    needs_attention=True
+                    continue
+                try:
+                    store.save(saved,actor,'upload',selected_period=job['period'])
+                except HTTPException as exc:
+                    if exc.status_code != 409:
+                        raise
+                    entry['reason']='This bill was already saved or changed in another upload. Refresh your bills.'
+                    needs_attention=True
+                    continue
                 existing.append(saved);existing_ids.add(saved.invoice_id)
+            if len(invoices)==1:
+                entry['filename']=bill_filename(saved)
             if saved.invoice_id not in entry['invoice_ids']:
                 entry['invoice_ids'].append(saved.invoice_id)
             needs_attention=needs_attention or saved.status in {'needs_review','rejected'}

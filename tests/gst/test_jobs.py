@@ -1,5 +1,6 @@
 from copy import deepcopy
 from unittest.mock import Mock
+import pytest
 from app.gst.jobs import process_job, public_job
 
 
@@ -31,3 +32,19 @@ def test_worker_rejects_unauthenticated_requests(monkeypatch):
     app=FastAPI();app.include_router(router);app.dependency_overrides[get_db]=lambda:object()
     response=TestClient(app).post('/api/gst/bills/internal/process',json={'client_id':'other','job_id':'x'})
     assert response.status_code==403
+
+
+@pytest.mark.parametrize('status',['confirmed','rejected','needs_review'])
+def test_different_file_for_existing_invoice_is_not_inserted(invoice,profile,monkeypatch,status):
+    import app.gst.jobs as jobs
+    invoice.status=status
+    monkeypatch.setattr(jobs,'extract',lambda *a:[invoice.model_copy(deep=True)])
+    store=Mock(client_id=invoice.client_id)
+    store.list.return_value=[invoice]
+    store.download_object.return_value=b'content'
+    store.upload_object.return_value='silver'
+    job={'job_id':'j','status':'queued','period':'2026-09','files':[{'filename':'new-photo.png','doc_id':'different-file','raw_ref':'raw','status':'reading','invoice_ids':[]}]}
+    process_job(store,profile,'u',job)
+    store.save.assert_not_called()
+    assert job['status']=='completed'
+    assert 'No duplicate' in job['files'][0]['reason']

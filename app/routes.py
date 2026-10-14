@@ -63,7 +63,7 @@ def current_user(request: Request, repo=Depends(get_db)):
         if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/settings/account", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             raise HTTPException(403, "Viewer access is read-only.")
         canonical_bills = get_settings().gst_bills_enabled and (request.url.path == '/api/gst/bills' or request.url.path.startswith('/api/gst/bills/'))
-        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not canonical_bills and request.url.path not in {"/api/settings/account", "/api/settings/profile", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not canonical_bills and request.url.path not in {"/api/settings/account", "/api/settings/profile", "/api/settings/profile/logo", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             from .services.gst.medallion import Medallion, live_only
             live_only()
             if clients:
@@ -1346,6 +1346,19 @@ async def api_login(request: Request, repo=Depends(get_db)):
     repo.query(f"UPDATE `{repo.table('users')}` SET last_sign_in=CURRENT_TIMESTAMP() WHERE id=@id", [bigquery.ScalarQueryParameter("id", "STRING", user.id)])
     fr(repo).audit(user.id, "login", "user", user.id)
     return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, "must_change_password": bool(getattr(user, "must_change_password", False))}
+
+
+@router.post('/api/auth/register', status_code=201)
+async def api_register(request: Request, repo=Depends(get_db)):
+    from .services.registration import register
+    key = f"register:{request.client.host if request.client else 'unknown'}"
+    if not login_allowed(key):
+        raise HTTPException(429, 'Too many attempts. Try again later.')
+    record_login_failure(key)
+    result = register(repo, await request.json())
+    request.session.clear()
+    request.session.update(user_id=result['id'], client_id=result['client_id'], session_version=0, last_seen=str(time()))
+    return result
 
 
 @router.get("/api/auth/csrf")

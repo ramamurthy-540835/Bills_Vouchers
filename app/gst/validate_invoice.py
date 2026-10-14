@@ -86,7 +86,7 @@ def validate_invoice(invoice: GstInvoice, profile: dict, existing=(), human_revi
     inv.status = 'needs_review' if reasons else 'extracted'
     if reasons:
         inv.itc.eligibility = 'pending_review'
-    if any(other.invoice_id != inv.invoice_id and other.status != 'rejected' and duplicate_key(other) == duplicate_key(inv) for other in existing):
+    if inv.invoice_number.strip() and inv.invoice_date and any(other.invoice_id != inv.invoice_id and duplicate_key(other) == duplicate_key(inv) for other in existing):
         inv.status = 'rejected'
         inv.review_reasons.append('duplicate_invoice')
     return inv

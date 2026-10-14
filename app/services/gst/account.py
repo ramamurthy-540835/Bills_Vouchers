@@ -2,7 +2,8 @@
 import re
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
+from fastapi.responses import Response
 from ...config import get_settings
 from ...db import get_db
 from ...repository import FinanceRepository
@@ -11,6 +12,47 @@ from .medallion import Medallion, clean, clear_cache, param
 from .profiles import validate_gstin
 
 router = APIRouter()
+
+
+def logo_blob(client_id):
+    from google.cloud.storage import Client
+    settings = get_settings()
+    return Client(project=settings.gcp_project_id).bucket(settings.gcs_bucket_name).blob(f'{client_id}/profile/logo.png')
+
+
+@router.get('/api/settings/profile/logo')
+def get_logo(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from google.api_core.exceptions import NotFound
+    client = active_client(request, repo, user)
+    try:
+        content = logo_blob(client.id).download_as_bytes()
+    except NotFound:
+        raise HTTPException(404, 'No logo uploaded.') from None
+    return Response(content, media_type='image/png', headers={'Cache-Control': 'private, no-store'})
+
+
+@router.post('/api/settings/profile/logo')
+def upload_logo(request: Request, file: UploadFile = File(...), repo=Depends(get_db), user=Depends(current_user)):
+    from io import BytesIO
+    from PIL import Image, ImageOps, UnidentifiedImageError
+    client = active_client(request, repo, user)
+    if not can(user, 'edit_profile', client.id, repo):
+        raise HTTPException(403, 'You cannot edit this client profile.')
+    content = file.file.read(2 * 1024 * 1024 + 1)
+    if not content or len(content) > 2 * 1024 * 1024:
+        raise HTTPException(413, 'Choose a logo up to 2 MB.')
+    try:
+        with Image.open(BytesIO(content)) as image:
+            if image.format not in {'PNG', 'JPEG', 'WEBP'} or image.width * image.height > 16000000:
+                raise ValueError('Invalid logo')
+            normalized = ImageOps.exif_transpose(image).convert('RGBA')
+            normalized.thumbnail((1024, 1024))
+            output = BytesIO()
+            normalized.save(output, format='PNG')
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        raise HTTPException(422, 'Choose a valid PNG, JPEG or WebP logo under 16 megapixels.') from None
+    logo_blob(client.id).upload_from_string(output.getvalue(), content_type='image/png')
+    return {'saved': True}
 
 
 def can(user, action, client_id, repo):

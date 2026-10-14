@@ -34,7 +34,7 @@ export const GST = {
   illustration: 'Matching illustration — example amounts only', appears: 'Appears in GSTR-2B', usable: 'Currently usable',
   yes: 'Yes', no: 'No', matchingPending: 'Import and review GSTR-2B in Returns & Credit to complete matching.',
   noMatching: 'Not yet matched', confirmNote: 'Confirm only after reviewing the original bill and all extracted details.',
-  inputHint: 'Amounts are in rupees. Enter decimal values; changes are checked when you leave a field.',
+  inputHint: 'Amounts are in rupees. Edit the details, then save changes or confirm the bill.',
   billOfSupply: 'Bill of supply', taxInvoice: 'Tax invoice', debitNote: 'Debit note', creditNote: 'Credit note',
   purchase: 'Purchase', sale: 'Sale', reverseCharge: 'Reverse charge', direction: 'Purchase or sale', type: 'Invoice type',
   originalDownload: 'Open original bill', maxFiles: 'Choose up to 20 files, each no larger than 15 MB.',

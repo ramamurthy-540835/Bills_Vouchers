@@ -24,6 +24,7 @@ class Store:
         if id not in items or items[id].client_id!=self.client_id:raise HTTPException(404)
         return items[id]
     def save(self,invoice,*args,**kwargs):items[invoice.invoice_id]=invoice
+    def delete(self,invoice,*args):del items[invoice.invoice_id]
     def job(self,id,payload=None):
         if payload is not None:jobs[id]=payload
         return jobs[id]
