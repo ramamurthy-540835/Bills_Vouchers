@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from google.cloud import storage
-from google.api_core.exceptions import BadRequest, Conflict
+from google.api_core.exceptions import BadRequest, Conflict, PreconditionFailed
 
 from app.config import get_settings
 from app.services.gst.medallion import param
@@ -247,7 +247,13 @@ class BillStore(JobState):
         day = datetime.now(timezone.utc).strftime('%Y/%m/%d')
         key = f'{self.client_id}/{layer}/bills/{day}/{doc_id}/{safe_name}'
         bucket = storage.Client(project=self.project).bucket(get_settings().gcs_bucket_name)
-        bucket.blob(key).upload_from_string(content, content_type=mime)
+        blob = bucket.blob(key)
+        try:
+            blob.upload_from_string(content, content_type=mime, if_generation_match=0)
+        except PreconditionFailed:
+            # A retry may reuse identical evidence, never overwrite different bytes.
+            if blob.download_as_bytes() != content:
+                raise HTTPException(409, 'Stored evidence differs from this upload. Start a new upload; the original was retained.') from None
         return f'gs://{bucket.name}/{key}'
 
     def name_original(self, invoice):
@@ -259,7 +265,18 @@ class BillStore(JobState):
         target = key.rsplit('/', 1)[0] + '/' + bill_filename(invoice)
         if key != target:
             bucket = storage.Client(project=self.project).bucket(get_settings().gcs_bucket_name)
-            bucket.copy_blob(bucket.blob(key), bucket, target)
+            source = bucket.blob(key)
+            source.reload()
+            try:
+                bucket.copy_blob(source, bucket, target, if_generation_match=0,
+                                 if_source_generation_match=source.generation)
+            except PreconditionFailed:
+                try:
+                    identical = bucket.blob(target).download_as_bytes() == source.download_as_bytes(if_generation_match=source.generation)
+                except PreconditionFailed:
+                    raise HTTPException(409, 'Original evidence changed while naming this bill. Refresh before retrying.') from None
+                if not identical:
+                    raise HTTPException(409, 'The canonical filename already holds different evidence. Originals were retained for review.') from None
             invoice.extraction.raw_ref = f'gs://{bucket.name}/{target}'
 
     def download_object(self, ref, layer='bronze'):
