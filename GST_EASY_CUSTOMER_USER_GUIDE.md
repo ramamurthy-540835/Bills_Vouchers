@@ -11,3 +11,5 @@
 9. Search and the assistant use the selected business and period. The assistant is read-only and uses limited retrieval; rely on deterministic reports and source documents for figures.
 
 The preview has incomplete release gates. Credit-ledger coverage, official exports, verified email delivery and SMS configuration, genuine-client UAT and accountant acceptance are still required for the intended full client-ready scope.
+
+Reports: choose Reports in navigation, select a report and month/quarter/financial year, and download Excel or CSV. The tax-head summary also supports PDF. Invoice IDs open the corresponding bill. Excel provenance includes source versions and hashes. Monetary columns are decimal text to retain precision; account for that when doing spreadsheet calculations. Exports regenerate current evidence. Quarter/year views preserve separate monthly estimates and do not include an opening/carry-forward credit ledger.

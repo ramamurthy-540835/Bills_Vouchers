@@ -29,7 +29,7 @@ from app.gst.validate_invoice import validate_invoice
 from app.gst.file_checks import validate_file
 from app.gst.report import calculate
 from app.gst.reconciliation import compare, FIELDS
-from app.gst import reconciliation_reviews
+from app.gst import reconciliation_reviews, reports
 from app.gst.matching import parse_gstr2b
 from app.gst.jobs import enqueue, run_job, public_job
 from app.services.tasks import verify_cloud_tasks_request
@@ -44,7 +44,7 @@ def scope(request, repo, user, action='bills:read'):
     client = active_client(request, repo, user)
     if not can(user, action, client.id, repo):
         raise HTTPException(403, 'You do not have permission for this action.')
-    if getattr(client, 'is_test', False) and request.url.path.rsplit('/', 1)[-1] in {'export', 'working-papers'}:
+    if getattr(client, 'is_test', False) and request.url.path.rsplit('/', 1)[-1] in {'export', 'working-papers', 'reports'}:
         raise HTTPException(403, {'code': 'sample_data_blocked', 'message': 'Test workspace figures cannot be exported or filed.'})
     return client, BillStore(repo, client.id)
 
@@ -376,6 +376,28 @@ def export(request: Request, period: str, format: str = 'xlsx', repo=Depends(get
     else:
         raise HTTPException(422, 'Choose Excel or CSV.')
     return Response(data, media_type=mime, headers={'Content-Disposition': f'attachment; filename="GST-Easy-purchase-register-{period}.{format}"'})
+
+
+@router.get('/reports')
+def reports_view(request: Request, period: str, kind: str = 'purchases', scope_name: str = 'month',
+                 format: str = 'json', offset: int = Query(0, ge=0, le=10000),
+                 repo=Depends(get_db), user=Depends(current_user)):
+    client, store = scope(request, repo, user)
+    if getattr(client, 'is_test', False):
+        raise HTTPException(403, 'Synthetic workspaces cannot generate customer reports.')
+    if format not in {'json','csv','xlsx','pdf'} or (format == 'pdf' and kind != 'tax'):
+        raise HTTPException(422, 'Choose CSV or Excel; PDF is available for the tax-head summary.')
+    report = reports.build(store, period, scope_name, kind, lambda month: profile_for(repo, client.id, month))
+    private = {'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff'}
+    if format == 'json':
+        from fastapi.responses import JSONResponse
+        return JSONResponse({**report, 'rows': report['rows'][offset:offset+100],
+                             'source_invoices': report['source_invoices'][offset:offset+100],
+                             'source_invoice_count': len(report['source_invoices']),
+                             'offset': offset, 'has_more': offset+100 < report['row_count']}, headers=private)
+    content, mime = reports.render(report, format)
+    filename = f"GST-Easy-{kind}-{report['periods'][0]}-to-{report['periods'][-1]}.{format}"
+    return Response(content, media_type=mime, headers={**private,'Content-Disposition':f'attachment; filename="{filename}"'})
 
 
 @router.get('/{invoice_id}/original')

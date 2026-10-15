@@ -1,5 +1,27 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 
+test('reports preserve filters, export a PDF and fit mobile screens',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic reporting is local only')
+ await page.goto('/reports?period=2026-09&kind=tax')
+ await expect(page.getByLabel('Report',{exact:true})).toHaveValue('tax')
+ await expect(page.getByRole('heading',{name:'Tax-head summary',exact:true})).toBeVisible()
+ await page.getByLabel('Reporting period',{exact:true}).selectOption('quarter')
+ await expect(page.getByText(/2026-07 to 2026-09/)).toBeVisible()
+ const download=page.waitForEvent('download')
+ await page.getByRole('button',{name:'Download PDF summary'}).click()
+ const file=await download
+ expect(file.suggestedFilename()).toContain('.pdf')
+ expect(await file.failure()).toBeNull()
+ await page.reload()
+ await expect(page.getByLabel('Reporting period',{exact:true})).toHaveValue('quarter')
+ await expect(page.getByRole('heading',{name:'Tax-head summary',exact:true})).toBeVisible()
+ await page.setViewportSize({width:390,height:844})
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+ await page.getByLabel('Report',{exact:true}).selectOption('sales')
+ await expect(page.getByText('No records for this report and period.')).toBeVisible()
+ await expect(page.getByRole('button',{name:'Download PDF summary'})).toHaveCount(0)
+})
+
 test('stale uploads can be recovered from history while active uploads cannot',async({page})=>{
  test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic recovery is local only')
  let recovered=false

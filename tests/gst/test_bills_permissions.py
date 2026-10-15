@@ -126,7 +126,7 @@ def test_test_client_can_review_but_cannot_export(api,monkeypatch):
     monkeypatch.setattr(gst_bills,'active_client',lambda *a:SimpleNamespace(id='a',is_test=True))
     assert client.get('/api/gst/bills?period=2026-09').status_code==200
     assert client.get('/api/gst/bills/template.xlsx').status_code==200
-    for path in ('export?period=2026-09&format=csv','export?period=2026-09&format=xlsx','working-papers?period=2026-09'):
+    for path in ('export?period=2026-09&format=csv','export?period=2026-09&format=xlsx','working-papers?period=2026-09','reports?period=2026-09'):
         response=client.get('/api/gst/bills/'+path)
         assert response.status_code==403 and response.json()['detail']['code']=='sample_data_blocked'
 
@@ -187,3 +187,19 @@ def test_stale_edit_and_payment_authority(api,invoice):
     assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',headers={'If-Match':'999'},json={'invoice_number':'NEW'}).status_code==409
     assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',json={'reverse_charge_paid_reference':'REF123'}).status_code==403
     assert client.patch(f'/api/gst/bills/{invoice.invoice_id}',json={'totals':{'taxable_value':'bad'}}).status_code==422
+
+
+def test_reports_are_private_scoped_and_validate_formats(api, invoice):
+    client,user,_=api
+    invoice.status='confirmed'
+    response=client.get('/api/gst/bills/reports?period=2026-09&kind=purchases&client_id=other')
+    assert response.status_code==200
+    assert response.json()['client_id']=='a'
+    assert response.json()['rows'][0][1]==invoice.invoice_id
+    assert response.headers['cache-control']=='private, no-store'
+    assert 'raw_ref' not in response.text
+    response=client.get('/api/gst/bills/reports?period=2026-09&kind=tax&format=pdf')
+    assert response.status_code==200 and response.content.startswith(b'%PDF')
+    assert response.headers['x-content-type-options']=='nosniff'
+    for query in ('kind=bad','kind=purchases&format=pdf','scope_name=bad','offset=-1'):
+        assert client.get('/api/gst/bills/reports?period=2026-09&'+query).status_code==422
