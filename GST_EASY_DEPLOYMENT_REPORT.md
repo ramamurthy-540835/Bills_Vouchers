@@ -4,7 +4,18 @@ Frontend: https://gst-easy---bills-voucher-web-foovqasysa-el.a.run.app
 
 API: https://gst-easy---bills-voucher-foovqasysa-el.a.run.app
 
-Current deployed application source: `311d7ccc4f31a519075910e10af27c27825d8949` on `GST_EASY`. Auditable reconciliation reviews and automatic stale-return refresh are live; client/platform administration separation remains enforced. Earlier deployment details below remain historical evidence.
+Current deployed application source: `57dd7d87e80d4de62b8dcc9405472eea65532afd` on `GST_EASY`. Audited upload recovery is live alongside reconciliation review and client/platform administrator separation. Earlier details below remain historical evidence.
+
+## Durable upload recovery release - 15 October, 12:48 UTC
+
+- API build `51abab8c-8d29-4f26-befe-19c2207664eb`, revision `bills-voucher-00120-fun`, image SHA256 `4d3c349675d7533b5fb91e40c82832cab7daf851bca045a124c5d407191d6a2a`.
+- Web build `9b3b5d66-bc99-4391-b3c9-c2b75319377f`, revision `bills-voucher-web-00057-jud`, image SHA256 `94abc4c47130983979b3029320e64bf49ea9b9038745af1921992ef837dbbe2f`.
+- Successful immutable builds deployed only to `gst-easy`, with no production traffic. Before/after routing assertions confirm production percentages and every other tag are unchanged. Existing SMTP/signing-secret and administrator settings retained. No schema migration, historical job backfill, queue-policy change or IAM change.
+- Worker claims, retry events and terminal progress are audited. Recovery after 35 minutes of inactivity applies to protocol-1 jobs; older unfenced in-flight jobs require review. Progress and invoice writes from superseded workers are rejected. Retried extraction preserves saved evidence, and filing locks are no longer mislabeled as duplicate invoices.
+- 284 backend tests, Ruff, mypy (72 files), Next production build and 14 local browser journeys passed. Actual BigQuery integration passed in `gst_easy_bills_test_eb306dfe1e6b` at 12:33 UTC, including concurrent claims 200/409, stale retry, superseded progress/invoice write denial, completed no-op, retry-actor audit and tenant denial. Existing lifecycle/reconciliation/return checks also passed. The first integration run exposed an incomplete synthetic invoice fixture; after correction, the complete run passed. Tables expire after 24 hours.
+- Live smoke passed at 12:48 UTC: healthy/ready API, public auth pages, invalid-admin denial, unauthorized financial endpoint/worker denial and expected registration validation. Desktop/mobile public browser checks passed. No account or email was created. Authenticated customer recovery and actual queue/GCS/Vertex failure injection remain pending.
+- Existing monitoring dashboard updated in place to API `00120-fun` and web `00057-jud`; notification channels unchanged. Operator instructions and detailed rollback constraints: `GST_EASY_JOB_RECOVERY.md`.
+- Previous paired preview revisions: API `bills-voucher-00119-dex`, web `bills-voucher-web-00056-zag`. Prefer a forward fix. Before rolling back to their unfenced worker code, stop new recovery requests and verify active deliveries have ended; review queue routing. Move only the `gst-easy` tags after that review, preserving all job/audit/object evidence and secret/admin configuration. Never reset historical jobs, drop evidence or promote production traffic as part of rollback.
 
 ## Reconciliation review release - 14 October, 14:00 UTC
 

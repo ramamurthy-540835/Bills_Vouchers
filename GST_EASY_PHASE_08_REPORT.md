@@ -11,3 +11,8 @@ Outstanding: replace the overprivileged shared compute runtime identity with rev
 Reconciliation release follow-up: monitoring now updates the recorded dashboard in place with an etag and verifies its project/display name before replacement. The actual update succeeded for API `00117-ner` and web `00054-mel`; no duplicate dashboard or notification changes. Live smoke includes the new reconciliation authorization boundary. SMTP/signing-secret configuration remains active after deployment.
 
 Rollback uses saved traffic-before evidence and prior immutable image digests. Do not drop additive tables, audit history or retained evidence during application rollback. Production promotion requires separate explicit authorization.
+
+
+## Worker recovery - 15 October 2026
+
+Added audited worker claims with 35-minute inactivity expiry and claim checks inside canonical invoice/progress transactions. Eligible failed/stale uploads can be recovered through authorized history controls. The actual BigQuery integration passed concurrency, superseded-worker denial, tenant isolation and audit checks; see GST_EASY_JOB_RECOVERY.md. No new schema, queue configuration, IAM grant or production traffic change is required. Real Cloud Tasks/GCS/Vertex failure injection and load/cost measurements remain necessary. Older in-flight jobs are excluded from automatic recovery until their unfenced workers are reviewed.
