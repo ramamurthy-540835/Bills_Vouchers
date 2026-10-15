@@ -15,7 +15,20 @@ AUDIENCE='https://bills-voucher-foovqasysa-el.a.run.app'
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--api-build',required=True);parser.add_argument('--web-build',required=True)
     parser.add_argument('--platform-admin-email')
+    parser.add_argument('--web-service-account')
     args=parser.parse_args()
+    web_identity=[]
+    if args.web_service_account:
+        expected_account=f'gst-easy-web-preview@{PROJECT}.iam.gserviceaccount.com'
+        if args.web_service_account!=expected_account:
+            raise RuntimeError('Only the dedicated preview frontend identity is supported by this change.')
+        identity=json.loads(gcloud('iam','service-accounts','describe',expected_account,'--project',PROJECT,'--format=json(email,disabled)'))
+        if identity.get('disabled') or identity.get('email')!=expected_account:
+            raise RuntimeError('Dedicated preview identity is unavailable.')
+        roles=gcloud('projects','get-iam-policy',PROJECT,'--flatten=bindings[]',
+                     '--filter=bindings.members:serviceAccount:'+expected_account,'--format=value(bindings.role)').strip()
+        if roles:raise RuntimeError('Preview frontend identity unexpectedly has project role grants. Review before deployment.')
+        web_identity=['--service-account',expected_account]
     images={}
     for kind,build_id in [('api',args.api_build),('web',args.web_build)]:
         build=json.loads(gcloud('builds','describe',build_id,'--project',PROJECT,'--format=json(status,results.images)'))
@@ -55,11 +68,17 @@ def main():
            '--remove-secrets','RED_TAXI_CLIENT_BOOTSTRAP','--timeout','1800','--memory','1Gi','--concurrency','4',*common)
     unchanged(api_before,state('bills-voucher'),TAG)
     gcloud('run','deploy','bills-voucher-web','--image',images['web'],'--update-env-vars','BACKEND_URL='+API,
-           '--remove-secrets','RED_TAXI_CLIENT_BOOTSTRAP','--timeout','1800',*common)
+           '--remove-secrets','RED_TAXI_CLIENT_BOOTSTRAP','--timeout','1800',*web_identity,*common)
     api_after,web_after=state('bills-voucher'),state('bills-voucher-web')
     unchanged(api_before,api_after,TAG);unchanged(web_before,web_after,TAG)
+    web_revision=next(row['revisionName'] for row in web_after if row.get('tag')==TAG)
+    web_account=gcloud('run','revisions','describe',web_revision,'--project',PROJECT,'--region',REGION,
+                       '--format=value(spec.serviceAccountName)').strip()
+    if args.web_service_account and web_account!=args.web_service_account:
+        raise RuntimeError('Deployed preview identity does not match the requested account.')
     report={'source_revision':revision,'url':WEB,'api_url':API,'images':images,'api':api_after,'web':web_after,
-            'existing_traffic_unchanged':True,'provider_configuration_present':readiness,'service_account':account}
+            'existing_traffic_unchanged':True,'provider_configuration_present':readiness,'service_account':account,
+            'web_service_account':web_account}
     (path/'deployment.json').write_text(json.dumps(report,indent=2))
     print(json.dumps(report,indent=2),flush=True)
 
