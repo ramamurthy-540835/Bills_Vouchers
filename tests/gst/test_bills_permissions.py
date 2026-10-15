@@ -58,6 +58,22 @@ def test_viewer_read_export_but_no_writes(api,invoice):
     assert client.post('/api/gst/bills/reconciliation/review?period=2026-09',json={}).status_code==403
 
 
+def test_dashboard_range_keeps_membership_boundary_and_private_cache(api,monkeypatch):
+    client,user,_=api
+    user.full_name='Viewer';user.email='viewer@example.test'
+    monkeypatch.setattr(gst_bills,'FinanceRepository',lambda _:SimpleNamespace(clients=lambda uid:[]))
+    monkeypatch.setattr(gst_bills.dashboard_report,'read_range',lambda store,months,evidence=True:
+        {month:{'source_hash':'a'*64,'invoices':store.list(month),'statements':[],
+                'filing':{'state':'draft','version':0}} for month in months})
+    response=client.get('/api/gst/bills/dashboard?period=2026-09&scope_name=quarter')
+    assert response.status_code==200
+    assert response.headers['cache-control']=='private, no-store'
+    assert response.json()['periods']==['2026-07','2026-08','2026-09']
+    assert client.get('/api/gst/bills/dashboard?period=2026-09&scope_name=all').status_code==422
+    monkeypatch.setattr(gst_bills,'active_client',lambda *args:SimpleNamespace(id='foreign'))
+    assert client.get('/api/gst/bills/dashboard?period=2026-09&scope_name=financial_year').status_code==403
+
+
 def test_reconciliation_is_scoped_and_export_retains_evidence(api, invoice):
     from io import BytesIO
     from openpyxl import load_workbook

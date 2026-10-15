@@ -11,10 +11,16 @@ from app.services.auth_identity import throttle
 from app.services.gst.medallion import param
 
 
+def configured():
+    """Configuration presence only; never implies provider delivery or verification."""
+    settings = get_settings()
+    return bool(re.fullmatch(r'VA[0-9a-fA-F]{32}', settings.twilio_verify_service_sid)
+                and settings.twilio_api_key and settings.twilio_api_secret)
+
+
 def provider_request(resource, data):
     settings = get_settings()
-    if not (re.fullmatch(r'VA[0-9a-fA-F]{32}', settings.twilio_verify_service_sid)
-            and settings.twilio_api_key and settings.twilio_api_secret):
+    if not configured():
         raise HTTPException(503, 'Mobile verification is not configured. Please contact support.')
     url = 'https://verify.twilio.com/v2/Services/' + settings.twilio_verify_service_sid + '/' + resource
     try:

@@ -15,6 +15,7 @@ jobs={}
 deleted_items={}
 user=SimpleNamespace(id='browser-user',full_name='Browser User',email='browser@example.test',role='client')
 profile={'legal_name':'Red Taxi','business_nature':'passenger_transport','gstin':'','filing_frequency':'monthly'}
+mobile_service={'available':False}
 
 
 class Store:
@@ -23,7 +24,8 @@ class Store:
     def assert_writable(self,period):pass
     def __init__(self,repo,client_id):self.client_id=client_id
     def list(self,period=None,status=None):
-        return [i for i in items.values() if i.client_id==self.client_id and (not status or i.status==status)]
+        return [i for i in items.values() if i.client_id==self.client_id and (not status or i.status==status)
+                and (not period or (str(i.invoice_date)[:7] if i.invoice_date else i.selected_period)==period)]
     def get(self,id):
         if id not in items or items[id].client_id!=self.client_id:raise HTTPException(404)
         return items[id]
@@ -48,6 +50,8 @@ class Store:
 
 gst_bills.BillStore=Store
 gst_bills.reconciliation_reviews.returns.fingerprint=lambda *args:'a'*64
+gst_bills.dashboard_report.read_range=lambda store,months,evidence=True:{month:{'source_hash':'a'*64,
+    'invoices':store.list(month),'statements':[],'filing':{'state':'draft','version':0}} for month in months}
 gst_bills.active_client=lambda *args:SimpleNamespace(id='browser-client')
 gst_bills.profile_for=lambda *args:profile
 gst_bills.can=lambda user,action,*args:action=='bills:read' or user.role!='viewer'
@@ -68,7 +72,7 @@ def account_data():
             'user':{'id':user.id,'email':user.email,'full_name':user.full_name,'role':user.role,
                     'mobile_number':'+919876543210','mobile_verified':False},
             'clients':[{'id':'browser-client','name':'Synthetic Business'}],
-            'can_edit_profile':user.role!='viewer','is_owner':True,'require_otp':True}
+            'can_edit_profile':user.role!='viewer','is_owner':True,'require_otp':True,'mobile_verification_available':mobile_service['available']}
 
 
 @app.post('/api/workspace/period')
@@ -82,6 +86,13 @@ def health():return {'ok':True}
 @app.post('/__test__/reset')
 def reset():
     items.clear();deleted_items.clear();objects.clear();jobs.clear();user.role='client';profile['gstin']=''
+    mobile_service['available']=False
+    return {'ok':True}
+
+
+@app.post('/__test__/sms-configured')
+def sms_configured():
+    mobile_service['available']=True
     return {'ok':True}
 
 

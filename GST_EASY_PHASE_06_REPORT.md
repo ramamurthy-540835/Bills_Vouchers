@@ -22,3 +22,15 @@ Verification: backend reports/API tests cover privacy, tenant boundaries, signed
 Remaining: credit-ledger integration, genuine financial tracing and independent accountant acceptance, dashboard-wide quarter/FY calculations, broader report formats where needed, real assistant security/injection UAT. GST_EASY_AUDITOR_ACCEPTANCE.md provides the review matrix; the user has requested an auditor but no sign-off is recorded. Official GST adapters remain unverified and no report is labelled filing-ready.
 
 Rollback: restore paired prior preview revisions and retain all source/audit data. No data rollback is required for this read-only feature. Deployment details and immutable images are recorded separately.
+
+## Dashboard ranges and activity - 15 October 2026
+
+Added month, quarter and Indian financial-year dashboard views, signed confirmed sales/purchase invoice totals, pending review counts, two-sided reconciliation mismatch/unmatched counts, and monthly return-preparation states with stale-source warnings. Each month links to its bills and return workflow; report links preserve the complete range. A refresh failure explicitly leaves previously loaded figures visible. The range view sums each month's independent calculations; it never pools monthly credits or claims to implement carry-forward. Current business-profile rules are used, matching existing reporting; historical profile-effective-date financial acceptance remains required.
+
+Two bounded, parameterized BigQuery reads retrieve and recheck canonical evidence/return states for the entire range. Changed evidence or state returns 409. Membership checks remain at the backend; responses are private/no-store. Invoice, line and statement bounds reject excessive requests without partial totals. Year boundaries outside the supported 2000-2099 periods are rejected. No schema or calculation-rule changes.
+
+Actual read-only BigQuery integration passed at 14:06 UTC: month 3.993s, quarter 3.583s, financial year 5.532s on the small synthetic dataset. Each range required two queries; each query was billed 52,428,800 bytes despite the tiny fixture. These are measured development baselines, not production latency/cost acceptance. Cross-client results were empty. Evidence: artifacts/gst_easy/dashboard-integration.json.
+
+Browser testing exposed a pre-existing period-selection race: reading the input again after awaiting the period save could navigate to its previous controlled value. The handler now captures the selected value synchronously and preserves other URL filters. The complete 16-journey suite passed after correction, including range reload, financial-year boundaries, failed refresh recovery and 390px layout.
+
+Files: app/gst/dashboard.py, app/routers/gst_bills.py, app/gst/reports.py, frontend/app/gst-easy-dashboard.tsx, workspace-server.tsx, workspace.tsx, gst/workspace/page.tsx, dashboard/API/browser regressions and scripts/check_dashboard_integration.py. Roll back paired previews only; no data migration is needed. Do not roll back the period-selection fix without considering its navigation defect.

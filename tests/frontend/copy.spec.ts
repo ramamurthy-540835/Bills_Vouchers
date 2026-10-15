@@ -1,5 +1,32 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 
+test('dashboard ranges persist and preserve evidence links with recoverable refresh',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic dashboard test is local only')
+ await page.goto('/gst/workspace?period=2026-09')
+ await page.getByLabel('Dashboard period',{exact:true}).selectOption('quarter')
+ await expect(page).toHaveURL(/range=quarter/)
+ await expect(page.getByText(/2026-07 to 2026-09/)).toBeVisible()
+ await expect(page.getByRole('link',{name:'View sales register'})).toHaveAttribute('href',/kind=sales&range=quarter/)
+ await expect(page.getByRole('link',{name:'Review bills for 2026-07'})).toHaveAttribute('href','/bills?period=2026-07')
+ await page.reload()
+ await expect(page.getByLabel('Dashboard period',{exact:true})).toHaveValue('quarter')
+ await page.route('**/api/gst/bills/dashboard?*',route=>route.fulfill({status:409,json:{detail:'Evidence changed. Retry.'}}))
+ await page.getByRole('button',{name:'Refresh dashboard'}).click()
+ await expect(page.getByRole('region',{name:'Dashboard filters'}).getByRole('alert')).toContainText('Evidence changed. Retry.')
+ await expect(page.getByRole('link',{name:'View sales register'})).toBeVisible()
+ await page.unroute('**/api/gst/bills/dashboard?*')
+ await page.getByRole('button',{name:'Refresh dashboard'}).click()
+ await expect(page.getByRole('region',{name:'Dashboard filters'}).getByRole('alert')).toHaveCount(0)
+ await page.getByLabel('Dashboard period',{exact:true}).selectOption('financial_year')
+ await expect(page.getByText(/2026-04 to 2027-03/)).toBeVisible()
+ await expect(page.getByText(/Credits are not transferred between months/)).toBeVisible()
+ await page.getByLabel('Return period',{exact:true}).fill('2026-03')
+ await expect(page.getByText(/2025-04 to 2026-03/)).toBeVisible()
+ await expect(page.getByLabel('Dashboard period',{exact:true})).toHaveValue('financial_year')
+ await page.setViewportSize({width:390,height:844})
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+})
+
 test('reports preserve filters, export a PDF and fit mobile screens',async({page})=>{
  test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic reporting is local only')
  await page.goto('/reports?period=2026-09&kind=tax')
@@ -254,10 +281,14 @@ test('password eyes retain values and support keyboard operation',async({page,co
  await expect(page.locator('.auth-card [role="alert"]')).toHaveText('Passwords do not match.')
 })
 
-test('mobile verification shows provider errors and preserves unverified state',async({page})=>{
+test('mobile verification shows provider errors and preserves unverified state',async({page,request})=>{
  test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic provider error test only')
  await page.goto('/settings/account')
  await expect(page.getByRole('heading',{name:'Mobile verification',exact:true})).toBeVisible()
+ await expect(page.getByText(/SMS verification is currently unavailable/)).toBeVisible()
+ await expect(page.getByRole('button',{name:'Send verification code'})).toHaveCount(0)
+ await request.post('http://127.0.0.1:8103/__test__/sms-configured')
+ await page.reload()
  await page.route('**/api/auth/mobile/start',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'Mobile verification is not configured.'}})}))
  await page.getByRole('button',{name:'Send verification code'}).click()
  await expect(page.locator('.bv-card [role="alert"]')).toHaveText('Mobile verification is not configured.')

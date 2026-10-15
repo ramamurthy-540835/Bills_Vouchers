@@ -10,7 +10,7 @@ from typing import Any
 from uuid import uuid4, uuid5, NAMESPACE_URL
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Query
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from openpyxl import Workbook
 from pydantic import ValidationError
 from google.api_core.exceptions import InvalidArgument, PermissionDenied, FailedPrecondition
@@ -29,7 +29,7 @@ from app.gst.validate_invoice import validate_invoice
 from app.gst.file_checks import validate_file
 from app.gst.report import calculate
 from app.gst.reconciliation import compare, FIELDS
-from app.gst import reconciliation_reviews, reports
+from app.gst import reconciliation_reviews, reports, dashboard as dashboard_report
 from app.gst.matching import parse_gstr2b
 from app.gst.jobs import enqueue, run_job, public_job
 from app.services.tasks import verify_cloud_tasks_request
@@ -220,19 +220,16 @@ def list_bills(request: Request, period: str = '', status: str = '', repo=Depend
 
 
 @router.get('/dashboard')
-def dashboard(request: Request, period: str = '', repo=Depends(get_db), user=Depends(current_user)):
+def dashboard(request: Request, period: str = '', scope_name: str = 'month', repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user)
     period = selected_period(request, client, store, period)
-    invoices = store.list(period)
-    profile = profile_for(repo, client.id, period)
-    calculation = calculate(invoices, profile, store.matching_rows(period))
-    return clean({'client_id': str(client.id), 'period': period, 'profile': profile, 'sample': False,
+    calculation = dashboard_report.build(store, period, scope_name, lambda month: profile_for(repo, client.id, month))
+    return JSONResponse(clean({'client_id': str(client.id), 'period': period, 'sample': False,
         'test_workspace': bool(getattr(client, 'is_test', False)),
         'user': {'id': str(user.id), 'full_name': user.full_name, 'email': user.email, 'role': user.role},
         'clients': [{'id': c.id, 'name': c.name} for c in FinanceRepository(repo).clients(user.id)],
         'can_write': can(user, 'bills:write', client.id, repo),
-        'review_count': sum(i.status in {'needs_review', 'extracted'} for i in invoices),
-        'bill_count': len(invoices), **calculation})
+        **calculation}), headers={'Cache-Control': 'private, no-store'})
 
 
 @router.post('/gstr2b')

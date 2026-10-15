@@ -22,6 +22,17 @@ def test_missing_provider_never_verifies(monkeypatch):
     with pytest.raises(HTTPException) as exc:
         mobile.provider_request('Verifications', {})
     assert exc.value.status_code == 503
+    assert mobile.configured() is False
+
+
+def test_configuration_presence_does_not_call_provider(monkeypatch):
+    settings=SimpleNamespace(twilio_verify_service_sid='VA'+'a'*32,twilio_api_key='synthetic-key',twilio_api_secret='synthetic-secret')
+    monkeypatch.setattr(mobile,'get_settings',lambda:settings)
+    provider=Mock();monkeypatch.setattr(mobile.httpx,'post',provider)
+    assert mobile.configured() is True
+    settings.twilio_api_secret=''
+    assert mobile.configured() is False
+    provider.assert_not_called()
 
 
 def test_start_records_only_pending_provider_response(setup, monkeypatch):

@@ -37,7 +37,7 @@ def periods(period, scope):
         year, first, count = year if month >= 4 else year-1, 4, 12
     else:
         raise HTTPException(422, 'Choose month, quarter or financial year.')
-    if year < 1900 or year > 9998:
+    if year < 2000 or year > 2099 or (scope == 'financial_year' and year == 2099):
         raise HTTPException(422, 'Choose a supported reporting year.')
     return [f'{year+(first-1+i)//12:04d}-{(first-1+i)%12+1:02d}' for i in range(count)]
 

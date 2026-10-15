@@ -135,6 +135,7 @@ def phone(value):
 
 @router.get('/api/settings/account')
 def account(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from app.services.mobile_verification import configured
     client = active_client(request,repo,user)
     profile = Medallion(repo,client.id,'2026-09').profile()
     return clean({'client_id':client.id,'profile':profile,'user':{
@@ -144,7 +145,8 @@ def account(request: Request, repo=Depends(get_db), user=Depends(current_user)):
         'last_sign_in':getattr(user,'last_sign_in',None)},
         'clients':[{'id':c.id,'name':c.name} for c in FinanceRepository(repo).clients(user.id)],
         'can_edit_profile':can(user,'edit_profile',client.id,repo),
-        'is_owner':is_owner(repo,user,client.id),'require_otp':get_settings().require_otp})
+        'is_owner':is_owner(repo,user,client.id),'require_otp':get_settings().require_otp,
+        'mobile_verification_available':configured()})
 
 
 @router.post('/api/settings/account')
