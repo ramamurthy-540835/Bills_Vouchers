@@ -9,13 +9,15 @@ from .extract import extract
 from .schemas.invoice import GstInvoice, Extraction
 from .validate_invoice import validate_invoice
 from .naming import bill_filename
+from .job_state import retryable
 from fastapi import HTTPException
 
 logger=logging.getLogger(__name__)
 
 
 def public_job(job):
-    return {'job_id':job['job_id'],'status':job['status'],'files':[
+    return {'job_id':job['job_id'],'status':job['status'],'retryable':retryable(job),
+        'reason':job.get('reason'),'files':[
         {k:v for k,v in entry.items() if k in {'filename','status','invoice_ids','reason'}} for entry in job['files']]}
 
 
@@ -32,6 +34,22 @@ def enqueue(client_id,job_id,attempt=None):
             'headers':{'Content-Type':'application/json'},
             'oidc_token':{'service_account_email':settings.gst_bills_worker_account,'audience':settings.gst_bills_worker_audience or settings.gst_bills_worker_url},
             'body':json.dumps({'client_id':client_id,'job_id':job_id}).encode()}}})
+
+
+def run_job(store, profile, actor, job):
+    claimed = store.claim_job(job['job_id'], actor)
+    if claimed['status'] == 'completed':
+        return claimed
+    try:
+        return process_job(store, profile, actor, claimed)
+    except Exception:
+        claimed['status'] = 'needs_attention'
+        claimed['reason'] = 'Processing stopped. Your originals and saved progress are retained. Retry from upload history.'
+        try:
+            store.job(claimed['job_id'], claimed)
+        except Exception:
+            logger.exception('Worker could not record failure; its claim may have expired')
+        raise
 
 
 def process_job(store,profile,actor,job):
@@ -61,7 +79,7 @@ def process_job(store,profile,actor,job):
             for index,invoice in enumerate(invoices):
                 invoice.invoice_id=str(uuid5(NAMESPACE_URL,f'{store.client_id}/{entry["doc_id"]}/{index}'))
                 invoice.selected_period=job['period']
-            entry['extracted_ref']=store.upload_object(json.dumps([i.model_dump(mode='json') for i in invoices]).encode(),entry['doc_id'],'invoice.json','silver','application/json')
+            entry['extracted_ref']=store.upload_object(json.dumps([i.model_dump(mode='json') for i in invoices]).encode(),entry['doc_id'],f"invoice-{job.get('worker_token','local')}.json",'silver','application/json')
             store.job(job['job_id'],job)
         needs_attention=False
         for invoice in invoices:
@@ -76,7 +94,7 @@ def process_job(store,profile,actor,job):
                 try:
                     store.save(saved,actor,'upload',selected_period=job['period'])
                 except HTTPException as exc:
-                    if exc.status_code != 409:
+                    if exc.status_code != 409 or not isinstance(exc.detail, dict) or exc.detail.get('code') != 'bill_conflict':
                         raise
                     entry['reason']='This bill was already saved or changed in another upload. Refresh your bills.'
                     needs_attention=True

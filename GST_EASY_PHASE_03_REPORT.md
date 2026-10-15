@@ -36,3 +36,8 @@ Queue-timeout repair and stale-running-job recovery need an operations workflow 
 ## Rollback
 
 Roll back the paired frontend/API preview revisions. Keep retained original files, deleted audit payloads and job history. Never purge restored/deleted evidence to roll back code. Older code lacks the new deleted-evidence and freeze protections, so do not promote an older build for real financial writes without reviewing those limitations. Production traffic remains unchanged.
+
+
+## Durable recovery follow-up - 15 October 2026
+
+Added transactionally claimed workers, claim-checked progress and invoice writes, audited retry, preserved extraction checkpoints and recovery controls for failed/stale protocol-1 jobs. Inactivity threshold is 35 minutes. Legacy in-flight jobs without the new protocol require operator review. Filing locks now propagate instead of being mislabeled as duplicate invoices. No schema migration or historical job backfill. See GST_EASY_JOB_RECOVERY.md for implementation, tests, operator procedure and rollback constraints. 284 backend tests, 14 browser tests, Ruff/mypy and frontend production build passed. Actual Cloud Tasks/GCS/Vertex failure injection, retention acceptance and authenticated customer UAT remain open; Phase 03 is not fully accepted.

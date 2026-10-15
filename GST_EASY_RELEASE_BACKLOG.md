@@ -5,11 +5,11 @@ The Phase 00-09 master prompt remains the acceptance contract. This list superse
 1. Phase 00: complete current cloud/schema/IAM inventory and reproducible release evidence. Keep historical baseline failures separate from current passing checks.
 2. Phase 01: verify actual email verification/recovery/security notification delivery across recipient providers; configure and test approved SMS verification; review mobile-duplicate policy; measure registration/throttling concurrency and cost. SMTP is configured, but inbox delivery is not proven.
 3. Phase 02: validate actual invitation delivery, private logo storage round trips, revoked-access UI and customer role policy.
-4. Phase 03: implement audited stale-job/uncertain-dispatch recovery; inject failures around storage, enqueue, extraction and writes; verify durable refresh, live extraction and retention/restore policy.
+4. Phase 03: validate deployed audited stale-job recovery with real queue delivery; inject failures around storage, enqueue, extraction and writes; verify durable refresh, live extraction and retention/restore policy.
 5. Phase 04: obtain accountant examples and verified current rules; implement evidence-backed credit-ledger movements and line-level eligibility; extend supported statement sections/amendments/notes according to verified specifications. Auditable review acknowledgement is implemented; it does not resolve financial mismatches or override ITC.
 6. Phase 05: add verified versioned GSTR-1/GSTR-3B exports and validators, nil-return coverage and accountant maker-checker acceptance. Canonical snapshots, locks and review-dependent stale-data prevention are implemented.
 7. Phase 06: complete reports/PDF exports, KPI drilldowns and period coverage; validate scoped assistant behavior against prompt injection and genuine source evidence.
-8. Phase 07: complete all visible-action/accessibility/refresh audits and actual notification journeys. Thirteen local browser scenarios pass, not the entire acceptance inventory.
+8. Phase 07: complete all visible-action/accessibility/refresh audits and actual notification journeys. Fourteen local browser scenarios pass, not the entire acceptance inventory.
 9. Phase 08: replace overprivileged shared identity safely; measure API/query/AI/queue costs and latency; deliver alerts; demonstrate backup restoration and recovery; obtain retention and independent security review.
 10. Phase 09: authorized genuine-client UAT, independent accountant acceptance, immutable release/rollback evidence and owner approval before production promotion.
 

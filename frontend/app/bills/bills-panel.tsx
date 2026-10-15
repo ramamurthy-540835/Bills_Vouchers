@@ -30,9 +30,9 @@ export default function BillsPanel({data}:{data:any}){
  useEffect(()=>{const id=new URLSearchParams(window.location.search).get('invoice');if(id)open(id)},[period,data.client_id])
  useEffect(()=>{setRejectionReason('')},[selected?.invoice_id])
  async function loadHistory(){try{setHistory((await api(`/history?period=${period}`)).jobs);if(write)setDeleted((await api(`/deleted?period=${period}`)).invoices)}catch(e){setMessage((e as Error).message)}}
- async function retryUpload(id:string){setBusy(true);try{let job=await api(`/upload/${id}/retry`,'POST');sessionStorage.setItem(jobKey,id);while(!['completed','needs_attention'].includes(job.status)){setJobs(job.files);await new Promise(resolve=>setTimeout(resolve,1500));job=await api(`/upload/${id}`)}sessionStorage.removeItem(jobKey);setJobs(job.files);await reload();await loadHistory()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
+ async function retryUpload(id:string){setBusy(true);try{let job=await api(`/upload/${id}/retry`,'POST');sessionStorage.setItem(jobKey,id);while(!['completed','needs_attention'].includes(job.status)&&!job.retryable){setJobs(job.files);await new Promise(resolve=>setTimeout(resolve,1500));job=await api(`/upload/${id}`)}sessionStorage.removeItem(jobKey);if(job.retryable)setMessage('Processing needs attention. Open upload history to retry the saved upload.');setJobs(job.files);await reload();await loadHistory()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  async function restore(invoice:any){if(!window.confirm('Restore this bill for review? It will require confirmation again.'))return;setBusy(true);try{await api(`/${invoice.invoice_id}/restore`,'POST',undefined,invoice.version);await reload();await loadHistory();setMessage('Bill restored for review.')}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
- useEffect(()=>{let active=true;const id=sessionStorage.getItem(jobKey);if(id){setBusy(true);(async()=>{try{while(active){const job=await api(`/upload/${id}`);if(!active)return;setJobs(job.files);await reload();if(job.status==='completed'||job.status==='needs_attention'){sessionStorage.removeItem(jobKey);break}await new Promise(resolve=>setTimeout(resolve,1500))}}catch(e){if(active)setMessage((e as Error).message)}finally{if(active)setBusy(false)}})()}return()=>{active=false}},[jobKey])
+ useEffect(()=>{let active=true;const id=sessionStorage.getItem(jobKey);if(id){setBusy(true);(async()=>{try{while(active){const job=await api(`/upload/${id}`);if(!active)return;setJobs(job.files);await reload();if(job.status==='completed'||job.status==='needs_attention'||job.retryable){sessionStorage.removeItem(jobKey);if(job.retryable)setMessage('Processing needs attention. Open upload history to retry the saved upload.');break}await new Promise(resolve=>setTimeout(resolve,1500))}}catch(e){if(active)setMessage((e as Error).message)}finally{if(active)setBusy(false)}})()}return()=>{active=false}},[jobKey])
  async function upload(files:FileList|File[]|null){
   if(!files?.length||busy)return
   const chosen=Array.from(files)
@@ -43,7 +43,7 @@ export default function BillsPanel({data}:{data:any}){
    const body=new FormData();body.append('files',file)
    let job=await api(`/upload?period=${period}`,'POST',body)
    sessionStorage.setItem(jobKey,job.job_id)
-   while(job.status!=='completed'&&job.status!=='needs_attention'){
+   while(job.status!=='completed'&&job.status!=='needs_attention'&&!job.retryable){
     setJobs([...completed,...job.files,...chosen.slice(completed.length+1).map(f=>({filename:f.name,status:'reading'}))])
     await new Promise(resolve=>setTimeout(resolve,1500));job=await api(`/upload/${job.job_id}`)
    }
@@ -70,7 +70,7 @@ export default function BillsPanel({data}:{data:any}){
   {!selected&&message&&<p className="notice" role="status">{message}</p>}
   {opening&&<p role="status">Opening bill...</p>}
   <section className="bv-card"><button className="button secondary" disabled={busy} onClick={loadHistory}>Upload history and deleted bills</button>
-   {history.map(job=><div key={job.job_id}><p>Upload: {job.status}</p>{write&&job.status==='needs_attention'&&<button className="button secondary" disabled={busy} onClick={()=>retryUpload(job.job_id)}>Retry saved upload</button>}<ul>{job.files.map((file:any,index:number)=><li key={index}>{file.filename} — {file.status}{file.reason&&<p>{file.reason}</p>}</li>)}</ul></div>)}
+   {history.map(job=><div key={job.job_id}><p>Upload: {job.status}</p>{job.reason&&<p>{job.reason}</p>}{job.retryable&&job.status!=='needs_attention'&&<p>Processing has been inactive for at least 35 minutes. You can safely retry the saved upload.</p>}{write&&(job.retryable||job.status==='needs_attention')&&<button className="button secondary" disabled={busy} onClick={()=>retryUpload(job.job_id)}>Retry saved upload</button>}<ul>{job.files.map((file:any,index:number)=><li key={index}>{file.filename} — {file.status}{file.reason&&<p>{file.reason}</p>}</li>)}</ul></div>)}
    {deleted.map(invoice=><p key={invoice.invoice_id}>{invoice.filename} <button className="button secondary" disabled={busy} onClick={()=>restore(invoice)}>Restore for review</button></p>)}
   </section>
   <>

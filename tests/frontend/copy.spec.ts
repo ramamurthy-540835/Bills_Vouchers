@@ -1,5 +1,26 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 
+test('stale uploads can be recovered from history while active uploads cannot',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic recovery is local only')
+ let recovered=false
+ const files=[{filename:'retained-original.pdf',status:'reading',invoice_ids:[]}]
+ await page.route('**/api/gst/bills/history?*',route=>route.fulfill({json:{jobs:[
+  {job_id:'stale',status:recovered?'completed':'reading',retryable:!recovered,files},
+  {job_id:'active',status:'reading',retryable:false,files}
+ ]}}))
+ await page.route('**/api/gst/bills/upload/stale/retry',route=>{
+  expect(route.request().method()).toBe('POST');recovered=true
+  return route.fulfill({json:{job_id:'stale',status:'completed',retryable:false,files}})
+ })
+ await page.goto('/bills?period=2026-09')
+ await page.getByRole('button',{name:'Upload history and deleted bills'}).click()
+ await expect(page.getByText('Processing has been inactive for at least 35 minutes. You can safely retry the saved upload.')).toBeVisible()
+ await expect(page.getByRole('button',{name:'Retry saved upload'})).toHaveCount(1)
+ await page.getByRole('button',{name:'Retry saved upload'}).click()
+ await expect(page.getByText('Upload: completed',{exact:true})).toBeVisible()
+ await expect(page.getByRole('button',{name:'Retry saved upload'})).toHaveCount(0)
+})
+
 test('reconciliation reviews preserve failed edits, record history and restrict client controls',async({page})=>{
  test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic review workflow is local only')
  let version=0,fail=true,canReview=true

@@ -46,6 +46,7 @@ def api(monkeypatch,invoice,profile):
 
 def test_viewer_read_export_but_no_writes(api,invoice):
     client,user,_=api
+    assert client.post('/api/gst/bills/upload/foreign-job/retry').status_code==403
     assert client.get('/api/gst/bills?period=2026-09').status_code==200
     assert client.get('/api/gst/bills/export?period=2026-09&format=csv').status_code==200
     assert client.get('/api/gst/bills/template.xlsx').status_code==200

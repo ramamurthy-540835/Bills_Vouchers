@@ -11,9 +11,10 @@ from app.services.gst.medallion import param
 from .schemas.invoice import GstInvoice
 from .validate_invoice import financial_year
 from .naming import bill_filename
+from .job_state import JobState, payload as job_payload
 
 
-class BillStore:
+class BillStore(JobState):
     def __init__(self, repo, client_id):
         self.repo, self.client_id = repo, str(client_id)
         project = repo.settings.gcp_project_id
@@ -28,6 +29,8 @@ class BillStore:
         try:
             return self.repo.query(sql, [param('client_id', self.client_id), *params])
         except BadRequest as exc:
+            if 'worker claim lost' in str(exc).lower():
+                raise RuntimeError('Worker claim lost; stop processing this upload.') from None
             if 'filing period frozen' in str(exc).lower():
                 raise HTTPException(409, 'This filing period is frozen. An authorized reopen is required.') from None
             raise
@@ -91,10 +94,13 @@ class BillStore:
                   param('fy', financial_year(invoice.invoice_date) if invoice.invoice_date else None, 'INT64'),
                   param('supplier', invoice.supplier_gstin), param('number', invoice.invoice_number.strip().upper()),
                   param('status', invoice.status)]
+        fence, fence_params = self.worker_fence()
+        params.extend(fence_params)
         sql = f'''BEGIN TRANSACTION;
         ASSERT (SELECT COUNT(*) FROM {lock} WHERE client_id='__guard__')=1 AS 'Storage guard missing';
         UPDATE {lock} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
         {self.writable_sql()}
+        {fence}
         ASSERT @expected>0 OR @action='restore' OR NOT EXISTS(SELECT 1 FROM {self.table('ops', 'gst_bill_audit')} WHERE client_id=@client_id AND invoice_id=@id AND action='delete') AS 'Bill changed; restore deleted evidence explicitly';
         ASSERT @action!='restore' OR (SELECT CAST(JSON_VALUE(before_payload,'$.version') AS INT64) FROM {self.table('ops', 'gst_bill_audit')} WHERE client_id=@client_id AND invoice_id=@id AND action='delete' ORDER BY created_at DESC LIMIT 1)=@version-1 AS 'Bill changed; reload';
         ASSERT COALESCE((SELECT version FROM {table} WHERE client_id=@client_id AND invoice_id=@id),0)=@expected AS 'Bill changed; reload';
@@ -141,35 +147,10 @@ class BillStore:
         return GstInvoice.model_validate(json.loads(payload) if isinstance(payload,str) else payload)
 
     def job_history(self, period):
-        rows = self.query(f'''SELECT payload FROM {self.table('ops', 'gst_bill_job')}
+        rows = self.query(f'''SELECT payload,updated_at FROM {self.table('ops', 'gst_bill_job')}
             WHERE client_id=@client_id AND JSON_VALUE(payload,'$.period')=@period
             ORDER BY updated_at DESC LIMIT 100''', [param('period',period)])
-        return [json.loads(r['payload']) if isinstance(r['payload'],str) else r['payload'] for r in rows]
-
-    def retry_job(self, job_id):
-        job = self.job(job_id)
-        self.assert_writable(job['period'])
-        if job['status']!='needs_attention':
-            raise HTTPException(409, 'Only an upload that failed to start can be retried here.')
-        job['status']='queued'
-        for entry in job['files']:
-            if not entry.get('invoice_ids'):
-                entry['status']='reading'
-                entry.pop('reason',None)
-        try:
-            self.query(f'''BEGIN TRANSACTION;
-                UPDATE {self.table('ops','gst_bill_lock')} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
-                ASSERT @@row_count=1 AS 'Storage guard missing';
-                {self.writable_sql()}
-                UPDATE {self.table('ops','gst_bill_job')} SET payload=PARSE_JSON(@payload),updated_at=CURRENT_TIMESTAMP()
-                WHERE client_id=@client_id AND job_id=@id AND JSON_VALUE(payload,'$.status')='needs_attention';
-                ASSERT @@row_count=1 AS 'Upload changed';
-                COMMIT TRANSACTION;''',[param('id',job_id),param('payload',json.dumps(job)),param('period',job['period']),param('previous_period',job['period'])])
-        except (BadRequest,Conflict) as exc:
-            if any(word in str(exc).lower() for word in ('upload changed','concurrent','aborted')):
-                raise HTTPException(409, 'This upload is already being retried. Refresh its status.') from None
-            raise
-        return job
+        return [{**(json.loads(r['payload']) if isinstance(r['payload'],str) else r['payload']), '_updated_at':str(r['updated_at'])} for r in rows]
 
     def delete(self, invoice, actor):
         if invoice.client_id != self.client_id:
@@ -228,6 +209,21 @@ class BillStore:
 
     def job(self, job_id, payload=None):
         table = self.table('ops', 'gst_bill_job')
+        if payload is not None and self.worker_token:
+            fence, params = self.worker_fence()
+            self.query(f'''BEGIN TRANSACTION;
+                UPDATE {self.table('ops','gst_bill_lock')} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
+                ASSERT @@row_count=1 AS 'Storage guard missing';
+                {fence}
+                IF JSON_VALUE(@payload,'$.status') IN ('completed','needs_attention') THEN
+                  INSERT INTO {self.table('ops','gst_bill_audit')}
+                  SELECT @client_id,NULL,JSON_VALUE(payload,'$.actor_id'),'job_finished',payload,PARSE_JSON(@payload),CURRENT_TIMESTAMP()
+                  FROM {table} WHERE client_id=@client_id AND job_id=@id;
+                END IF;
+                UPDATE {table} SET payload=PARSE_JSON(@payload),updated_at=CURRENT_TIMESTAMP()
+                WHERE client_id=@client_id AND job_id=@id;
+                COMMIT TRANSACTION;''', [*params,param('id',job_id),param('payload',job_payload(payload))])
+            return payload
         if payload is not None:
             self.query(f'''MERGE {table} T USING (SELECT @client_id client_id,@id job_id) S
                 ON T.client_id=S.client_id AND T.job_id=S.job_id
@@ -235,11 +231,11 @@ class BillStore:
                 WHEN NOT MATCHED THEN INSERT VALUES (@client_id,@id,PARSE_JSON(@payload),CURRENT_TIMESTAMP())''',
                 [param('id', job_id), param('payload', json.dumps(payload))])
             return payload
-        rows = self.query(f'SELECT payload FROM {table} WHERE client_id=@client_id AND job_id=@id', [param('id', job_id)])
+        rows = self.query(f'SELECT payload,updated_at FROM {table} WHERE client_id=@client_id AND job_id=@id', [param('id', job_id)])
         if not rows:
             raise HTTPException(404, 'Upload not found.')
         value = rows[0]['payload']
-        return json.loads(value) if isinstance(value, str) else value
+        return {**(json.loads(value) if isinstance(value, str) else value), '_updated_at':str(rows[0]['updated_at'])}
 
     def usage(self, doc_id, input_tokens, output_tokens):
         self.query(f'INSERT INTO {self.table("ops", "extraction_log")} VALUES (@client_id,@doc,@model,@input,@output,CURRENT_TIMESTAMP())',

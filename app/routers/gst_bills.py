@@ -31,7 +31,7 @@ from app.gst.report import calculate
 from app.gst.reconciliation import compare, FIELDS
 from app.gst import reconciliation_reviews
 from app.gst.matching import parse_gstr2b
-from app.gst.jobs import enqueue, process_job, public_job
+from app.gst.jobs import enqueue, run_job, public_job
 from app.services.tasks import verify_cloud_tasks_request
 
 router = APIRouter(prefix='/api/gst/bills', tags=['Bills'])
@@ -103,7 +103,7 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
             raise HTTPException(422, 'Check the file format and size. Use a valid PDF, photo or the provided spreadsheet template.') from None
         content_files.append((filename, content))
     job_id = str(uuid4())
-    job: dict[str, Any] = {'job_id': job_id, 'status': 'queued', 'actor_id': str(user.id), 'period': period, 'files': []}
+    job: dict[str, Any] = {'job_id': job_id, 'status': 'queued', 'recovery_version': 1, 'actor_id': str(user.id), 'period': period, 'files': []}
     for filename, content in content_files:
         doc_id = str(uuid5(NAMESPACE_URL, f'{client.id}/{hashlib.sha256(content).hexdigest()}'))
         raw_ref = store.upload_object(content, doc_id, filename, 'bronze', mimetypes.guess_type(filename)[0] or 'application/octet-stream')
@@ -123,7 +123,7 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
             logger.exception('Bill enqueue outcome unknown',extra={'job_id':job_id})
             raise HTTPException(503, 'Your original bills are saved. Dispatch could not be confirmed; check upload history before uploading again.') from None
     else:
-        process_job(store, profile, str(user.id), job)
+        job=run_job(store, profile, str(user.id), job)
     return public_job(job)
 
 
@@ -143,7 +143,7 @@ async def worker(request: Request, repo=Depends(get_db)):
     if not actor or not can(actor, 'bills:write', store.client_id, repo):
         raise HTTPException(403, 'The uploader no longer has permission to save these bills.')
     from starlette.concurrency import run_in_threadpool
-    await run_in_threadpool(process_job, store, profile_for(repo,store.client_id,job['period']), str(actor.id), job)
+    await run_in_threadpool(run_job, store, profile_for(repo,store.client_id,job['period']), str(actor.id), job)
     return {'completed': True}
 
 
@@ -162,7 +162,7 @@ def upload_history(request: Request, period: str = '', repo=Depends(get_db), use
 @router.post('/upload/{job_id}/retry')
 def retry_upload(job_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
     client,store=scope(request,repo,user,'bills:write')
-    job=store.retry_job(job_id)
+    job=store.retry_job(job_id,str(user.id))
     if get_settings().gst_bills_queue:
         try:
             enqueue(str(client.id),job_id,uuid4().hex)
@@ -172,7 +172,7 @@ def retry_upload(job_id: str, request: Request, repo=Depends(get_db), user=Depen
             logger.exception('Bill retry enqueue outcome unknown',extra={'job_id':job_id})
             raise HTTPException(503, 'Retry dispatch could not be confirmed. Your original is retained; check upload history before retrying.') from None
     else:
-        process_job(store,profile_for(repo,client.id,job['period']),str(user.id),job)
+        job=run_job(store,profile_for(repo,client.id,job['period']),str(user.id),job)
     return public_job(job)
 
 

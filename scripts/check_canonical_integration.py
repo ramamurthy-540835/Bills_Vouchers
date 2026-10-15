@@ -102,6 +102,40 @@ def main():
         raise AssertionError('Duplicate retry accepted')
     except HTTPException as exc:
         assert exc.status_code==409
+    def claim(_):
+        candidate=Store(repo,'synthetic-a')
+        try:
+            candidate.claim_job('retry-job','synthetic-actor')
+            return 200,candidate
+        except HTTPException as exc:
+            return exc.status_code,candidate
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        claims=list(pool.map(claim,range(2)))
+    assert sorted(code for code,_ in claims)==[200,409]
+    old_worker=next(candidate for code,candidate in claims if code==200)
+    stale_job=old_worker.job('retry-job')
+    repo.query(f"UPDATE `{dataset_id}.gst_bill_job` SET updated_at=TIMESTAMP_SUB(CURRENT_TIMESTAMP(),INTERVAL 36 MINUTE) WHERE job_id='retry-job'")
+    store.retry_job('retry-job','recovering-actor')
+    new_worker=Store(repo,'synthetic-a')
+    fresh_job=new_worker.claim_job('retry-job','synthetic-actor')
+    for action in (lambda:old_worker.job('retry-job',stale_job),lambda:old_worker.save(GstInvoice(client_id='synthetic-a',source_doc_id='stale-worker-document',selected_period='2026-09'),'old-worker','upload')):
+        try:
+            action()
+            raise AssertionError('Superseded worker wrote progress or invoices')
+        except RuntimeError as exc:
+            assert 'Worker claim lost' in str(exc)
+    assert store.job('retry-job')['worker_token']==fresh_job['worker_token']
+    fresh_job['status']='completed'
+    new_worker.job('retry-job',fresh_job)
+    assert new_worker.claim_job('retry-job','synthetic-actor')['status']=='completed'
+    assert len(store.list())==1
+    audit=repo.query(f"SELECT actor_id FROM `{dataset_id}.gst_bill_audit` WHERE action='job_retry'")
+    assert any(row['actor_id']=='recovering-actor' for row in audit)
+    try:
+        Store(repo,'synthetic-b').retry_job('retry-job','foreign-actor')
+        raise AssertionError('Cross-client recovery allowed')
+    except HTTPException as exc:
+        assert exc.status_code==404
     maker=SimpleNamespace(id='maker',role='client');reviewer=SimpleNamespace(id='reviewer',role='tax_admin')
     prepared=returns.change(store,'2026-09',maker,'prepare',0,returns.fingerprint(store,'2026-09'),{'synthetic_sql_test':True})
     changed=restored.model_copy(deep=True);changed.version+=1
@@ -187,6 +221,7 @@ def main():
             'checks':['canonical_save','tenant_isolation','audited_delete','deleted_reupload_blocked','concurrent_restore','restore_needs_review','durable_job_history','single_retry_claim','statement_history_duplicate_and_tenant_checks','stale_snapshot_rejected','review_approval_lock_and_reopen','frozen_period_delete_import_and_date_move_blocked'],
             'concurrent_restore_statuses':outcomes,'concurrent_review_statuses':review_outcomes,
             'reconciliation_checks':['append_only_history','tenant_history_isolation','stale_evidence_denied','stale_reviews_visible','prepared_return_invalidated','period_locks','empty_review_hash_compatibility'],
+            'job_recovery_checks':['concurrent_claim_200_409','stale_retry','old_worker_progress_fenced','old_worker_invoice_write_fenced','completed_delivery_noop','retry_actor_audited','tenant_recovery_denied'],
             'table_expiry_hours':24}
     target=Path('artifacts/gst_easy/canonical-integration.json')
     target.parent.mkdir(parents=True,exist_ok=True)

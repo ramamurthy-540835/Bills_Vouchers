@@ -42,6 +42,8 @@ class Store:
     def download_object(self,ref,layer="bronze"):return objects[ref]
     def usage(self,*args):pass
     def matching_rows(self,period):return []
+    def statement_history(self,period):return []
+    def claim_job(self,id,actor):return jobs[id]
 
 
 gst_bills.BillStore=Store
