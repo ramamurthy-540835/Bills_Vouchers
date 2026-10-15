@@ -4,7 +4,18 @@ Frontend: https://gst-easy---bills-voucher-web-foovqasysa-el.a.run.app
 
 API: https://gst-easy---bills-voucher-foovqasysa-el.a.run.app
 
-Current deployed application source: `57dd7d87e80d4de62b8dcc9405472eea65532afd` on `GST_EASY`. Audited upload recovery is live alongside reconciliation review and client/platform administrator separation. Earlier details below remain historical evidence.
+Current deployed application source: `3e261f05f4bc7461cb589c038df8819e6b710d5d` on `GST_EASY`. Canonical reporting is live alongside audited upload recovery, reconciliation review and client/platform administrator separation. Earlier details below remain historical evidence.
+
+## Reporting release - 15 October, 13:29 UTC
+
+- API build `3d02c10c-7fe6-4c0a-9d21-2611e28f153b`, revision `bills-voucher-00121-xef`, image SHA256 `46db9114006c639c36be790fb0de083186ed2ad8517b0be2ee16ccfdc16db766`.
+- Web build `68e6acb0-0992-4c27-af93-ec9e39c76418`, revision `bills-voucher-web-00058-qar`, image SHA256 `6896c6d1622dd2b709c7c2a261757095e97c0e206df58bc0dcb6bb047d54ec9a`.
+- Both immutable builds succeeded. Only the two `gst-easy` tags moved. Production percentages and every other tag were verified unchanged. SMTP/signing secrets retained; Twilio remains unconfigured. No schema migration or financial write is required.
+- Seven report types, period filters and private CSV/Excel downloads are implemented; tax summaries also support PDF. See GST_EASY_PHASE_06_REPORT.md for scope and limitations.
+- Full backend run: 295 passed; subsequent final report-focused run: 11 passed, including an additional independent-scenario case. Ruff, mypy (73 files), frontend production build and all 15 local browser journeys passed. Actual BigQuery reporting integration passed; synthetic PDF visually checked.
+- Live health/readiness, public account pages, invalid-admin denial, unauthenticated reports/financial routes and worker denial passed. Desktop and 390px public browser checks passed. These checks did not create an account or prove authenticated customer UAT.
+- Existing monitoring dashboard updated to these revisions; notification channels unchanged.
+- Rollback: inspect current routing, then move only API `gst-easy` to `bills-voucher-00120-fun` and web `gst-easy` to `bills-voucher-web-00057-jud`. Preserve every other tag/percentage, secrets and evidence. No database rollback.
 
 ## Durable upload recovery release - 15 October, 12:48 UTC
 

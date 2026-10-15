@@ -6,7 +6,15 @@ Security evidence includes the automated permission, tenant, token, duplicate/co
 
 Deployment follow-up: both immutable images are live on new zero-traffic tags; original traffic and tags were preserved. A revision-scoped request/latency monitoring dashboard was created. Public endpoint/access smoke and desktop/mobile registration browser checks passed; see GST_EASY_DEPLOYMENT_REPORT.md.
 
-Outstanding: replace the overprivileged shared compute runtime identity with reviewed least-privilege identities; measured load/latency/cost budgets; stale-job/uncertain-dispatch repair; full backups and restoration; retention acceptance; delivered alerts; independent security review. These remain open despite the successful preview deployment.
+Outstanding: replace the overprivileged shared compute runtime identity with reviewed least-privilege identities; measured load/latency/cost budgets; legacy unfenced-job/uncertain-dispatch repair; production backups and recovery acceptance; retention acceptance; delivered alerts; independent security review. These remain open despite the successful preview deployment.
+
+## Synthetic restore evidence - 15 October, 13:27 UTC
+
+`scripts/check_restore_drill.py --run` passed against the existing labelled synthetic integration dataset. It restored 12 tables from a common BigQuery snapshot timestamp into `gst_easy_restore_test_c8be83b6f05b`, comparing row counts, content SHA-256 and schemas. Snapshot/restored tables expire after 24 hours. It also created, copied and restored a tiny synthetic object under `__gst_easy_restore_probe__/c8be83b6f05b/` in the existing private application bucket, verifying original/restored bytes and recording generations. Three objects are retained; no source deletion or overwrite occurred. Evidence: `artifacts/gst_easy/restore-drill.json`. Total drill runtime was 62.78 seconds, not a production RTO measurement.
+
+Two initial drill attempts failed on script SQL escaping and an overly restrictive table-name validator; both were corrected and the complete run passed. Their isolated tables also expire after 24 hours. No customer data was used. This tests restoration mechanics, not complete production disaster recovery: scheduled backups, independent failure domains, identity/configuration restoration, retention approval, production-scale RPO/RTO and operational recovery remain unaccepted.
+
+Read-only IAM audit confirmed the shared runtime identity still has broad project roles including Run admin, Artifact Registry writer, Cloud Build builder, Storage object admin, BigQuery data editor and Secret Manager accessor. No IAM role was removed or added. A dedicated identity rollout must account for queued OIDC worker identities and readiness bucket-metadata access; granting a new identity permission to impersonate the old privileged identity is not an acceptable shortcut. Production identity changes require a separately reviewed migration.
 
 Reconciliation release follow-up: monitoring now updates the recorded dashboard in place with an etag and verifies its project/display name before replacement. The actual update succeeded for API `00117-ner` and web `00054-mel`; no duplicate dashboard or notification changes. Live smoke includes the new reconciliation authorization boundary. SMTP/signing-secret configuration remains active after deployment.
 
