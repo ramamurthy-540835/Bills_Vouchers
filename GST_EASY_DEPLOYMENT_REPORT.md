@@ -4,7 +4,18 @@ Frontend: https://gst-easy---bills-voucher-web-foovqasysa-el.a.run.app
 
 API: https://gst-easy---bills-voucher-foovqasysa-el.a.run.app
 
-Current deployed application source: `3e261f05f4bc7461cb589c038df8819e6b710d5d` on `GST_EASY`. Canonical reporting is live alongside audited upload recovery, reconciliation review and client/platform administrator separation. Earlier details below remain historical evidence.
+Current deployed application source: `4e0fc00556a1a9af03030ba3df6dd0975c6f83f2` on `GST_EASY`. Dashboard ranges, period-navigation correction, SMS availability messaging and immutable evidence writes are live alongside canonical reporting and the existing workflows. Earlier details below remain historical evidence.
+
+## Dashboard, storage and frontend identity release - 15 October 2026
+
+- API build `b0099838-5278-4ae6-a122-225a9e4ce1c8`, revision `bills-voucher-00122-fof`, image SHA256 `f337c3b673061b53457c0c8a0df276a027796e1d2e104d8a7379de8a6ac09ca7`.
+- Web build `7cbf9795-9353-45d9-a8a8-63d272624632`, revision `bills-voucher-web-00059-cij`, image SHA256 `972256db6bca89b51387bff0712ce5c617ab8eed36feed759b02640444ed5ee0`.
+- Successful immutable builds deployed with no traffic, moving only `gst-easy`. Routing assertions confirmed existing production percentages and every other tag are unchanged. SMTP/signing bindings retained; Twilio remains unconfigured. No production database migration, queue identity change or historical data operation.
+- Frontend now uses `gst-easy-web-preview@aidirac-503309.iam.gserviceaccount.com`. The deploy helper verified it is enabled, has no direct project IAM role grants and is the actual deployed revision identity. No key or project role was created for it. The API still uses the shared compute account and requires a separate least-privilege migration.
+- Final combined validation: 308 backend tests, Ruff, mypy (74 files), Next production build and 16 browser journeys passed. Actual synthetic BigQuery range checks and GCS invoice/logo integration passed. See GST_EASY_PROGRESS_2026_10_15.md for exact scope and corrections.
+- Live desktop/mobile public browser smoke passed at 14:30 UTC. Health/readiness, public auth pages, unauthorized financial routes including annual dashboard, invalid-admin denial and worker denial passed at 15:05 UTC. Registration still reaches expected mobile validation (422) instead of a delivery-configuration error. No real account, email or authenticated customer UAT was performed.
+- Existing monitoring dashboard now tracks these revisions; notification channels unchanged.
+- Rollback: inspect current routing and move only API `gst-easy` to `bills-voucher-00121-xef` and web `gst-easy` to `bills-voucher-web-00058-qar`. This also restores the older privileged frontend identity and removes evidence-write protection; a safer reviewed rollback can redeploy the prior frontend image using the dedicated identity. Never delete evidence or grant additional roles merely to complete rollback. Production and other tags must remain unchanged.
 
 ## Reporting release - 15 October, 13:29 UTC
 

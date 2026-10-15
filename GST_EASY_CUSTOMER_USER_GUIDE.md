@@ -1,5 +1,9 @@
 # GST Easy preview guide
 
+Dashboard: select a month, quarter or financial year in Dashboard period. Confirmed sales/purchases include tax and signed credit notes. Review counts and reconciliation indicators link to supporting reports; the monthly table opens the exact bills or return workflow. Quarter/year cash estimates sum independent monthly calculations and do not carry credit between months. Refresh dashboard reloads current evidence; a failed refresh is explicitly labelled and retains previously loaded values.
+
+Mobile verification: if SMS service is unavailable, your number remains unverified and the page explains the limitation. A configured provider must actually approve a valid code before the account can show Verified.
+
 1. Sign in with an existing authorized account. Registration asks for full name, email, country/mobile, business name, password and confirmation. Real email verification requires configured delivery. Never share passwords in support reports.
 2. Open Business onboarding from the account menu. Save progress, complete business details and manage the private logo. GSTIN format validation does not prove government registration.
 3. Owners can invite staff from Workspace access. Invitations bind to the invited verified email. Revoked memberships lose business access.

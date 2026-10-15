@@ -16,7 +16,7 @@ The successful run at 14:15:56 UTC used synthetic tenant `__gst_easy_storage_pro
 
 ## Validation and migration
 
-304 backend tests passed before the storage addition; all 156 GST tests subsequently passed, followed by 14 permission/API checks including the new dashboard route. Ruff and mypy (74 files) passed. Next production build and all 16 browser journeys passed. Dashboard and storage cloud integrations passed. Browser fixtures remain local-only and are not registered in the production app.
+The final full suite passed all 308 backend tests. Ruff and mypy (74 files) passed. Next production build and all 16 browser journeys passed. Dashboard and storage cloud integrations passed. Browser fixtures remain local-only and are not registered in the production app. Initial focused tests exposed a duplicate synthetic invoice number in the test fixture; it was given a distinct credit-note number. The complete regression run resolved the fixture-selection errors from an earlier mixed-path test invocation. Remaining warnings concern existing framework deprecations and pytest cache creation, not skipped acceptance tests.
 
 No production schema migration is required. The storage probe creates only a profile-audit table in the existing synthetic dataset. Deployment must pair frontend/API. Restore prior preview tags to roll back; retain originals, canonical copies, logo archives and audits. No production traffic promotion is authorized.
 
