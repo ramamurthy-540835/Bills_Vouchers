@@ -10,7 +10,7 @@ from ...db import get_db
 from ...repository import FinanceRepository
 from ...routes import current_user, active_client
 from .medallion import Medallion, clean, clear_cache, param
-from .profiles import validate_gstin
+from .profiles import validate_gstin, website_url, company_checks
 from .membership_permissions import is_owner
 from .validation import VALID_STATE_CODES
 
@@ -146,7 +146,7 @@ def account(request: Request, repo=Depends(get_db), user=Depends(current_user)):
         'clients':[{'id':c.id,'name':c.name} for c in FinanceRepository(repo).clients(user.id)],
         'can_edit_profile':can(user,'edit_profile',client.id,repo),
         'is_owner':is_owner(repo,user,client.id),'require_otp':get_settings().require_otp,
-        'mobile_verification_available':configured()})
+        'mobile_verification_available':configured(), 'company_checks':company_checks(profile)})
 
 
 @router.post('/api/settings/account')
@@ -176,8 +176,13 @@ async def save_profile(request: Request, repo=Depends(get_db), user=Depends(curr
     if body.get('profile_id') and str(body['profile_id']) != str(previous['profile_id']):
         raise HTTPException(409, 'The business profile changed. Reload before saving.')
     fields = ['legal_name','trade_name','contact_email','contact_phone','contact_person','principal_address',
-              'constitution','registration_type','filing_frequency','state_code','pan']
+              'constitution','registration_type','filing_frequency','state_code','pan','website_url']
     changes = {k:str(body[k]).strip() for k in fields if k in body}
+    if 'website_url' in body:
+        try:
+            changes['website_url'] = website_url(body['website_url'])
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
     if 'legal_name' in changes and not changes['legal_name']:
         raise HTTPException(422,'Legal name is required.')
     if any(len(v)>2000 for v in changes.values()):

@@ -1,5 +1,25 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 
+test('company website edits retain errors and government verification is explicit',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic profile test is local only')
+ await page.goto('/settings/profile')
+ await expect(page.getByRole('heading',{name:'Saved company checks'})).toBeVisible()
+ await expect(page.getByText(/A valid format does not prove an active GST registration/)).toBeVisible()
+ await expect(page.getByRole('link',{name:'Check taxpayer on the official GST portal'})).toHaveAttribute('href','https://services.gst.gov.in/services/searchtp')
+ await page.getByLabel('Company website',{exact:true}).fill('https://example.com/company')
+ await page.route('**/api/settings/profile',route=>{
+  const body=route.request().postDataJSON()
+  expect(body.client_id).toBe('browser-client');expect(body.website_url).toBe('https://example.com/company')
+  expect(body.gstin_verified).toBeUndefined()
+  return route.fulfill({status:409,json:{detail:'Profile changed. Reload before saving.'}})
+ })
+ await page.getByRole('button',{name:'Save business details'}).click()
+ await expect(page.getByRole('status')).toContainText('Profile changed. Reload before saving.')
+ await expect(page.getByLabel('Company website',{exact:true})).toHaveValue('https://example.com/company')
+ await page.setViewportSize({width:390,height:844})
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+})
+
 test('dashboard ranges persist and preserve evidence links with recoverable refresh',async({page})=>{
  test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic dashboard test is local only')
  await page.goto('/gst/workspace?period=2026-09')

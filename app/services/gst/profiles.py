@@ -3,8 +3,50 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from uuid import uuid4
+from urllib.parse import urlsplit, urlunsplit
+import re
 
 from .validation import BASE36, GSTIN_RE, VALID_STATE_CODES
+
+
+def website_url(value) -> str:
+    """Validate a public website reference without fetching it or claiming ownership."""
+    if not isinstance(value, str):
+        raise ValueError('Enter a website URL as text.')
+    value = value.strip()
+    if not value:
+        return ''
+    if len(value) > 2000 or any(char.isspace() or ord(char) < 32 for char in value) or '\\' in value:
+        raise ValueError('Enter a valid website URL, up to 2000 characters, without spaces.')
+    if '://' not in value:
+        value = 'https://' + value
+    try:
+        parts = urlsplit(value)
+        host = (parts.hostname or '').encode('idna').decode('ascii').lower()
+        port = parts.port
+        labels = host.split('.')
+        if (parts.scheme not in {'http', 'https'} or parts.username is not None or parts.password is not None
+                or len(host) > 253 or len(labels) < 2 or labels[-1] in {'local','localhost','internal'}
+                or labels[-1].isdigit() or port not in {None,80,443}
+                or any(not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?', label) for label in labels)):
+            raise ValueError()
+    except (ValueError, UnicodeError):
+        raise ValueError('Use an http:// or https:// public website domain without login credentials or a custom port.') from None
+    return urlunsplit((parts.scheme, host + (f':{port}' if port else ''), parts.path, parts.query, parts.fragment))
+
+
+def company_checks(profile):
+    profile = profile or {}
+    gstin = str(profile.get('gstin') or '')
+    validation = validate_gstin(gstin) if gstin else {'valid': False, 'message': 'No GSTIN saved.'}
+    try:
+        website = website_url(profile.get('website_url') or '')
+    except ValueError:
+        website = ''
+    return {'gstin_format_valid': validation['valid'], 'gstin_format_message': validation['message'],
+            'government_verification': 'not_connected', 'website_url': website,
+            'website_ownership_verified': False,
+            'official_search_url': 'https://services.gst.gov.in/services/searchtp'}
 
 
 def validate_gstin(gstin: str | None) -> dict:
@@ -37,4 +79,5 @@ def prepare_profile(payload: dict, client_id: str, user_id: str) -> dict:
     return {**payload, "profile_id": str(uuid4()), "client_id": client_id, "gstin": result["gstin"], "pan": result["pan"],
             "state_code": result["state_code"], "entity_code": result["entity_code"], "effective_from": now,
             "effective_to": None, "is_current": True, "created_by": user_id, "created_at": now,
-            "source": payload.get("source", "MANUAL")}
+            "source": payload.get("source", "MANUAL"), "gstin_verified": False,
+            **({'website_url': website_url(payload['website_url'])} if 'website_url' in payload else {})}

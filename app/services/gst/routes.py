@@ -59,6 +59,8 @@ async def upsert_client_profile(request: Request, repo=Depends(get_db), user=Dep
         raise HTTPException(403, "Only a tax administrator can change GST profile settings.")
     payload = await request.json(); client_id = str(payload.get("client_id", ""))
     _client_or_403(client_id, request, repo, user)
+    if get_settings().gst_bills_enabled:
+        raise HTTPException(409, 'Use Business profile settings for canonical GST Easy accounts. This legacy writer is disabled.')
     try: row = prepare_profile(payload, client_id, str(user.id))
     except ValueError as exc: raise HTTPException(422, {"code": str(exc)})
     # BigQuery's insert API serializes JSON fields correctly. The preceding close is version-safe;

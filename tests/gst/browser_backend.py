@@ -6,6 +6,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.routes import current_user
 from app.routers import gst_bills
+from app.services.gst.profiles import company_checks
 
 os.environ['GST_BILLS_ENABLED']='true'
 get_settings.cache_clear()
@@ -72,7 +73,8 @@ def account_data():
             'user':{'id':user.id,'email':user.email,'full_name':user.full_name,'role':user.role,
                     'mobile_number':'+919876543210','mobile_verified':False},
             'clients':[{'id':'browser-client','name':'Synthetic Business'}],
-            'can_edit_profile':user.role!='viewer','is_owner':True,'require_otp':True,'mobile_verification_available':mobile_service['available']}
+            'can_edit_profile':user.role!='viewer','is_owner':True,'require_otp':True,'mobile_verification_available':mobile_service['available'],
+            'company_checks':company_checks(profile)}
 
 
 @app.post('/api/workspace/period')
