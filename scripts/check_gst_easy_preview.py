@@ -31,6 +31,9 @@ def main():
         response=client.post(API+'/api/gst/bills/internal/process',json={'client_id':'not-authorized','job_id':'not-authorized'})
         assert response.status_code in (401,403),('worker',response.status_code)
         results.append({'path':'internal/process','status':response.status_code,'unauthenticated_denied':True})
+        response=client.post(API+'/api/settings/customers',json={})
+        assert response.status_code in (401,403),('customer setup',response.status_code)
+        results.append({'path':'settings/customers','status':response.status_code,'unauthenticated_denied':True})
     result={'utc':datetime.now(timezone.utc).isoformat(),'url':WEB,'result':'passed','checks':results,
             'authenticated_customer_uat':False}
     Path('artifacts/gst_easy/preview-smoke.json').write_text(json.dumps(result,indent=2))

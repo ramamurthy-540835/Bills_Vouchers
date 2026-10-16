@@ -1,5 +1,25 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 
+test('customer setup preserves retry identity and opens onboarding after success',async({page})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic customer setup is local only')
+ await page.goto('/settings/profile')
+ await page.getByLabel('Customer legal name',{exact:true}).fill('New customer')
+ await page.getByLabel('Customer website (optional)',{exact:true}).fill('https://example.com')
+ let requestId='';let attempts=0
+ await page.route('**/api/settings/customers',route=>{
+  const body=route.request().postDataJSON();expect(body.legal_name).toBe('New customer')
+  if(requestId)expect(body.request_id).toBe(requestId);else requestId=body.request_id
+  attempts++
+  return route.fulfill(attempts===1?{status:503,json:{detail:'Setup unavailable. Retry.'}}:{status:200,json:{saved:true,storage_ready:true,client_id:'new-customer'}})
+ })
+ await page.getByRole('button',{name:'Create customer profile',exact:true}).click()
+ await expect(page.getByRole('alert').filter({hasText:'Setup unavailable. Retry.'})).toBeVisible()
+ await expect(page.getByLabel('Customer legal name',{exact:true})).toHaveValue('New customer')
+ await page.getByRole('button',{name:'Create customer profile',exact:true}).click()
+ await expect(page).toHaveURL(/settings\/onboarding/)
+ expect(attempts).toBe(2)
+})
+
 test('company website edits retain errors and government verification is explicit',async({page})=>{
  test.skip(Boolean(process.env.BV_TEST_URL),'Synthetic profile test is local only')
  await page.goto('/settings/profile')

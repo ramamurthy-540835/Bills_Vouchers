@@ -17,6 +17,14 @@ from .validation import VALID_STATE_CODES
 router = APIRouter()
 
 
+@router.post('/api/settings/customers')
+async def create_customer(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from app.services.customer_workspace import create_customer as provision
+    result = provision(repo, user, await request.json())
+    request.session['client_id'] = result['client_id']
+    return result
+
+
 @router.post('/api/auth/mobile/start')
 def start_mobile(request: Request, repo=Depends(get_db), user=Depends(current_user)):
     from app.services.mobile_verification import start
