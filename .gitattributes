@@ -1,0 +1,7 @@
+
+# Generated invoice evidence must never undergo Windows newline conversion.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.xlsx binary
