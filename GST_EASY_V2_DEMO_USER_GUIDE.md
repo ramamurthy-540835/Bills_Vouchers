@@ -12,4 +12,4 @@ Import the matching business file from gstr2b/ using Returns & Credit. Only supp
 
 All nine report views are read-only in V2. Restricted financial exports and filing stay disabled for synthetic tenants. Test return preparation may also be restricted by existing synthetic-workspace policy. Missing statement and unavailable calculations must not be presented as genuine zeros.
 
-Mobile/SMS, automatic government verification and email recovery require real providers. Demo operator activation is not email or GST ownership verification. Never share credentials or upload real customer data into this public demo.
+Mobile/SMS and automatic government verification still require configured providers. Registration/recovery email is now configured through the approved Zoho sender; inbox delivery acceptance requires a real request. Demo operator activation is not email or GST ownership verification. Never share credentials or upload real customer data into this public demo.

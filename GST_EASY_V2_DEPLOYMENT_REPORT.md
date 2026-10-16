@@ -16,7 +16,7 @@ The initial environment delimiter was consumed by Windows command processing. Th
 
 Prepared resources: gst_easy_v2_finance_analytics, gst_easy_v2_gold, gst_easy_v2_silver, gst_easy_v2_ops; private aidirac-503309-gst-easy-v2-documents and aidirac-503309-gst-easy-v2-builds buckets; gst-easy-v2-bills queue (one concurrent dispatch); gst-easy-v2-api/web/build service accounts; gst-easy-v2 Artifact Registry; gst-easy-v2-session and gst-easy-v2-demo-password secrets (version 1).
 
-Public access policy: only the new frontend login page is public; API requires Cloud Run IAM. Frontend gets run.invoker on the V2 API only and no data roles. Worker calls retain signed OIDC checks. API gets V2 data access, job submission and Vertex AI usage. Upload requires application session/membership; max two service instances, queue concurrency one. Public registration/recovery delivery is unavailable until a mail provider is configured.
+Public access policy: only the new frontend login page is public; API requires Cloud Run IAM. Frontend gets run.invoker on the V2 API only and no data roles. Worker calls retain signed OIDC checks. API gets V2 data access, job submission and Vertex AI usage. Upload requires application session/membership; max two service instances, queue concurrency one. V2 registration/recovery now uses the approved Zoho sender and a V2-only authentication queue; see GST_EASY_V2_EMAIL_FIX.md for validation limits.
 
 Server authentication follows https://docs.cloud.google.com/run/docs/authenticating/service-to-service using metadata ID tokens in X-Serverless-Authorization, separate from app session cookies. No service-account key files.
 
