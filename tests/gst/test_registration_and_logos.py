@@ -38,7 +38,8 @@ def test_invalid_registration_does_not_write(profile,change):
     repo.query.assert_not_called()
 
 
-def test_logo_validates_content_permissions_and_normalizes(monkeypatch):
+@pytest.mark.parametrize('image_format,mime',[('PNG','image/png'),('JPEG','image/jpeg'),('WEBP','image/webp')])
+def test_logo_validates_content_permissions_and_normalizes(monkeypatch,image_format,mime):
     user=SimpleNamespace(id='u',role='client');blob=Mock();blob.generation=1
     monkeypatch.setattr(account,'active_client',lambda *a:SimpleNamespace(id='only-this-client'))
     monkeypatch.setattr(account,'can',lambda user,*a:user.role=='client')
@@ -50,10 +51,10 @@ def test_logo_validates_content_permissions_and_normalizes(monkeypatch):
     client=TestClient(app);url='/api/settings/profile/logo'
     assert client.post(url,files={'file':('logo.png',b'<svg/>','image/png')}).status_code==422
     assert client.post(url,files={'file':('logo.png',b'x'*(2*1024*1024+1),'image/png')}).status_code==413
-    output=BytesIO();Image.new('RGB',(20,20)).save(output,format='JPEG')
+    output=BytesIO();Image.new('RGB',(20,20)).save(output,format=image_format)
     user.role='viewer'
-    assert client.post(url,files={'file':('logo.jpg',output.getvalue(),'image/jpeg')}).status_code==403
+    assert client.post(url,files={'file':('logo.jpg',output.getvalue(),mime)}).status_code==403
     user.role='client'
-    assert client.post(url,files={'file':('logo.jpg',output.getvalue(),'image/jpeg')}).status_code==200
+    assert client.post(url,files={'file':('logo.jpg',output.getvalue(),mime)}).status_code==200
     assert factory.call_args.args==('only-this-client',)
     assert blob.upload_from_string.call_args.args[0].startswith(b'\x89PNG')

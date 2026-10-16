@@ -1,10 +1,20 @@
 'use client'
-import {GST_TEXT} from '../lib/copy/gst'
-
 import Link from 'next/link'
+import {useEffect,useRef} from 'react'
+import {usePathname} from 'next/navigation'
 import {ChevronDown} from 'lucide-react'
+import {getVisibleAccountMenu,workspaceDestination} from '../lib/navigation'
 export default function AccountMenu({data,request,action}:{data:any;request:(path:string,body?:any)=>Promise<any>;action:(fn:()=>Promise<void>)=>Promise<void>}){
- const user=data?.user, profile=data?.profile
+ const menu=useRef<HTMLDetailsElement>(null),path=usePathname()
+ const close=()=>{if(menu.current)menu.current.open=false}
+ useEffect(()=>{close()},[path])
+ useEffect(()=>{const outside=(event:PointerEvent)=>{if(!menu.current?.contains(event.target as Node))close()};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside)},[])
+ const user=data?.user
  const initials=(user?.full_name||user?.email||'?').trim().split(/\s+/).slice(0,2).map((p:string)=>p[0]).join('').toUpperCase()
- return <details className="account-menu" onKeyDown={e=>{if(e.key===GST_TEXT.text189)e.currentTarget.open=false}}><summary aria-label={GST_TEXT.text190}><span className="avatar">{initials}</span><ChevronDown size={16}/></summary><div className="account-popover"><div className="account-contact"><strong>{profile?.legal_name||GST_TEXT.text191}</strong><span>{profile?.contact_person||user?.full_name||GST_TEXT.text192}</span><small>{profile?.contact_phone||profile?.contact_mobile||user?.mobile_number||GST_TEXT.text193}</small><small>{profile?.contact_email||user?.email||GST_TEXT.text194}</small></div><hr/><Link href="/settings/account">{GST_TEXT.text24}</Link><Link href="/settings/onboarding">Business onboarding</Link><Link href="/settings/members">Workspace access</Link><Link href="/settings/profile">{GST_TEXT.text25}</Link><Link href="/settings/notifications">{GST_TEXT.text26}</Link>{data?.clients?.length>1&&<label>{GST_TEXT.text195}<select aria-label={GST_TEXT.text195} value={data.client_id} onChange={e=>action(async()=>{await request('/api/workspace/client',{client_id:e.target.value});window.location.reload()})}>{data.clients.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}<hr/><button onClick={()=>action(async()=>{await request('/api/auth/logout');window.location.href='/login'})}>{GST_TEXT.text196}</button></div></details>
+ return <details ref={menu} className="account-menu" onKeyDown={event=>{if(event.key==='Escape'){close();menu.current?.querySelector('summary')?.focus()}}}>
+ <summary aria-label="Account menu"><span className="avatar">{initials}</span><ChevronDown size={16}/></summary>
+ <div className="account-popover"><div className="account-contact"><strong>{user?.full_name}</strong><small>{user?.email}</small><span>{data?.profile?.legal_name}</span></div><hr/>
+ {getVisibleAccountMenu(data).map(item=><Link key={item.id} href={item.route} onClick={close}><item.icon size={16} aria-hidden/> {item.label}</Link>)}
+ {data?.clients?.length>1&&<label>Switch business<select aria-label="Switch business" value={data.client_id} onChange={event=>{const id=event.target.value;action(async()=>{await request('/api/workspace/client',{client_id:id});const response=await fetch('/api/settings/account',{cache:'no-store'});if(!response.ok)throw new Error('Unable to load the selected business. Reload to try again.');const fresh=await response.json();if(fresh.client_id!==id)throw new Error('Business access changed. Reload to continue.');close();window.location.assign(workspaceDestination(fresh,new URL(window.location.href)))})}}>{data.clients.map((client:any)=><option key={client.id} value={client.id}>{client.name}</option>)}</select></label>}
+ <hr/><button onClick={()=>action(async()=>{await request('/api/auth/logout');close();window.location.href='/login'})}>Logout</button></div></details>
 }

@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     gst_bills_worker_url: str = ''
     gst_bills_worker_audience: str = ''
     gst_bills_worker_account: str = ''
+    gst_verification_mode: str = 'manual'
+    gst_verification_live_enabled: bool = False
+    gst_verification_storage_enabled: bool = False
+    gst_verification_provider: str = ''
+    gst_verification_secret_version: str = ''
     require_otp: bool = False
     auth_public_url: str = ''
     smtp_host: str = ''
@@ -47,6 +52,8 @@ class Settings(BaseSettings):
     gcp_region: str = "global"
     gcs_bucket_name: str = ""
     bigquery_dataset: str = "finance_analytics"
+    gst_dataset_prefix: str = ""
+    demo_operator_identity_enabled: bool = False
     gemini_model: str = "gemini-3.8-flash"
     embedding_model: str = "gemini-embedding-001"
     embedding_dimensions: int = 768

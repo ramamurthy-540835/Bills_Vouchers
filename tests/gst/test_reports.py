@@ -146,3 +146,52 @@ def test_reports_keep_four_cash_scenarios_independent(report_store, invoice, pro
     unmatched = reports.build(report_store,'2026-09','month','tax',lambda _:profile)
     assert unmatched['monthly_cash_scenarios'][0] == {
         'period':'2026-09','recorded':'180.00','matched':'360.00','eligible':'360.00','noCredit':'360.00'}
+
+
+@pytest.mark.parametrize('kind', ['credit','liability','cash','without_itc','pending','mismatches','unmatched'])
+def test_focused_reports_reuse_evidence_and_exports(report_store, profile, kind):
+    result=reports.build(report_store,'2026-09','month',kind,lambda _:profile)
+    assert result['client_id']=='a'
+    assert result['kind']==kind
+    for format in ('csv','xlsx'):
+        content,mime=reports.render(result,format)
+        assert content and mime
+
+
+def test_focused_reports_match_dashboard_classifications(report_store, invoice, profile):
+    from app.gst.report import calculate
+    pending=invoice.model_copy(deep=True);pending.status='needs_review';pending.invoice_id='pending'
+    rejected=invoice.model_copy(deep=True);rejected.status='rejected';rejected.invoice_id='rejected'
+    report_store.list.side_effect=None
+    report_store.list.return_value=[invoice,pending,rejected]
+    result=reports.build(report_store,'2026-09','month','pending',lambda _:profile)
+    assert [row[1] for row in result['rows']]==['pending']
+    without=reports.build(report_store,'2026-09','month','without_itc',lambda _:profile)
+    expected=calculate([invoice,pending,rejected],profile,[])
+    from decimal import Decimal
+    assert sum((Decimal(row[-1]) for row in without['rows'] if row[6]!='eligible'),Decimal('0'))==expected['totals']['non_gst']
+    unmatched=reports.build(report_store,'2026-09','month','unmatched',lambda _:profile)
+    assert all(row[6] in {'missing_book','missing_statement'} for row in unmatched['rows'])
+    mismatches=reports.build(report_store,'2026-09','month','mismatches',lambda _:profile)
+    assert all(row[6] not in {'exact','missing_book','missing_statement'} for row in mismatches['rows'])
+    credit=reports.build(report_store,'2026-09','month','credit',lambda _:profile)
+    assert all(row[6]=='eligible' for row in credit['rows'])
+    assert credit['monthly_summary'][0]['totals']['eligible_credit']==format(expected['totals']['eligible_credit'],'.2f')
+
+
+@pytest.mark.parametrize('kind', ['credit','liability','cash','without_itc','pending','mismatches','unmatched'])
+def test_focused_reports_reject_foreign_evidence(report_store, invoice, profile, kind):
+    invoice.client_id='foreign'
+    report_store.list.side_effect=None;report_store.list.return_value=[invoice]
+    with pytest.raises(HTTPException) as error:
+        reports.build(report_store,'2026-09','month',kind,lambda _:profile)
+    assert error.value.status_code==403
+
+
+def test_focused_report_exports_retain_context_and_missing_data(report_store, profile):
+    result=reports.build(report_store,'2026-08','month','credit',lambda _:profile)
+    content,_=reports.render(result,'xlsx')
+    book=load_workbook(BytesIO(content))
+    assert book['Financial context']['D2'].value=='Not calculated'
+    content,_=reports.render(result,'csv')
+    assert b'Not calculated' in content

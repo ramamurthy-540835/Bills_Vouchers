@@ -1,0 +1,68 @@
+{
+  "gstin": "33ZXZCZ0001Q1ZT",
+  "rtnprd": "102026",
+  "docdata": {
+    "b2b": [
+      {
+        "ctin": "29ZXZCZ0100Q1ZI",
+        "inv": [
+          {
+            "inum": "NL-MAN-001",
+            "dt": "01-10-2026",
+            "itcavl": "Y",
+            "txval": "3326.00",
+            "cgst": "0.00",
+            "sgst": "0.00",
+            "igst": "475.56",
+            "cess": "0.00"
+          }
+        ]
+      },
+      {
+        "ctin": "33ZXZCZ0101Q1ZS",
+        "inv": [
+          {
+            "inum": "NL-MAN-002",
+            "dt": "02-10-2026",
+            "itcavl": "Y",
+            "txval": "4011.00",
+            "cgst": "297.10",
+            "sgst": "287.10",
+            "igst": "0.00",
+            "cess": "0.00"
+          }
+        ]
+      },
+      {
+        "ctin": "33ZXZCZ0102Q1ZR",
+        "inv": [
+          {
+            "inum": "NL-MAN-003",
+            "dt": "03-10-2026",
+            "itcavl": "Y",
+            "txval": "4696.00",
+            "cgst": "0.00",
+            "sgst": "0.00",
+            "igst": "672.84",
+            "cess": "0.00"
+          }
+        ]
+      },
+      {
+        "ctin": "33ZXZCZ0900Q1ZL",
+        "inv": [
+          {
+            "inum": "STATEMENT-ONLY-001",
+            "dt": "20-10-2026",
+            "txval": "1000.00",
+            "cgst": "90.00",
+            "sgst": "90.00",
+            "igst": "0.00",
+            "cess": "0.00",
+            "itcavl": "Y"
+          }
+        ]
+      }
+    ]
+  }
+}

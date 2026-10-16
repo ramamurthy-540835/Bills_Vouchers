@@ -22,6 +22,7 @@ def api(monkeypatch,invoice,profile):
         def __init__(self,repo,client_id):self.client_id=client_id
         def list(self,*args):return [i for i in items.values() if i.client_id==self.client_id]
         def matching_rows(self,period):return []
+        def statement_history(self,period):return []
         def get(self,id):
             inv=items.get(id)
             if not inv or inv.client_id!=self.client_id:raise HTTPException(404,'Bill not found.')

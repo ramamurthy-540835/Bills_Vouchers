@@ -1,3 +1,4 @@
+import {backendFetch} from '../../../lib/backend-fetch'
 import { NextRequest, NextResponse } from 'next/server'
 
 const backend = () => process.env.BACKEND_URL || 'http://localhost:8000'
@@ -9,7 +10,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   headers.delete('content-length')
   const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.arrayBuffer()
   let response: Response
-  try { response = await fetch(url, { method: request.method, headers, body, redirect: 'manual' }) }
+  try { response = await backendFetch(url, { method: request.method, headers, body, redirect: 'manual' }) }
   catch { return NextResponse.json({ detail: 'Finance backend is unavailable.' }, { status: 503 }) }
   const out = new NextResponse(response.body, { status: response.status, headers: response.headers })
   out.headers.delete('set-cookie')

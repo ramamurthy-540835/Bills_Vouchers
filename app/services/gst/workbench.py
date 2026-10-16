@@ -111,7 +111,7 @@ async def choose_period(request: Request, user=Depends(current_user)):
 @router.post("/api/workspace/client")
 async def choose_client(request: Request, repo=Depends(get_db), user=Depends(current_user)):
     client_id = str((await body_json(request)).get("client_id", ""))
-    if not FinanceRepository(repo).can_access_client(user.id, client_id):
+    if not any(str(client.id) == client_id for client in FinanceRepository(repo).clients(user.id)):
         raise HTTPException(403, "Client access denied.")
     request.session["client_id"] = client_id
     return {"ok": True}

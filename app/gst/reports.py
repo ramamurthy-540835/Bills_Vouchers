@@ -16,10 +16,13 @@ from app.services.gst.rules import HEADS
 from . import returns
 from .reconciliation import compare
 from .report import calculate
+from . import report_details, reconciliation_reviews
 
 TITLES = {'purchases': 'Purchase register', 'sales': 'Sales register', 'invoices': 'Invoice listing',
           'tax': 'Tax-head summary', 'itc': 'ITC decisions', 'reconciliation': 'GSTR-2B reconciliation',
-          'audit': 'Audit history'}
+          'audit': 'Audit history', 'credit': 'Usable Input Tax Credit', 'liability': 'GST Liability on Sales',
+          'cash': 'Estimated GST Cash Requirement', 'without_itc': 'Purchases Without ITC',
+          'pending': 'Pending Bill Reviews', 'mismatches': 'Reconciliation Mismatches', 'unmatched': 'Unmatched Invoices'}
 MAX_ROWS = 10000
 NOTE = ('Canonical evidence only. Financial registers include confirmed invoices; invoice listing includes review states. '
         'Amounts are INR. Credit notes have negative signed values. Tax estimates are calculated separately for each month; '
@@ -70,7 +73,7 @@ def audit_rows(store, period, cutoff):
     return [[period, *[str(row[key] or '') for key in ('source','reference','actor_id','action','reason','created_at')]] for row in rows]
 
 
-def build(store, period, scope, kind, profile_for):
+def build(store, period, scope, kind, profile_for, filters=None):
     if kind not in TITLES:
         raise HTTPException(422, 'Choose a supported report.')
     selected = periods(period, scope)
@@ -79,6 +82,10 @@ def build(store, period, scope, kind, profile_for):
     rows: list[list[str]] = []
     sources: list[list[str]] = []
     monthly_scenarios = []
+    monthly_summary = []
+    warnings = []
+    detail_summary = []
+    evidence_ids: list[str] = []
     columns = []
     def add(row):
         rows.append([str(value if value is not None else '') for value in row])
@@ -92,32 +99,69 @@ def build(store, period, scope, kind, profile_for):
             raise HTTPException(403, 'Synthetic invoices cannot be included in customer reports.')
         if len(invoices)+len(sources) > MAX_ROWS or sum(len(inv.line_items) for inv in invoices) > MAX_ROWS:
             raise HTTPException(422, 'This report is too large. Select a shorter period.')
+        evidence_ids.extend(inv.invoice_id for inv in invoices if inv.extraction.raw_ref)
         sources.extend([[month, inv.invoice_id, str(inv.version), inv.status] for inv in invoices])
-        if kind in {'purchases','sales','invoices'}:
+        if kind in {'credit','liability','cash','without_itc'}:
+            calculation = calculate(invoices, profile_for(month), store.matching_rows(month))
+            monthly_summary.append({'period':month, 'confirmed_count':calculation['confirmed_count'],
+                'totals':{key:format(value,'.2f') for key,value in calculation['totals'].items()},
+                'heads':{key:{head:format(value,'.2f') for head,value in values.items()} for key,values in calculation['heads'].items()}})
+        if kind in report_details.KINDS:
+            statements = store.matching_rows(month)
+            imported = bool(statements) or bool(store.statement_history(month))
+            reviews = reconciliation_reviews.latest(store,month) if kind in {'mismatches','unmatched'} else []
+            columns, detail_rows, summary, messages = report_details.project(kind,invoices,profile_for(month),statements,imported,month,reviews)
+            for row in detail_rows:
+                add(row)
+            warnings.extend(messages)
+            detail_summary.append({'period':month,'values':summary})
+            if kind == 'cash':
+                monthly_scenarios.append({'period':month,**{key:format(value,'.2f') for key,value in calculation['scenarios'].items()}})
+            continue
+        if kind in {'purchases','sales','invoices','pending','liability'}:
             columns = ['Period','Invoice ID','Version','Status','Direction','Supplier GSTIN','Supplier','Recipient GSTIN','Recipient',
                        'Invoice number','Invoice date','Invoice type','Taxable value','IGST','CGST','SGST','Cess','Invoice total']
             for inv in invoices:
-                if kind != 'invoices' and (inv.status != 'confirmed' or inv.direction != ('purchase' if kind == 'purchases' else 'sale')):
+                if kind == 'pending' and inv.status not in {'needs_review','extracted'}:
+                    continue
+                if kind not in {'invoices','pending'} and (inv.status != 'confirmed' or inv.direction != ('purchase' if kind == 'purchases' else 'sale')):
                     continue
                 sign = Decimal('-1') if inv.invoice_type == 'credit_note' else Decimal('1')
                 add([month, inv.invoice_id, inv.version, inv.status, inv.direction, inv.supplier_gstin, inv.supplier_legal_name,
                      inv.recipient_gstin, inv.recipient_legal_name, inv.invoice_number, inv.invoice_date, inv.invoice_type,
                      *[format(sign*getattr(inv.totals, head), '.2f') for head in ('taxable_value', *HEADS, 'invoice_total')]])
-        elif kind in {'tax','itc'}:
+        elif kind in {'tax','itc','credit','cash','without_itc'}:
             report = calculate(invoices, profile_for(month), store.matching_rows(month))
             monthly_scenarios.append({'period': month, **{key: format(value, '.2f') for key,value in report['scenarios'].items()}})
-            if kind == 'tax':
+            if kind in {'tax','cash'}:
                 columns = ['Period','Tax head','Eligible credit estimate','Output liability','Cash payable estimate']
                 for head in HEADS:
                     add([month, head.upper(), *[format(report['heads'][name][head], '.2f') for name in ('credit','output','cash')]])
             else:
                 columns = ['Period','Invoice ID','Invoice number','Supplier','Description','Matching','Eligibility','Rule','Signed GST']
-                for row in report['decisions']:
-                    add([month, *[row[key] for key in ('invoice_id','invoice_number','supplier_name','description','matching','eligibility','rule','tax')]])
-        elif kind == 'reconciliation':
+                if kind == 'without_itc':
+                    columns.append('Signed purchase value')
+                purchase_lines = [(inv, line) for inv in invoices if inv.status == 'confirmed' and inv.direction == 'purchase' for line in inv.line_items]
+                for position, row in enumerate(report['decisions']):
+                    if kind == 'credit' and row['eligibility'] != 'eligible':
+                        continue
+                    if kind == 'without_itc' and row['eligibility'] == 'eligible':
+                        continue
+                    values = [month, *[row[key] for key in ('invoice_id','invoice_number','supplier_name','description','matching','eligibility','rule','tax')]]
+                    if kind == 'without_itc':
+                        inv, line = purchase_lines[position]
+                        sign = Decimal('-1') if inv.invoice_type == 'credit_note' else Decimal('1')
+                        values.append(format(sign * (line.taxable_value + sum((getattr(line, head) for head in HEADS), Decimal('0'))), '.2f'))
+                    add(values)
+        elif kind in {'reconciliation','mismatches','unmatched'}:
             columns = ['Period','Case ID','Invoice ID','Supplier GSTIN','Invoice number','Invoice date','Comparison','Candidate count',
                        'Taxable difference','IGST difference','CGST difference','SGST difference','Cess difference']
             for case in compare(invoices, store.matching_rows(month))['cases']:
+                missing = case['status'] in {'missing_book','missing_statement'}
+                if kind == 'unmatched' and not missing:
+                    continue
+                if kind == 'mismatches' and (missing or case['status'] == 'exact'):
+                    continue
                 add([month, case['id'], case['invoice_id'], case['supplier_gstin'], case['invoice_number'], case['invoice_date'],
                      case['status'], len(case['statement_candidates']),
                      *[(case['differences'] or {}).get(head) for head in ('taxable_value', *HEADS)]])
@@ -129,16 +173,67 @@ def build(store, period, scope, kind, profile_for):
         raise HTTPException(409, 'Source evidence changed while generating this report. Please retry.')
     result = {'kind': kind, 'title': TITLES[kind], 'client_id': store.client_id, 'periods': selected,
               'generated_at': cutoff.isoformat(), 'columns': columns, 'rows': rows, 'source_invoices': sources,
-              'source_hashes': hashes, 'monthly_cash_scenarios': monthly_scenarios, 'note': NOTE, 'row_count': len(rows)}
+              'evidence_ids':evidence_ids,'warnings':list(dict.fromkeys(warnings)), 'detail_summary':detail_summary,
+              'business_name':profile_for(period).get('legal_name',''), 'gstin':profile_for(period).get('gstin',''),
+              'source_hashes': hashes, 'monthly_cash_scenarios': monthly_scenarios, 'monthly_summary': monthly_summary, 'note': NOTE, 'row_count': len(rows)}
+    apply_filters(result, filters or {})
     result['report_hash'] = hashlib.sha256(json.dumps(result, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     return result
+
+
+FILTER_COLUMNS = {'party':['Supplier','Recipient'], 'invoice_type':['Invoice type'], 'eligibility':['Eligibility'],
+                  'matching':['Matching','Comparison'], 'source':['Source']}
+NUMERIC_COLUMNS = {'Taxable value','IGST','CGST','SGST','Cess','Invoice total','Signed GST','Signed purchase value'}
+
+
+def apply_filters(report, filters):
+    """Filter authorized bounded evidence before pagination and export, with no SQL interpolation."""
+    from datetime import date
+    columns, original = report['columns'], report['rows']
+    for key in ('date_from','date_to'):
+        if filters.get(key):
+            try:date.fromisoformat(filters[key])
+            except ValueError:raise HTTPException(422,'Use an ISO invoice date (YYYY-MM-DD).') from None
+    if filters.get('date_from') and filters.get('date_to') and filters['date_from']>filters['date_to']:
+        raise HTTPException(422,'Start date must not follow end date.')
+    if any(len(str(value))>200 for value in filters.values()):
+        raise HTTPException(422,'Report filters must be at most 200 characters.')
+    report['filter_options'] = {key:sorted({row[columns.index(column)] for column in names if column in columns for row in original if row[columns.index(column)]}) for key,names in FILTER_COLUMNS.items()}
+    def keep(row):
+        if filters.get('q') and filters['q'].casefold() not in ' '.join(row).casefold():return False
+        for key,names in FILTER_COLUMNS.items():
+            if filters.get(key) and not any(column in columns and filters[key]==row[columns.index(column)] for column in names):return False
+        for key in ('date_from','date_to'):
+            if filters.get(key):
+                value = row[columns.index('Invoice date')] if 'Invoice date' in columns else ''
+                if not value or (key=='date_from' and value<filters[key]) or (key=='date_to' and value>filters[key]):return False
+        return True
+    rows = [row for row in original if keep(row)]
+    sort = filters.get('sort','')
+    if sort:
+        column = sort.removeprefix('-')
+        if column not in columns:raise HTTPException(422,'Choose a report column to sort.')
+        position = columns.index(column)
+        rows.sort(key=lambda row:Decimal(row[position] or '0') if column in NUMERIC_COLUMNS else row[position].casefold(),reverse=sort.startswith('-'))
+    report['rows'], report['row_count'], report['filters'] = rows,len(rows),filters
+    if filters and 'Invoice ID' in columns:
+        selected_ids = {row[columns.index('Invoice ID')] for row in rows}
+        report['source_invoices'] = [row for row in report['source_invoices'] if row[1] in selected_ids]
+    report['summary'] = {column:format(sum((Decimal(row[index] or '0') for row in rows),Decimal('0')),'.2f') for index,column in enumerate(columns) if column in NUMERIC_COLUMNS}
+    report['note'] += ' Row totals and exports respect filters. Monthly tax and cash context describes the full period and is not recalculated from a filtered subset.'
 
 
 def render(report, format):
     if format not in {'csv','xlsx','pdf'} or (format == 'pdf' and report['kind'] != 'tax'):
         raise HTTPException(422, 'Choose CSV or Excel. PDF is available for the tax-head summary.')
-    metadata = [['Report', report['title']], ['Client ID', report['client_id']], ['Periods', ', '.join(report['periods'])],
-                ['Generated UTC', report['generated_at']], ['Report SHA256', report['report_hash']], ['Scope', report['note']]]
+    metadata = [['Report', report['title']], ['Business',report.get('business_name','')], ['GSTIN',report.get('gstin','')], ['Client ID', report['client_id']], ['Periods', ', '.join(report['periods'])],
+                ['Generated UTC', report['generated_at']], ['Report SHA256', report['report_hash']], ['Scope', report['note']], ['Filters', json.dumps(report.get('filters',{}),sort_keys=True)],
+                ['Dependencies','; '.join(report.get('warnings',[]))]]
+    context = [['Month','Tax head','Confirmed invoices','Usable credit','Output GST','Estimated cash']]
+    for summary in report.get('monthly_summary', []):
+        for head in HEADS:
+            context.append([summary['period'],head.upper(),str(summary['confirmed_count']),
+                *[summary['heads'][key][head] if summary['confirmed_count'] else 'Not calculated' for key in ('credit','output','cash')]])
     if format == 'csv':
         output = StringIO()
         writer = csv.writer(output)
@@ -146,6 +241,13 @@ def render(report, format):
         writer.writerow([])
         writer.writerow(['Source period','Source fingerprint'])
         writer.writerows(report['source_hashes'].items())
+        if len(context)>1:
+            writer.writerow([])
+            writer.writerows(context)
+        if report['monthly_cash_scenarios']:
+            writer.writerow([])
+            writer.writerow(['Month','Recorded credit','Matched credit','Eligibility checked','No credit'])
+            writer.writerows([[row[key] for key in ('period','recorded','matched','eligible','noCredit')] for row in report['monthly_cash_scenarios']])
         return output.getvalue().encode('utf-8-sig'), 'text/csv'
     if format == 'xlsx':
         book = Workbook()
@@ -166,6 +268,10 @@ def render(report, format):
             scenarios.append(['Period','Recorded credit','Matched credit','Eligibility checked','No credit'])
             for row in report['monthly_cash_scenarios']:
                 scenarios.append([row[key] for key in ('period','recorded','matched','eligible','noCredit')])
+        if len(context)>1:
+            sheet_context = book.create_sheet('Financial context')
+            for row in context:
+                sheet_context.append([safe_cell(value) for value in row])
         output_bytes = BytesIO()
         book.save(output_bytes)
         return output_bytes.getvalue(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

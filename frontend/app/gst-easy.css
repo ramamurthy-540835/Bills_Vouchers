@@ -4,3 +4,171 @@
 .bill-review-drawer{position:fixed;inset:0 0 0 auto;margin:0;width:min(1200px,96vw);max-width:100vw;height:100dvh;max-height:100dvh;overflow:auto;border:0;padding:24px;background:var(--bv-surface);color:var(--bv-ink)}.bill-review-drawer::backdrop{background:#0007}.bill-review-drawer>.section-heading{position:sticky;top:-24px;z-index:5;background:var(--bv-surface);padding:16px 0}.bill-review-drawer .original-bill{top:60px}@media(max-width:760px){.bill-review-drawer{width:100vw;padding:16px}}
 
 .password-control{position:relative;display:block;width:100%}.password-control input{padding-right:3rem;width:100%;box-sizing:border-box}.password-control .password-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:grid;place-items:center;min-width:40px;min-height:40px;width:40px;padding:8px;margin:0;background:transparent;color:inherit;border:0;box-shadow:none}.password-toggle:focus-visible{outline:2px solid currentColor;outline-offset:1px}
+
+/* One ordered dashboard grid; breakpoints include the fixed workspace sidebar. */
+.gst-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:stretch;grid-auto-rows:1fr;margin-bottom:24px}
+.gst-kpi-grid .metric-card{min-width:0;padding:20px;border-radius:8px;display:flex;flex-direction:column;gap:12px}
+.gst-kpi-grid .metric-card>span{font-size:12px;font-weight:600;line-height:1.5;min-height:36px;overflow-wrap:anywhere}
+.gst-kpi-grid .metric-card>strong{font-size:clamp(22px,2.2vw,32px);font-weight:600;margin:0;line-height:1.25;overflow-wrap:anywhere}
+.gst-kpi-grid .metric-card>small{font-size:12px;line-height:1.5;margin-top:auto}
+.gst-kpi-grid .term-tip{vertical-align:middle}
+.gst-upload-section{display:flex;align-items:center;gap:24px;min-width:0;padding:24px}
+.gst-upload-section>div{flex:1;min-width:0}.gst-upload-section p{font-size:12px;color:var(--bv-ink-muted);line-height:1.6;margin:0}
+.report-catalog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:24px}
+.report-catalog section{min-width:0;padding:16px;border:1px solid var(--bv-line);border-radius:8px;background:white}
+.report-catalog button,.report-catalog a{display:block;text-align:left;width:100%;border:0;border-bottom:1px solid var(--bv-line);background:transparent;padding:12px 0;color:var(--bv-primary);white-space:normal}
+.report-catalog small{display:block;color:var(--bv-ink-muted);line-height:1.5;margin:5px 0}.report-catalog button[aria-pressed=true]{font-weight:700}
+@media(max-width:1100px){.gst-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.report-catalog{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.report-catalog{grid-template-columns:1fr}.gst-kpi-grid{grid-template-columns:minmax(0,1fr);gap:16px}.gst-upload-section{flex-wrap:wrap}.gst-upload-section .button{width:100%}.gst-kpi-grid .metric-card>span{min-height:0}}
+
+[aria-label="Business reports"] form label{min-width:0;max-width:100%;flex:1 1 180px}[aria-label="Business reports"] form input,[aria-label="Business reports"] form select{display:block;width:100%;max-width:100%;box-sizing:border-box}
+
+/* Shared navigation for every detailed report. */
+.report-detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:20px}
+.report-detail-header>div{min-width:0}
+.report-detail-header h2{margin-top:0}
+.report-detail-header p{margin-bottom:0}
+.report-back-button{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:#187653;color:#FFFFFF;font-weight:600;border-radius:8px;padding:12px 20px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.report-back-button:hover{background:#125C40;color:#FFFFFF;text-decoration:none}
+.report-back-button:focus-visible{outline:3px solid #187653;outline-offset:3px;box-shadow:0 0 0 3px #FFFFFF;color:#FFFFFF}
+@media(max-width:700px){.report-detail-header{flex-direction:column;gap:16px}.report-back-button{align-self:flex-end}}
+
+.gst-dashboard-period-controls{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.gst-dashboard-period-controls>label{flex-shrink:0;font-weight:600}
+.gst-dashboard-period-controls>select{flex:0 1 300px;min-width:240px;max-width:100%;min-height:42px}
+.gst-dashboard-period-controls>.button{flex-shrink:0;min-height:42px}
+.bill-support-header{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.bill-support-header h2{font-size:16px;margin:0 0 8px}
+.bill-support-header p{margin:0;color:var(--bv-ink-muted);font-size:13px}
+.bill-history-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bill-history-actions>.button{background:#f0f5f2;border:1px solid var(--bv-line);min-height:42px}
+.bill-register-card>.empty-state{padding:16px 0;margin:0}
+.bill-history-card,.bill-register-card{padding:24px}
+.bill-management-toolbar{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:20px}
+.bill-management-toolbar>label{font-weight:600}
+.bill-management-toolbar>select{width:220px;max-width:100%;min-height:42px}
+.bill-management-toolbar>.button{margin-left:auto;min-height:42px}
+@media(max-width:700px){.gst-dashboard-period-controls{flex-direction:column;align-items:stretch;gap:16px}.gst-dashboard-period-controls>select{flex:auto;min-width:0;width:100%}.bill-management-toolbar{flex-direction:column;align-items:stretch;gap:16px}.bill-management-toolbar>select{width:100%}.bill-management-toolbar>.button{margin-left:0}.bill-history-actions{width:100%}.bill-history-actions>.button{flex:1 1 100%}}
+
+/* Reports and return preparation share a readable financial-document rhythm. */
+.reports-page,.returns-page>.bv-card{padding:28px;min-width:0}
+.returns-page{min-width:0;max-width:100%}
+.returns-page>.bv-card{margin-bottom:28px}
+.reports-page p,.returns-page p{font-size:14px;line-height:1.6;margin:12px 0 16px}
+.reports-page h2,.returns-page h2{font-size:22px;line-height:1.4;margin:0 0 12px}
+.reports-page h3,.returns-page h3{font-size:18px;line-height:1.4;margin:0 0 12px}
+.reports-page .report-catalog h2{font-size:18px}
+.reports-page .filing-actions,.returns-page .filing-actions{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;margin:24px 0}
+.reports-page .filing-actions label,.returns-page .filing-actions label{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%;font-size:14px}
+.reports-page .filing-actions select,.reports-page .filing-actions input{width:100%;max-width:360px;min-height:42px}
+.reports-page .button,.returns-page .button{min-height:42px}
+.reports-page table td,.returns-page table td{padding:14px 12px;font-size:13px;line-height:1.5}
+.reports-page .table-scroll,.returns-page .table-scroll{max-width:100%;margin:20px 0}
+.report-information{margin:24px 0;padding:20px;border:1px solid var(--bv-line);border-radius:8px;background:#f8faf9}
+.report-context{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px;margin:16px 0}
+.report-context dt{font-size:13px;color:var(--bv-ink-muted);margin-bottom:6px}
+.report-context dd{margin:0;font-size:14px;overflow-wrap:anywhere}
+.financial-disclosure{padding:16px 20px;margin:20px 0;border:1px solid var(--bv-line);border-radius:8px;background:#f8faf9}
+.financial-disclosure summary{cursor:pointer;font-size:14px;font-weight:600;line-height:1.5}
+.financial-disclosure summary:focus-visible{outline:3px solid #187653;outline-offset:4px}
+.financial-disclosure p:last-child{margin-bottom:0}
+.financial-empty{padding:24px;text-align:center;background:#f8faf9;border-radius:8px;margin:24px 0}
+.financial-empty svg{color:var(--bv-ink-muted);margin-bottom:12px}
+.financial-error{padding:20px;border:1px solid #e4b4ad;border-radius:8px;background:#fff6f4;margin:20px 0}
+.reconciliation-counters{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0}
+.reconciliation-counters>div{padding:16px 20px;background:#f3f7f5;border:1px solid var(--bv-line);border-radius:8px;min-width:180px}
+.reconciliation-counters dt{font-size:13px;color:var(--bv-ink-muted)}
+.reconciliation-counters dd{font-size:24px;font-weight:600;margin:8px 0 0}
+.reconciliation-filter{display:flex;flex-direction:column;gap:14px;max-width:440px;margin:24px 0;font-size:14px}
+.reconciliation-filter select{width:100%;min-width:0;min-height:42px}
+.financial-caution{color:var(--bv-ink-muted);font-size:13px}
+@media(max-width:700px){.reports-page,.returns-page>.bv-card{padding:18px}.report-context{grid-template-columns:1fr}.report-information,.financial-disclosure{padding:16px}.reports-page .filing-actions{align-items:stretch;gap:16px}.reports-page .filing-actions>label{width:100%}.reports-page .filing-actions select,.reports-page .filing-actions input{max-width:100%}.reconciliation-counters>div{flex:1;min-width:0}.reconciliation-filter{max-width:100%}.returns-page h2{font-size:20px}}
+
+/* Business profile: scoped spacing preserves other workspace forms. */
+.business-profile-page{display:grid;gap:24px;min-width:0}
+.business-profile-page>.bv-card{margin:0;padding:28px;min-width:0}
+.business-profile-page h2{font-size:22px;line-height:1.4;margin:0 0 12px}
+.business-profile-page h3{font-size:18px;line-height:1.4;margin:0;overflow-wrap:anywhere}
+.business-profile-page p{font-size:14px;line-height:1.6;margin:0 0 16px;overflow-wrap:anywhere}
+.business-section-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.business-list-section{container-type:inline-size}
+.business-list{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;margin-top:20px;align-items:stretch}
+.business-list-card{display:flex;flex-direction:column;padding:24px;border:1px solid var(--bv-line);border-radius:8px;background:#fff;min-width:0;box-sizing:border-box}
+.business-card-heading h3{min-height:2.8em}
+.business-card-badge{min-height:30px;margin:8px 0 12px}
+.business-card-details p>span{display:block;font-size:12px;color:var(--bv-ink-muted);margin-bottom:4px}
+.business-card-actions{margin-top:auto;padding-top:20px}
+.business-card-actions .button{width:100%}
+@container(min-width:560px){.business-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container(min-width:860px){.business-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.business-active{font-size:12px;color:#125c40;background:#edf6f0;padding:4px 8px;border-radius:6px}
+.business-fieldset{border:0;padding:0;margin:8px 0;min-width:0}
+.business-fieldset legend{font-size:18px;font-weight:600;margin-bottom:20px}
+.business-profile-page .account-form{gap:20px}
+
+.business-profile-page .account-access{margin:24px 0}
+.business-profile-page input,.business-profile-page textarea{min-width:0}
+.business-profile-page #business-details{scroll-margin-top:110px}
+.business-profile-page img{margin:8px 0 20px;max-width:100%}
+.business-profile-page label.button{display:inline-flex;margin-right:12px}
+@media(max-width:760px){.business-profile-page>.bv-card{padding:18px}.business-list-card{padding:20px}.business-profile-page .account-form{grid-template-columns:1fr}.business-section-header .button{white-space:normal}}
+
+.business-create{padding:28px}.business-create>p{margin:12px 0 24px;line-height:1.6}.business-create-actions{display:flex;gap:16px;flex-wrap:wrap}.business-profile-page input:focus-visible,.business-profile-page textarea:focus-visible{outline:2px solid #187653;outline-offset:2px}@media(max-width:760px){.business-create{padding:18px}}
+
+.business-profile-page .account-form{align-items:start}.business-profile-page .account-form label{align-content:start}.business-profile-page .account-form input{height:44px}
+
+/* Scoped action variant for Business Profile and its Add Business form. */
+:is(.business-profile-page,.business-create) .button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;max-width:100%;padding:12px 20px;border:1px solid #187653;border-radius:8px;background:#187653;color:#fff;font-weight:600;line-height:1.4;text-align:center;text-decoration:none;white-space:normal;cursor:pointer;box-sizing:border-box}
+:is(.business-profile-page,.business-create) .button:hover{background:#125c40;border-color:#125c40;color:#fff}
+:is(.business-profile-page,.business-create) .button:focus-visible,.business-profile-page label.button:has(input:focus-visible){outline:3px solid #187653;outline-offset:3px}
+:is(.business-profile-page,.business-create) .button:disabled,.business-profile-page label.button:has(input:disabled){background:#527565;border-color:#527565;color:#fff;opacity:1;cursor:not-allowed}
+
+/* Shared branding uploader in profile and onboarding. */
+.bv-card.business-logo-card{padding:24px;border-radius:12px}
+.business-logo-card h2{margin:0 0 8px;font-size:22px}
+.business-logo-card .business-logo-description{margin:0 0 20px;font-size:14px;line-height:1.5}
+.business-logo-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;min-width:0}
+.business-logo-preview{width:88px;height:88px;flex:0 0 88px;display:grid;place-items:center;background:#f1f6f3;border:1px solid var(--bv-line);border-radius:12px;overflow:hidden;color:#187653;font-size:24px;font-weight:600}
+.business-logo-card .business-logo-preview img{width:88px;height:88px;object-fit:contain;margin:0;padding:8px;box-sizing:border-box}
+.business-logo-details{flex:1 1 180px;min-width:0}
+.business-logo-details h3{font-size:16px;margin:0 0 8px}
+.business-logo-card .business-logo-details p{font-size:14px;margin:0 0 6px;line-height:1.5}
+.business-logo-details small{display:block;color:var(--bv-ink-muted);font-size:13px;line-height:1.6}
+.business-logo-actions{display:flex;flex-wrap:wrap;gap:12px}
+.business-logo-card .button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:12px 20px;border:1px solid #187653;border-radius:8px;background:#187653;color:#fff;font-weight:600;line-height:1.4;cursor:pointer}
+.business-logo-card .button:hover{background:#125c40;border-color:#125c40;color:#fff}
+.business-logo-card .button:focus-visible{outline:3px solid #187653;outline-offset:3px}
+.business-logo-card .button:disabled{background:#527565;border-color:#527565;color:#fff;opacity:1;cursor:not-allowed}
+.business-logo-card>p[role]{margin:16px 0 0;line-height:1.5}
+@media(max-width:600px){.bv-card.business-logo-card{padding:18px}.business-logo-row{flex-direction:column;align-items:flex-start;gap:16px}.business-logo-details{flex:auto}.business-logo-actions{width:100%}.business-logo-actions .button{flex:1 1 auto}}
+
+/* Account, business preferences, checks and help share a scoped settings layout. */
+.settings-stack{display:grid;gap:24px;min-width:0}
+.bv-card.settings-card{padding:28px;border-radius:12px;margin:0;min-width:0}
+.settings-card h2{font-size:22px;line-height:1.4;margin:0 0 12px}
+.settings-card h3{font-size:18px;line-height:1.4;margin:0 0 12px}
+.settings-card .settings-intro{margin:0 0 24px;font-size:14px;line-height:1.6;color:var(--bv-ink-muted)}
+.settings-rows{margin:20px 0;display:grid;gap:0;font-size:14px;line-height:1.6}
+.settings-rows>div{display:grid;grid-template-columns:minmax(160px,1fr) minmax(0,2fr);gap:20px;padding:14px 0;border-bottom:1px solid var(--bv-line)}
+.settings-rows>div:first-child{padding-top:0}.settings-rows>div:last-child{border:0;padding-bottom:0}
+.settings-rows dt{color:var(--bv-ink-muted)}.settings-rows dd{margin:0;overflow-wrap:anywhere}
+.settings-badge{display:inline-block;background:#edf4ef;color:#245b40;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600}
+.settings-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px}
+.settings-card .settings-note{font-size:13px;line-height:1.6;color:var(--bv-ink-muted);margin:16px 0 0;overflow-wrap:anywhere}
+.settings-subsection{margin-top:24px;padding-top:24px;border-top:1px solid var(--bv-line);overflow-wrap:anywhere}
+.settings-notice{padding:16px;border:1px solid #e4d7b4;border-radius:8px;background:#fbf8ee;font-size:14px;line-height:1.6;margin:20px 0}
+.settings-card .button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;max-width:100%;box-sizing:border-box;padding:12px 20px;border-radius:8px;font-weight:600;line-height:1.4;white-space:normal;text-align:center;text-decoration:none}
+.settings-card .button.primary{background:#187653;border:1px solid #187653;color:#fff}
+.settings-card .button.primary:hover{background:#125c40}
+.settings-card .button.secondary{background:#edf4ef;border:1px solid #c8dcd0;color:#125c40}
+.settings-card .button.secondary:hover{background:#dcece2}
+.settings-card .button:focus-visible{outline:3px solid #187653;outline-offset:3px}
+.business-profile-page .settings-card .button{background:#187653;border-color:#187653;color:#fff}
+.business-profile-page .settings-card .button:hover{background:#125c40}
+.settings-card .button:disabled{opacity:.65;cursor:not-allowed}
+.settings-card .account-form{margin-top:20px}
+.help-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;margin-top:24px}
+.help-sections ul{padding-left:20px;margin:0;font-size:14px;line-height:1.6}.help-sections li+li{margin-top:12px}
+@media(max-width:700px){.bv-card.settings-card{padding:18px}.settings-rows>div{grid-template-columns:1fr;gap:6px}.help-sections{grid-template-columns:1fr;gap:24px}.settings-actions .button{width:100%}.settings-card .account-form{grid-template-columns:1fr}}
+
+.website-editor>.settings-badge{margin-top:16px}.website-editor form{max-width:720px;margin-top:20px}.website-editor label{display:block;font-size:14px;margin-bottom:8px}.website-editor input{width:100%;box-sizing:border-box;min-height:44px;padding:12px;border:1px solid var(--bv-line);border-radius:8px;font:inherit}.website-editor input:focus-visible{outline:2px solid #187653;outline-offset:2px}.website-editor input[aria-invalid=true]{border-color:#a13030}.website-editor .website-saved{margin-top:16px;overflow-wrap:anywhere}.website-saved>span{font-size:13px;color:var(--bv-ink-muted)}.website-editor .website-saved p{margin:8px 0 0}.website-editor [role=alert]{color:#a13030;margin-top:16px}.website-editor [role=status]{margin-top:16px}

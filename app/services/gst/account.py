@@ -1,6 +1,7 @@
 """Account edits are authenticated and bound to the selected client membership."""
 import re
 import json
+import logging
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
@@ -13,6 +14,7 @@ from .medallion import Medallion, clean, clear_cache, param
 from .profiles import validate_gstin, website_url, company_checks
 from .membership_permissions import is_owner
 from .validation import VALID_STATE_CODES
+from app.services.access import navigation_permissions, require_platform_admin
 
 router = APIRouter()
 
@@ -20,8 +22,21 @@ router = APIRouter()
 @router.post('/api/settings/customers')
 async def create_customer(request: Request, repo=Depends(get_db), user=Depends(current_user)):
     from app.services.customer_workspace import create_customer as provision
-    result = provision(repo, user, await request.json())
-    request.session['client_id'] = result['client_id']
+    reference = str(uuid4())
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(422, 'Enter valid business details.') from None
+    try:
+        from app.services.auth_identity import throttle
+        throttle(repo, 'business-create:' + str(user.id))
+        result = provision(repo, user, body)
+    except HTTPException as exc:
+        logging.getLogger(__name__).warning('business_creation_failed', extra={
+            'request_id': reference, 'status_code': exc.status_code})
+        exc.headers = {**(exc.headers or {}), 'X-Request-ID': reference}
+        raise
+    # Creation adds a membership; switching remains an explicit user action.
     return result
 
 
@@ -146,15 +161,29 @@ def account(request: Request, repo=Depends(get_db), user=Depends(current_user)):
     from app.services.mobile_verification import configured
     client = active_client(request,repo,user)
     profile = Medallion(repo,client.id,'2026-09').profile()
+    owner = is_owner(repo,user,client.id)
     return clean({'client_id':client.id,'profile':profile,'user':{
         'full_name':user.full_name,'email':user.email,'role':user.role,
         'mobile_number':getattr(user,'mobile_number','') or '',
         'mobile_verified':bool(getattr(user,'mobile_verified',False)),
+        'email_verified':bool(getattr(user,'email_verified',False)),
         'last_sign_in':getattr(user,'last_sign_in',None)},
         'clients':[{'id':c.id,'name':c.name} for c in FinanceRepository(repo).clients(user.id)],
         'can_edit_profile':can(user,'edit_profile',client.id,repo),
-        'is_owner':is_owner(repo,user,client.id),'require_otp':get_settings().require_otp,
+        'is_owner':owner,'permissions':navigation_permissions(user,owner,client),'require_otp':get_settings().require_otp,
         'mobile_verification_available':configured(), 'company_checks':company_checks(profile)})
+
+
+@router.get('/api/admin/workspace')
+def admin_workspace(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    require_platform_admin(user, 'workspace_administration')
+    client = active_client(request,repo,user)
+    members = repo.query(f'''SELECT u.full_name,u.email,m.access_role,m.is_active
+        FROM `{repo.table('client_memberships')}` m JOIN `{repo.table('users')}` u ON u.id=m.user_id
+        WHERE m.client_id=@client_id ORDER BY u.full_name LIMIT 100''', [param('client_id',str(client.id))])
+    events = repo.query(f'''SELECT action,created_at FROM `{repo.table('profile_audit')}`
+        WHERE client_id=@client_id ORDER BY created_at DESC LIMIT 50''',[param('client_id',str(client.id))])
+    return clean({'members':[dict(row) for row in members],'events':[dict(row) for row in events]})
 
 
 @router.post('/api/settings/account')
@@ -258,3 +287,7 @@ async def save_profile(request: Request, repo=Depends(get_db), user=Depends(curr
         raise
     clear_cache(str(client.id))
     return {'saved':True,'gstin_verified':False if 'gstin' in changes else previous.get('gstin_verified')}
+
+
+from .taxpayer_routes import router as taxpayer_router  # noqa: E402
+router.include_router(taxpayer_router)

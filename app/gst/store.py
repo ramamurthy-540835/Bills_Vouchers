@@ -23,7 +23,12 @@ class BillStore(JobState):
         self.project = project
 
     def table(self, dataset, name):
-        return f'`{self.project}.{dataset}.{name}`'
+        prefix = getattr(self.repo.settings, 'gst_dataset_prefix', '')
+        if prefix and not re.fullmatch(r'[a-z][a-z0-9_]*_', prefix):
+            raise ValueError('Invalid canonical dataset prefix')
+        if dataset not in {'gold', 'silver', 'bronze', 'ops'} or not re.fullmatch(r'[a-z][a-z0-9_]*', name):
+            raise ValueError('Invalid canonical table')
+        return f'`{self.project}.{prefix}{dataset}.{name}`'
 
     def query(self, sql, params=()):
         try:

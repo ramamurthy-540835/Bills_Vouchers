@@ -1,12 +1,15 @@
 """Local browser-test backend. Never registered by the production application."""
 import os
 from types import SimpleNamespace
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.db import get_db
 from app.routes import current_user
-from app.routers import gst_bills
+from app.routers import gst_bills, gst_returns
+from tests.gst import local_statements, local_businesses
 from app.services.gst.profiles import company_checks
+from app.services.access import navigation_permissions
 
 os.environ['GST_BILLS_ENABLED']='true'
 get_settings.cache_clear()
@@ -17,20 +20,47 @@ deleted_items={}
 user=SimpleNamespace(id='browser-user',full_name='Browser User',email='browser@example.test',role='client')
 profile={'legal_name':'Red Taxi','business_nature':'passenger_transport','gstin':'','filing_frequency':'monthly'}
 mobile_service={'available':False}
+persisted={'enabled':False,'path':'artifacts/gst_easy/report-fixtures.sqlite'}
+profiles={'browser-client':profile,'browser-readonly':{**profile,'legal_name':'Synthetic Read Only'},
+          'browser-sample':{**profile,'legal_name':'Synthetic Restricted Sample'}}
+
+profiles.update(local_businesses.profiles(user.id))
+
+
+def selected_client():
+    id=getattr(user,'active_client','browser-client')
+    return SimpleNamespace(id=id,name=profiles[id]['legal_name'],is_test=id=='browser-sample')
+
+def selected_profile():
+    value=profiles[selected_client().id]
+    return {**value,'business_nature':'other','legal_name':'Synthetic Reports '+selected_client().id} if persisted['enabled'] else value
+
 
 
 class Store:
     def query(self,*args):return []
     def table(self,*args):return 'synthetic.table'
     def assert_writable(self,period):pass
+    def latest_period(self):return "2026-10"
     def __init__(self,repo,client_id):self.client_id=client_id
     def list(self,period=None,status=None):
-        return [i for i in items.values() if i.client_id==self.client_id and (not status or i.status==status)
+        from tests.gst.persisted_reports import invoices
+        source=invoices(persisted['path'],self.client_id) if persisted['enabled'] else items.values()
+        return [i for i in source if i.client_id==self.client_id and (not status or i.status==status)
                 and (not period or (str(i.invoice_date)[:7] if i.invoice_date else i.selected_period)==period)]
     def get(self,id):
+        if persisted['enabled']:
+            invoice=next((inv for inv in self.list() if inv.invoice_id==id),None)
+            if invoice is None:raise HTTPException(404)
+            return invoice
         if id not in items or items[id].client_id!=self.client_id:raise HTTPException(404)
         return items[id]
-    def save(self,invoice,*args,**kwargs):items[invoice.invoice_id]=invoice
+    def save(self,invoice,*args,**kwargs):
+        if persisted['enabled']:
+            import sqlite3
+            with sqlite3.connect(persisted['path']) as db:
+                db.execute('INSERT OR REPLACE INTO invoices VALUES(?,?,?)',(invoice.invoice_id,self.client_id,invoice.model_dump_json()))
+        else:items[invoice.invoice_id]=invoice
     def delete(self,invoice,*args):deleted_items[invoice.invoice_id]=invoice;del items[invoice.invoice_id]
     def deleted(self,period):return [i for i in deleted_items.values() if i.invoice_id not in items and i.client_id==self.client_id]
     def deleted_invoice(self,id):
@@ -42,25 +72,57 @@ class Store:
         return jobs[id]
     def upload_object(self,content,doc,filename,layer,mime):
         ref=f'gs://test/{self.client_id}/{layer}/bills/{doc}/{filename}';objects[ref]=content;return ref
-    def download_object(self,ref,layer="bronze"):return objects[ref]
+    def download_object(self,ref,layer="bronze"):
+        retained=local_statements.original(self.client_id,ref)
+        if retained is not None:return retained
+        if persisted['enabled']:
+            from tests.gst.persisted_reports import original
+            content=original(persisted['path'],ref)
+            if content is None:raise HTTPException(404)
+            return content
+        return objects[ref]
     def usage(self,*args):pass
-    def matching_rows(self,period):return []
-    def statement_history(self,period):return []
+    def matching_rows(self,period):
+        from tests.gst.persisted_reports import statements
+        return statements(persisted['path'],self.client_id,period) if persisted['enabled'] else local_statements.records(self.client_id,period)
+    def statement_history(self,period):return local_statements.history(self.client_id,period)
+    def save_matching(self,period,records,actor,source=None):
+        local_statements.save(self.client_id,period,records,actor,source,objects[source['raw_ref']])
     def claim_job(self,id,actor):return jobs[id]
 
 
 gst_bills.BillStore=Store
 gst_bills.reconciliation_reviews.returns.fingerprint=lambda *args:'a'*64
 gst_bills.dashboard_report.read_range=lambda store,months,evidence=True:{month:{'source_hash':'a'*64,
-    'invoices':store.list(month),'statements':[],'filing':{'state':'draft','version':0}} for month in months}
-gst_bills.active_client=lambda *args:SimpleNamespace(id='browser-client')
-gst_bills.profile_for=lambda *args:profile
+    'invoices':store.list(month),'statements':store.matching_rows(month),'filing':{'state':'draft','version':0}} for month in months}
+gst_bills.active_client=lambda *args:selected_client()
+gst_bills.profile_for=lambda *args:selected_profile()
 gst_bills.can=lambda user,action,*args:action=='bills:read' or user.role!='viewer'
-gst_bills.FinanceRepository=lambda repo:SimpleNamespace(clients=lambda uid:[SimpleNamespace(id='browser-client',name='Red Taxi')])
+gst_bills.FinanceRepository=lambda repo:SimpleNamespace(clients=lambda uid:[SimpleNamespace(id=id,name=value['legal_name']) for id,value in profiles.items()])
 app=FastAPI()
+app.add_middleware(SessionMiddleware,secret_key="synthetic-local-browser-only")
 app.include_router(gst_bills.router)
+# The browser harness has synthetic financial data. Keep the production guard:
+# expose actual read routes, but never simulate approval or mutate real returns.
+def local_return_scope(*args, **kwargs):
+    client, store = gst_bills.scope(*args, **kwargs)
+    client.is_test = True
+    return client, store
+
+gst_returns.scope = local_return_scope
+gst_returns.profile_for = gst_bills.profile_for
+app.include_router(gst_returns.router)
 app.dependency_overrides[get_db]=lambda:object()
 app.dependency_overrides[current_user]=lambda:user
+
+
+@app.get('/api/local-preview')
+def local_preview():
+    """Open the synthetic local UI without real credentials; never shipped in app."""
+    from fastapi.responses import RedirectResponse
+    response=RedirectResponse('/settings/profile',status_code=303)
+    response.set_cookie('session','local-browser-test',httponly=True,samesite='lax',max_age=3600)
+    return response
 
 
 @app.get('/api/auth/csrf')
@@ -69,12 +131,12 @@ def csrf():return {'token':'local-browser-test'}
 
 @app.get('/api/settings/account')
 def account_data():
-    return {'client_id':'browser-client','profile':profile,
+    return {'client_id':getattr(user,'active_client','browser-client'),'profile':selected_profile(),
             'user':{'id':user.id,'email':user.email,'full_name':user.full_name,'role':user.role,
-                    'mobile_number':'+919876543210','mobile_verified':False},
-            'clients':[{'id':'browser-client','name':'Synthetic Business'}],
-            'can_edit_profile':user.role!='viewer','is_owner':True,'require_otp':True,'mobile_verification_available':mobile_service['available'],
-            'company_checks':company_checks(profile)}
+                    'mobile_number':'+919876543210','mobile_verified':False,'email_verified':True},
+            'clients':[{'id':id,'name':value['legal_name']} for id,value in profiles.items()],
+            'permissions':navigation_permissions(user,user.role=='client',selected_client()),'can_edit_profile':user.role!='viewer','is_owner':user.role=='client','require_otp':True,'mobile_verification_available':mobile_service['available'],
+            'company_checks':company_checks(selected_profile())}
 
 
 @app.post('/api/workspace/period')
@@ -87,8 +149,16 @@ def health():return {'ok':True}
 
 @app.post('/__test__/reset')
 def reset():
+    local_statements.reset()
+    local_businesses.reset()
+    for cid in list(profiles):
+        if cid not in {'browser-client','browser-readonly','browser-sample'}:
+            del profiles[cid]
+    persisted['enabled']=False
     items.clear();deleted_items.clear();objects.clear();jobs.clear();user.role='client';profile['gstin']=''
     mobile_service['available']=False
+    user.is_platform_admin=False
+    user.active_client='browser-client'
     return {'ok':True}
 
 
@@ -102,3 +172,80 @@ def sms_configured():
 def viewer():
     user.role='viewer'
     return {'ok':True}
+
+
+@app.post('/__test__/role/{role}')
+def change_role(role: str):
+    if role not in {'client','viewer','tax_admin','admin'}:raise HTTPException(422)
+    user.role=role
+    user.is_platform_admin=role=='admin'
+    return {'ok':True}
+
+
+@app.get('/api/admin/workspace')
+def admin_workspace():
+    if not getattr(user,'is_platform_admin',False):raise HTTPException(403)
+    return {'members':[{'full_name':'Synthetic Owner','email':'owner@example.invalid','access_role':'owner','is_active':True}],'events':[]}
+
+
+@app.post('/api/workspace/client')
+async def switch_client(request:Request):
+    body=await request.json()
+    if body.get('client_id') not in profiles:raise HTTPException(403)
+    user.active_client=body['client_id']
+    user.role='viewer' if user.active_client=='browser-readonly' else 'client'
+    user.is_platform_admin=False
+    return {'ok':True}
+
+
+@app.post('/__test__/persisted-reports')
+def persisted_reports():
+    from tests.gst.persisted_reports import seed
+    seed(persisted['path'])
+    persisted['enabled']=True
+    return {'ok':True,'storage':'local SQLite synthetic evidence'}
+
+
+@app.post('/__test__/statement-profile')
+def statement_profile():
+    profile['gstin']='33ABCDE1234F1Z7'
+    return {'ok':True}
+
+
+@app.get('/api/businesses/current/gstin-verification')
+def local_taxpayer_status():
+    # Synthetic UI only; no credentials, storage mutations or external lookups.
+    from app.services.gst.taxpayer_verification import presentation
+    return {**presentation(selected_profile(),None,False,'manual'),'can_verify':False}
+
+
+# These routes run production validation/services against an isolated local store.
+# This harness does not replace production authentication or BigQuery acceptance.
+@app.post('/api/settings/customers')
+async def create_local_business(request: Request):
+    from app.services.customer_workspace import create_customer
+    if not request.cookies.get('session'):
+        raise HTTPException(401, 'Sign in required')
+    if request.headers.get('x-csrf-token') != 'local-browser-test':
+        raise HTTPException(403, 'Invalid CSRF token')
+    result = create_customer(local_businesses.Repository(), user, await request.json(),
+                             storage_provisioner=local_businesses.storage)
+    profiles.update(local_businesses.profiles(user.id))
+    return result
+
+
+@app.post('/api/settings/profile')
+async def save_local_business(request: Request):
+    from app.services.gst import account
+    if not request.cookies.get('session'):
+        raise HTTPException(401, 'Sign in required')
+    if request.headers.get('x-csrf-token') != 'local-browser-test':
+        raise HTTPException(403, 'Invalid CSRF token')
+    account.active_client = lambda *args: selected_client()
+    account.can = lambda actor, action, cid, repo: actor.role != 'viewer' and cid in local_businesses.profiles(actor.id)
+    account.is_owner = lambda repo, actor, cid: cid in local_businesses.profiles(actor.id)
+    account.Medallion = lambda *args: SimpleNamespace(profile=selected_profile)
+    account.clear_cache = lambda *args: None
+    result = await account.save_profile(request, local_businesses.Repository(), user)
+    profiles.update(local_businesses.profiles(user.id))
+    return result

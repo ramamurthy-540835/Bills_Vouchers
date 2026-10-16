@@ -17,6 +17,7 @@ from google.api_core.exceptions import InvalidArgument, PermissionDenied, Failed
 
 from app.db import get_db
 from app.config import get_settings
+from app.services.demo_identity import isolated_v2_demo
 from app.repository import FinanceRepository
 from app.routes import active_client, current_user
 from app.services.gst.account import can
@@ -44,7 +45,8 @@ def scope(request, repo, user, action='bills:read'):
     client = active_client(request, repo, user)
     if not can(user, action, client.id, repo):
         raise HTTPException(403, 'You do not have permission for this action.')
-    if getattr(client, 'is_test', False) and request.url.path.rsplit('/', 1)[-1] in {'export', 'working-papers', 'reports'}:
+    readonly_demo_report = isolated_v2_demo() and request.url.path.endswith('/reports') and request.query_params.get('format', 'json') == 'json'
+    if getattr(client, 'is_test', False) and not readonly_demo_report and request.url.path.rsplit('/', 1)[-1] in {'export', 'working-papers', 'reports'}:
         raise HTTPException(403, {'code': 'sample_data_blocked', 'message': 'Test workspace figures cannot be exported or filed.'})
     return client, BillStore(repo, client.id)
 
@@ -138,8 +140,9 @@ async def worker(request: Request, repo=Depends(get_db)):
     actor = FinanceRepository(repo).user_by_id(job['actor_id'])
     if actor:
         from app.services.gst.medallion import param
-        role = repo.one(f"SELECT role FROM `{repo.table('client_user_role')}` WHERE client_id=@client_id AND email=@email AND is_current=TRUE ORDER BY effective_from DESC LIMIT 1", [param('client_id',store.client_id),param('email',actor.email.lower())])
-        actor.role = str(role.role if role else actor.role).lower()
+        from app.services.access import workspace_role
+        role = repo.one(f"SELECT access_role AS role FROM `{repo.table('client_memberships')}` WHERE client_id=@client_id AND user_id=@uid AND is_active=TRUE ORDER BY created_at DESC LIMIT 1", [param('client_id',store.client_id),param('uid',str(actor.id))])
+        actor.role = workspace_role(role.role if role else None)
     if not actor or not can(actor, 'bills:write', store.client_id, repo):
         raise HTTPException(403, 'The uploader no longer has permission to save these bills.')
     from starlette.concurrency import run_in_threadpool
@@ -380,15 +383,16 @@ def reports_view(request: Request, period: str, kind: str = 'purchases', scope_n
                  format: str = 'json', offset: int = Query(0, ge=0, le=10000),
                  repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user)
-    if getattr(client, 'is_test', False):
+    if getattr(client, 'is_test', False) and not (isolated_v2_demo() and format == 'json'):
         raise HTTPException(403, 'Synthetic workspaces cannot generate customer reports.')
     if format not in {'json','csv','xlsx','pdf'} or (format == 'pdf' and kind != 'tax'):
         raise HTTPException(422, 'Choose CSV or Excel; PDF is available for the tax-head summary.')
-    report = reports.build(store, period, scope_name, kind, lambda month: profile_for(repo, client.id, month))
+    filters = {key:request.query_params[key] for key in ('q','party','invoice_type','eligibility','matching','source','date_from','date_to','sort') if request.query_params.get(key)}
+    report = reports.build(store, period, scope_name, kind, lambda month: profile_for(repo, client.id, month), filters)
     private = {'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff'}
     if format == 'json':
         from fastapi.responses import JSONResponse
-        return JSONResponse({**report, 'rows': report['rows'][offset:offset+100],
+        return JSONResponse({**report, 'can_export': not getattr(client, 'is_test', False), 'rows': report['rows'][offset:offset+100],
                              'source_invoices': report['source_invoices'][offset:offset+100],
                              'source_invoice_count': len(report['source_invoices']),
                              'offset': offset, 'has_more': offset+100 < report['row_count']}, headers=private)

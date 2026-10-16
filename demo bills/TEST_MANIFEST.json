@@ -1,0 +1,2500 @@
+{
+  "provenance": "SYNTHETIC_TEST_ONLY",
+  "period": "2026-10",
+  "provisioning": "profiles only; never import these files automatically",
+  "businesses": [
+    {
+      "key": "manufacturing",
+      "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+      "trade_name": "Nature Labs Manufacturing",
+      "state_code": "33",
+      "city": "Chennai",
+      "pin": "600032",
+      "contact_email": "manufacturing@example.test",
+      "contact_phone": "+919000000101",
+      "website_url": "https://manufacturing.example.test",
+      "gstin": "33ZXZCZ0001Q1ZT",
+      "pan": "ZXZCZ0001Q",
+      "constitution": "Company",
+      "registration_type": "Regular",
+      "filing_frequency": "monthly",
+      "business_nature": "Manufacturing of industrial components",
+      "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+      "is_test": true,
+      "gstin_verified": false,
+      "provenance": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "key": "trading",
+      "legal_name": "Nature Labs Demo Trading Pvt Ltd",
+      "trade_name": "Nature Labs Trading",
+      "state_code": "33",
+      "city": "Coimbatore",
+      "pin": "641018",
+      "contact_email": "trading@example.test",
+      "contact_phone": "+919000000102",
+      "website_url": "https://trading.example.test",
+      "gstin": "33ZXZCZ0002Q1ZS",
+      "pan": "ZXZCZ0002Q",
+      "constitution": "Company",
+      "registration_type": "Regular",
+      "filing_frequency": "monthly",
+      "business_nature": "Wholesale and Retail Trading",
+      "principal_address": "Synthetic Demo Campus, Unit 2, Coimbatore, 641018 (fictional address)",
+      "is_test": true,
+      "gstin_verified": false,
+      "provenance": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "key": "services",
+      "legal_name": "Nature Labs Demo Services Pvt Ltd",
+      "trade_name": "Nature Labs Services",
+      "state_code": "29",
+      "city": "Bengaluru",
+      "pin": "560001",
+      "contact_email": "services@example.test",
+      "contact_phone": "+919000000103",
+      "website_url": "https://services.example.test",
+      "gstin": "29ZXZCZ0003Q1ZG",
+      "pan": "ZXZCZ0003Q",
+      "constitution": "Company",
+      "registration_type": "Regular",
+      "filing_frequency": "monthly",
+      "business_nature": "Professional Services",
+      "principal_address": "Synthetic Demo Campus, Unit 3, Bengaluru, 560001 (fictional address)",
+      "is_test": true,
+      "gstin_verified": false,
+      "provenance": "SYNTHETIC_TEST_ONLY"
+    }
+  ],
+  "invoices": [
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-001",
+      "invoice_date": "2026-10-01",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 01",
+        "gstin": "29ZXZCZ0100Q1ZI",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 1, Test City"
+      },
+      "recipient": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Raw material steel",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "637.00",
+          "taxable_value": "1274.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "229.32",
+          "cess": "0.00"
+        },
+        {
+          "description": "Raw material steel - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "684.00",
+          "taxable_value": "2052.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "246.24",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "3326.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "475.56",
+        "cess": "0.00",
+        "invoice_total": "3801.56"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "match",
+      "files": [
+        "manufacturing/29ZXZCZ0100Q1ZI_NL-MAN-001.pdf",
+        "manufacturing/29ZXZCZ0100Q1ZI_NL-MAN-001.png",
+        "manufacturing/29ZXZCZ0100Q1ZI_NL-MAN-001.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-002",
+      "invoice_date": "2026-10-02",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 02",
+        "gstin": "33ZXZCZ0101Q1ZS",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 2, Test City"
+      },
+      "recipient": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Copper wire",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "774.00",
+          "taxable_value": "1548.00",
+          "gst_rate": "18",
+          "cgst": "139.32",
+          "sgst": "139.32",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Copper wire - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "821.00",
+          "taxable_value": "2463.00",
+          "gst_rate": "12",
+          "cgst": "147.78",
+          "sgst": "147.78",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "4011.00",
+        "cgst": "287.10",
+        "sgst": "287.10",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "4585.20"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "amount_mismatch",
+      "files": [
+        "manufacturing/33ZXZCZ0101Q1ZS_NL-MAN-002.pdf",
+        "manufacturing/33ZXZCZ0101Q1ZS_NL-MAN-002.png",
+        "manufacturing/33ZXZCZ0101Q1ZS_NL-MAN-002.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-003",
+      "invoice_date": "2026-10-03",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 03",
+        "gstin": "33ZXZCZ0102Q1ZR",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 3, Test City"
+      },
+      "recipient": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Electrical components",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "911.00",
+          "taxable_value": "1822.00",
+          "gst_rate": "18",
+          "cgst": "163.98",
+          "sgst": "163.98",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Electrical components - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "958.00",
+          "taxable_value": "2874.00",
+          "gst_rate": "12",
+          "cgst": "172.44",
+          "sgst": "172.44",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "4696.00",
+        "cgst": "336.42",
+        "sgst": "336.42",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "5368.84"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "tax_head_mismatch",
+      "files": [
+        "manufacturing/33ZXZCZ0102Q1ZR_NL-MAN-003.pdf",
+        "manufacturing/33ZXZCZ0102Q1ZR_NL-MAN-003.png",
+        "manufacturing/33ZXZCZ0102Q1ZR_NL-MAN-003.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-004",
+      "invoice_date": "2026-10-04",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 04",
+        "gstin": "29ZXZCZ0103Q1ZF",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 4, Test City"
+      },
+      "recipient": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Industrial machine spares",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1048.00",
+          "taxable_value": "2096.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "377.28",
+          "cess": "0.00"
+        },
+        {
+          "description": "Industrial machine spares - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1095.00",
+          "taxable_value": "3285.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "394.20",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "5381.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "771.48",
+        "cess": "0.00",
+        "invoice_total": "6152.48"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "books_only",
+      "files": [
+        "manufacturing/29ZXZCZ0103Q1ZF_NL-MAN-004.pdf",
+        "manufacturing/29ZXZCZ0103Q1ZF_NL-MAN-004.png",
+        "manufacturing/29ZXZCZ0103Q1ZF_NL-MAN-004.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-005",
+      "invoice_date": "2026-10-05",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 05",
+        "gstin": "33ZXZCZ0104Q1ZP",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 5, Test City"
+      },
+      "recipient": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Packaging materials",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1185.00",
+          "taxable_value": "2370.00",
+          "gst_rate": "18",
+          "cgst": "213.30",
+          "sgst": "213.30",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Packaging materials - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1232.00",
+          "taxable_value": "3696.00",
+          "gst_rate": "12",
+          "cgst": "221.76",
+          "sgst": "221.76",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "6066.00",
+        "cgst": "435.06",
+        "sgst": "435.06",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "6936.12"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "books_only",
+      "files": [
+        "manufacturing/33ZXZCZ0104Q1ZP_NL-MAN-005.pdf",
+        "manufacturing/33ZXZCZ0104Q1ZP_NL-MAN-005.png",
+        "manufacturing/33ZXZCZ0104Q1ZP_NL-MAN-005.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-006",
+      "invoice_date": "2026-10-06",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 06",
+        "gstin": "33ZXZCZ0105Q1ZO",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 6, Test City"
+      },
+      "recipient": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Factory equipment maintenance",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1322.00",
+          "taxable_value": "2644.00",
+          "gst_rate": "18",
+          "cgst": "237.96",
+          "sgst": "237.96",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Factory equipment maintenance - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1369.00",
+          "taxable_value": "4107.00",
+          "gst_rate": "12",
+          "cgst": "246.42",
+          "sgst": "246.42",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "6751.00",
+        "cgst": "484.38",
+        "sgst": "484.38",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "7719.76"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "books_only",
+      "files": [
+        "manufacturing/33ZXZCZ0105Q1ZO_NL-MAN-006.pdf",
+        "manufacturing/33ZXZCZ0105Q1ZO_NL-MAN-006.png",
+        "manufacturing/33ZXZCZ0105Q1ZO_NL-MAN-006.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-007",
+      "invoice_date": "2026-10-07",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 07",
+        "gstin": "29ZXZCZ0106Q1ZC",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 7, Test City"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Industrial control panel",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1459.00",
+          "taxable_value": "2918.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "525.24",
+          "cess": "0.00"
+        },
+        {
+          "description": "Industrial control panel - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1506.00",
+          "taxable_value": "4518.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "542.16",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "7436.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "1067.40",
+        "cess": "0.00",
+        "invoice_total": "8503.40"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-007.pdf",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-007.png",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-007.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-008",
+      "invoice_date": "2026-10-08",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 08",
+        "gstin": "33ZXZCZ0107Q1ZM",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 8, Test City"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Electrical distribution board",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1596.00",
+          "taxable_value": "3192.00",
+          "gst_rate": "18",
+          "cgst": "287.28",
+          "sgst": "287.28",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Electrical distribution board - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1643.00",
+          "taxable_value": "4929.00",
+          "gst_rate": "12",
+          "cgst": "295.74",
+          "sgst": "295.74",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "8121.00",
+        "cgst": "583.02",
+        "sgst": "583.02",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "9287.04"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-008.pdf",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-008.png",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-008.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-009",
+      "invoice_date": "2026-10-09",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 09",
+        "gstin": "33ZXZCZ0108Q1ZL",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 9, Test City"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Fabricated metal component",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1733.00",
+          "taxable_value": "3466.00",
+          "gst_rate": "18",
+          "cgst": "311.94",
+          "sgst": "311.94",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Fabricated metal component - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1780.00",
+          "taxable_value": "5340.00",
+          "gst_rate": "12",
+          "cgst": "320.40",
+          "sgst": "320.40",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "8806.00",
+        "cgst": "632.34",
+        "sgst": "632.34",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "10070.68"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-009.pdf",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-009.png",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-009.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-010",
+      "invoice_date": "2026-10-10",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 10",
+        "gstin": "29ZXZCZ0109Q1Z9",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 10, Test City"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Industrial sensor assembly",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1870.00",
+          "taxable_value": "3740.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "673.20",
+          "cess": "0.00"
+        },
+        {
+          "description": "Industrial sensor assembly - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1917.00",
+          "taxable_value": "5751.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "690.12",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "9491.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "1363.32",
+        "cess": "0.00",
+        "invoice_total": "10854.32"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-010.pdf",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-010.png",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-010.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-011",
+      "invoice_date": "2026-10-11",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 11",
+        "gstin": "33ZXZCZ0110Q1ZR",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 11, Test City"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Machinery spare parts",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "2007.00",
+          "taxable_value": "4014.00",
+          "gst_rate": "18",
+          "cgst": "361.26",
+          "sgst": "361.26",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Machinery spare parts - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "2054.00",
+          "taxable_value": "6162.00",
+          "gst_rate": "12",
+          "cgst": "369.72",
+          "sgst": "369.72",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "10176.00",
+        "cgst": "730.98",
+        "sgst": "730.98",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "11637.96"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-011.pdf",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-011.png",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-011.jpg"
+      ]
+    },
+    {
+      "business": "manufacturing",
+      "invoice_number": "NL-MAN-012",
+      "invoice_date": "2026-10-12",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "manufacturing",
+        "legal_name": "Nature Labs Demo Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Manufacturing",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "contact_email": "manufacturing@example.test",
+        "contact_phone": "+919000000101",
+        "website_url": "https://manufacturing.example.test",
+        "gstin": "33ZXZCZ0001Q1ZT",
+        "pan": "ZXZCZ0001Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Manufacturing of industrial components",
+        "principal_address": "Synthetic Demo Campus, Unit 1, Chennai, 600032 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 12",
+        "gstin": "33ZXZCZ0111Q1ZQ",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 12, Test City"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Finished electrical equipment",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "2144.00",
+          "taxable_value": "4288.00",
+          "gst_rate": "18",
+          "cgst": "385.92",
+          "sgst": "385.92",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Finished electrical equipment - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "2191.00",
+          "taxable_value": "6573.00",
+          "gst_rate": "12",
+          "cgst": "394.38",
+          "sgst": "394.38",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "10861.00",
+        "cgst": "780.30",
+        "sgst": "780.30",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "12421.60"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-012.pdf",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-012.png",
+        "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-012.jpg"
+      ]
+    },
+    {
+      "business": "trading",
+      "invoice_number": "NL-TRA-001",
+      "invoice_date": "2026-10-01",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 01",
+        "gstin": "29ZXZCZ0100Q1ZI",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 1, Test City"
+      },
+      "recipient": {
+        "key": "trading",
+        "legal_name": "Nature Labs Demo Trading Pvt Ltd",
+        "trade_name": "Nature Labs Trading",
+        "state_code": "33",
+        "city": "Coimbatore",
+        "pin": "641018",
+        "contact_email": "trading@example.test",
+        "contact_phone": "+919000000102",
+        "website_url": "https://trading.example.test",
+        "gstin": "33ZXZCZ0002Q1ZS",
+        "pan": "ZXZCZ0002Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Wholesale and Retail Trading",
+        "principal_address": "Synthetic Demo Campus, Unit 2, Coimbatore, 641018 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Wholesale electrical procurement",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "637.00",
+          "taxable_value": "1274.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "229.32",
+          "cess": "0.00"
+        },
+        {
+          "description": "Wholesale electrical procurement - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "684.00",
+          "taxable_value": "2052.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "246.24",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "3326.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "475.56",
+        "cess": "0.00",
+        "invoice_total": "3801.56"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "match",
+      "files": [
+        "trading/29ZXZCZ0100Q1ZI_NL-TRA-001.pdf",
+        "trading/29ZXZCZ0100Q1ZI_NL-TRA-001.png",
+        "trading/29ZXZCZ0100Q1ZI_NL-TRA-001.jpg"
+      ]
+    },
+    {
+      "business": "trading",
+      "invoice_number": "NL-TRA-002",
+      "invoice_date": "2026-10-02",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 02",
+        "gstin": "33ZXZCZ0101Q1ZS",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 2, Test City"
+      },
+      "recipient": {
+        "key": "trading",
+        "legal_name": "Nature Labs Demo Trading Pvt Ltd",
+        "trade_name": "Nature Labs Trading",
+        "state_code": "33",
+        "city": "Coimbatore",
+        "pin": "641018",
+        "contact_email": "trading@example.test",
+        "contact_phone": "+919000000102",
+        "website_url": "https://trading.example.test",
+        "gstin": "33ZXZCZ0002Q1ZS",
+        "pan": "ZXZCZ0002Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Wholesale and Retail Trading",
+        "principal_address": "Synthetic Demo Campus, Unit 2, Coimbatore, 641018 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Industrial materials",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "774.00",
+          "taxable_value": "1548.00",
+          "gst_rate": "18",
+          "cgst": "139.32",
+          "sgst": "139.32",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Industrial materials - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "821.00",
+          "taxable_value": "2463.00",
+          "gst_rate": "12",
+          "cgst": "147.78",
+          "sgst": "147.78",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "4011.00",
+        "cgst": "287.10",
+        "sgst": "287.10",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "4585.20"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "amount_mismatch",
+      "files": [
+        "trading/33ZXZCZ0101Q1ZS_NL-TRA-002.pdf",
+        "trading/33ZXZCZ0101Q1ZS_NL-TRA-002.png",
+        "trading/33ZXZCZ0101Q1ZS_NL-TRA-002.jpg"
+      ]
+    },
+    {
+      "business": "trading",
+      "invoice_number": "NL-TRA-003",
+      "invoice_date": "2026-10-03",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 03",
+        "gstin": "33ZXZCZ0102Q1ZR",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 3, Test City"
+      },
+      "recipient": {
+        "key": "trading",
+        "legal_name": "Nature Labs Demo Trading Pvt Ltd",
+        "trade_name": "Nature Labs Trading",
+        "state_code": "33",
+        "city": "Coimbatore",
+        "pin": "641018",
+        "contact_email": "trading@example.test",
+        "contact_phone": "+919000000102",
+        "website_url": "https://trading.example.test",
+        "gstin": "33ZXZCZ0002Q1ZS",
+        "pan": "ZXZCZ0002Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Wholesale and Retail Trading",
+        "principal_address": "Synthetic Demo Campus, Unit 2, Coimbatore, 641018 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Tools procurement",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "911.00",
+          "taxable_value": "1822.00",
+          "gst_rate": "18",
+          "cgst": "163.98",
+          "sgst": "163.98",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Tools procurement - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "958.00",
+          "taxable_value": "2874.00",
+          "gst_rate": "12",
+          "cgst": "172.44",
+          "sgst": "172.44",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "4696.00",
+        "cgst": "336.42",
+        "sgst": "336.42",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "5368.84"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "tax_head_mismatch",
+      "files": [
+        "trading/33ZXZCZ0102Q1ZR_NL-TRA-003.pdf",
+        "trading/33ZXZCZ0102Q1ZR_NL-TRA-003.png",
+        "trading/33ZXZCZ0102Q1ZR_NL-TRA-003.jpg"
+      ]
+    },
+    {
+      "business": "trading",
+      "invoice_number": "NL-TRA-004",
+      "invoice_date": "2026-10-04",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 04",
+        "gstin": "29ZXZCZ0103Q1ZF",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 4, Test City"
+      },
+      "recipient": {
+        "key": "trading",
+        "legal_name": "Nature Labs Demo Trading Pvt Ltd",
+        "trade_name": "Nature Labs Trading",
+        "state_code": "33",
+        "city": "Coimbatore",
+        "pin": "641018",
+        "contact_email": "trading@example.test",
+        "contact_phone": "+919000000102",
+        "website_url": "https://trading.example.test",
+        "gstin": "33ZXZCZ0002Q1ZS",
+        "pan": "ZXZCZ0002Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Wholesale and Retail Trading",
+        "principal_address": "Synthetic Demo Campus, Unit 2, Coimbatore, 641018 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Equipment procurement",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1048.00",
+          "taxable_value": "2096.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "377.28",
+          "cess": "0.00"
+        },
+        {
+          "description": "Equipment procurement - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1095.00",
+          "taxable_value": "3285.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "394.20",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "5381.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "771.48",
+        "cess": "0.00",
+        "invoice_total": "6152.48"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "books_only",
+      "files": [
+        "trading/29ZXZCZ0103Q1ZF_NL-TRA-004.pdf",
+        "trading/29ZXZCZ0103Q1ZF_NL-TRA-004.png",
+        "trading/29ZXZCZ0103Q1ZF_NL-TRA-004.jpg"
+      ]
+    },
+    {
+      "business": "trading",
+      "invoice_number": "NL-TRA-005",
+      "invoice_date": "2026-10-05",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "trading",
+        "legal_name": "Nature Labs Demo Trading Pvt Ltd",
+        "trade_name": "Nature Labs Trading",
+        "state_code": "33",
+        "city": "Coimbatore",
+        "pin": "641018",
+        "contact_email": "trading@example.test",
+        "contact_phone": "+919000000102",
+        "website_url": "https://trading.example.test",
+        "gstin": "33ZXZCZ0002Q1ZS",
+        "pan": "ZXZCZ0002Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Wholesale and Retail Trading",
+        "principal_address": "Synthetic Demo Campus, Unit 2, Coimbatore, 641018 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 05",
+        "gstin": "33ZXZCZ0104Q1ZP",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 5, Test City"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Retail electrical goods",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1185.00",
+          "taxable_value": "2370.00",
+          "gst_rate": "18",
+          "cgst": "213.30",
+          "sgst": "213.30",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Retail electrical goods - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1232.00",
+          "taxable_value": "3696.00",
+          "gst_rate": "12",
+          "cgst": "221.76",
+          "sgst": "221.76",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "6066.00",
+        "cgst": "435.06",
+        "sgst": "435.06",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "6936.12"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-005.pdf",
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-005.png",
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-005.jpg"
+      ]
+    },
+    {
+      "business": "trading",
+      "invoice_number": "NL-TRA-006",
+      "invoice_date": "2026-10-06",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "trading",
+        "legal_name": "Nature Labs Demo Trading Pvt Ltd",
+        "trade_name": "Nature Labs Trading",
+        "state_code": "33",
+        "city": "Coimbatore",
+        "pin": "641018",
+        "contact_email": "trading@example.test",
+        "contact_phone": "+919000000102",
+        "website_url": "https://trading.example.test",
+        "gstin": "33ZXZCZ0002Q1ZS",
+        "pan": "ZXZCZ0002Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Wholesale and Retail Trading",
+        "principal_address": "Synthetic Demo Campus, Unit 2, Coimbatore, 641018 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 06",
+        "gstin": "33ZXZCZ0105Q1ZO",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 6, Test City"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Wholesale materials",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1322.00",
+          "taxable_value": "2644.00",
+          "gst_rate": "18",
+          "cgst": "237.96",
+          "sgst": "237.96",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Wholesale materials - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1369.00",
+          "taxable_value": "4107.00",
+          "gst_rate": "12",
+          "cgst": "246.42",
+          "sgst": "246.42",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "6751.00",
+        "cgst": "484.38",
+        "sgst": "484.38",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "7719.76"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-006.pdf",
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-006.png",
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-006.jpg"
+      ]
+    },
+    {
+      "business": "trading",
+      "invoice_number": "NL-TRA-007",
+      "invoice_date": "2026-10-07",
+      "invoice_type": "credit_note",
+      "direction": "sale",
+      "supplier": {
+        "key": "trading",
+        "legal_name": "Nature Labs Demo Trading Pvt Ltd",
+        "trade_name": "Nature Labs Trading",
+        "state_code": "33",
+        "city": "Coimbatore",
+        "pin": "641018",
+        "contact_email": "trading@example.test",
+        "contact_phone": "+919000000102",
+        "website_url": "https://trading.example.test",
+        "gstin": "33ZXZCZ0002Q1ZS",
+        "pan": "ZXZCZ0002Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Wholesale and Retail Trading",
+        "principal_address": "Synthetic Demo Campus, Unit 2, Coimbatore, 641018 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 07",
+        "gstin": "29ZXZCZ0106Q1ZC",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 7, Test City"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Industrial tools credit note",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1459.00",
+          "taxable_value": "2918.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "525.24",
+          "cess": "0.00"
+        },
+        {
+          "description": "Industrial tools credit note - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1506.00",
+          "taxable_value": "4518.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "542.16",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "7436.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "1067.40",
+        "cess": "0.00",
+        "invoice_total": "8503.40"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-007.pdf",
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-007.png",
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-007.jpg"
+      ]
+    },
+    {
+      "business": "trading",
+      "invoice_number": "NL-TRA-008",
+      "invoice_date": "2026-10-08",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "trading",
+        "legal_name": "Nature Labs Demo Trading Pvt Ltd",
+        "trade_name": "Nature Labs Trading",
+        "state_code": "33",
+        "city": "Coimbatore",
+        "pin": "641018",
+        "contact_email": "trading@example.test",
+        "contact_phone": "+919000000102",
+        "website_url": "https://trading.example.test",
+        "gstin": "33ZXZCZ0002Q1ZS",
+        "pan": "ZXZCZ0002Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Wholesale and Retail Trading",
+        "principal_address": "Synthetic Demo Campus, Unit 2, Coimbatore, 641018 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 08",
+        "gstin": "33ZXZCZ0107Q1ZM",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 8, Test City"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Interstate equipment",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1596.00",
+          "taxable_value": "3192.00",
+          "gst_rate": "18",
+          "cgst": "287.28",
+          "sgst": "287.28",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Interstate equipment - accessory/support",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1643.00",
+          "taxable_value": "4929.00",
+          "gst_rate": "12",
+          "cgst": "295.74",
+          "sgst": "295.74",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "8121.00",
+        "cgst": "583.02",
+        "sgst": "583.02",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "9287.04"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-008.pdf",
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-008.png",
+        "trading/33ZXZCZ0002Q1ZS_NL-TRA-008.jpg"
+      ]
+    },
+    {
+      "business": "services",
+      "invoice_number": "NL-SER-001",
+      "invoice_date": "2026-10-01",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 01",
+        "gstin": "33ZXZCZ0100Q1ZT",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 1, Test City"
+      },
+      "recipient": {
+        "key": "services",
+        "legal_name": "Nature Labs Demo Services Pvt Ltd",
+        "trade_name": "Nature Labs Services",
+        "state_code": "29",
+        "city": "Bengaluru",
+        "pin": "560001",
+        "contact_email": "services@example.test",
+        "contact_phone": "+919000000103",
+        "website_url": "https://services.example.test",
+        "gstin": "29ZXZCZ0003Q1ZG",
+        "pan": "ZXZCZ0003Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Professional Services",
+        "principal_address": "Synthetic Demo Campus, Unit 3, Bengaluru, 560001 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "IT supplier services",
+          "hsn_sac": "998313",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "637.00",
+          "taxable_value": "1274.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "229.32",
+          "cess": "0.00"
+        },
+        {
+          "description": "IT supplier services - accessory/support",
+          "hsn_sac": "998313",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "684.00",
+          "taxable_value": "2052.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "246.24",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "3326.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "475.56",
+        "cess": "0.00",
+        "invoice_total": "3801.56"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "match",
+      "files": [
+        "services/33ZXZCZ0100Q1ZT_NL-SER-001.pdf",
+        "services/33ZXZCZ0100Q1ZT_NL-SER-001.png",
+        "services/33ZXZCZ0100Q1ZT_NL-SER-001.jpg"
+      ]
+    },
+    {
+      "business": "services",
+      "invoice_number": "NL-SER-002",
+      "invoice_date": "2026-10-02",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 02",
+        "gstin": "29ZXZCZ0101Q1ZH",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 2, Test City"
+      },
+      "recipient": {
+        "key": "services",
+        "legal_name": "Nature Labs Demo Services Pvt Ltd",
+        "trade_name": "Nature Labs Services",
+        "state_code": "29",
+        "city": "Bengaluru",
+        "pin": "560001",
+        "contact_email": "services@example.test",
+        "contact_phone": "+919000000103",
+        "website_url": "https://services.example.test",
+        "gstin": "29ZXZCZ0003Q1ZG",
+        "pan": "ZXZCZ0003Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Professional Services",
+        "principal_address": "Synthetic Demo Campus, Unit 3, Bengaluru, 560001 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Technical maintenance inward",
+          "hsn_sac": "998313",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "774.00",
+          "taxable_value": "1548.00",
+          "gst_rate": "18",
+          "cgst": "139.32",
+          "sgst": "139.32",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Technical maintenance inward - accessory/support",
+          "hsn_sac": "998313",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "821.00",
+          "taxable_value": "2463.00",
+          "gst_rate": "12",
+          "cgst": "147.78",
+          "sgst": "147.78",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "4011.00",
+        "cgst": "287.10",
+        "sgst": "287.10",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "4585.20"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "amount_mismatch",
+      "files": [
+        "services/29ZXZCZ0101Q1ZH_NL-SER-002.pdf",
+        "services/29ZXZCZ0101Q1ZH_NL-SER-002.png",
+        "services/29ZXZCZ0101Q1ZH_NL-SER-002.jpg"
+      ]
+    },
+    {
+      "business": "services",
+      "invoice_number": "NL-SER-003",
+      "invoice_date": "2026-10-03",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 03",
+        "gstin": "29ZXZCZ0102Q1ZG",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 3, Test City"
+      },
+      "recipient": {
+        "key": "services",
+        "legal_name": "Nature Labs Demo Services Pvt Ltd",
+        "trade_name": "Nature Labs Services",
+        "state_code": "29",
+        "city": "Bengaluru",
+        "pin": "560001",
+        "contact_email": "services@example.test",
+        "contact_phone": "+919000000103",
+        "website_url": "https://services.example.test",
+        "gstin": "29ZXZCZ0003Q1ZG",
+        "pan": "ZXZCZ0003Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Professional Services",
+        "principal_address": "Synthetic Demo Campus, Unit 3, Bengaluru, 560001 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Installation subcontractor",
+          "hsn_sac": "998313",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "911.00",
+          "taxable_value": "1822.00",
+          "gst_rate": "18",
+          "cgst": "163.98",
+          "sgst": "163.98",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Installation subcontractor - accessory/support",
+          "hsn_sac": "998313",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "958.00",
+          "taxable_value": "2874.00",
+          "gst_rate": "12",
+          "cgst": "172.44",
+          "sgst": "172.44",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "4696.00",
+        "cgst": "336.42",
+        "sgst": "336.42",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "5368.84"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "tax_head_mismatch",
+      "files": [
+        "services/29ZXZCZ0102Q1ZG_NL-SER-003.pdf",
+        "services/29ZXZCZ0102Q1ZG_NL-SER-003.png",
+        "services/29ZXZCZ0102Q1ZG_NL-SER-003.jpg"
+      ]
+    },
+    {
+      "business": "services",
+      "invoice_number": "NL-SER-004",
+      "invoice_date": "2026-10-04",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Synthetic Supplier 04",
+        "gstin": "33ZXZCZ0103Q1ZQ",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 4, Test City"
+      },
+      "recipient": {
+        "key": "services",
+        "legal_name": "Nature Labs Demo Services Pvt Ltd",
+        "trade_name": "Nature Labs Services",
+        "state_code": "29",
+        "city": "Bengaluru",
+        "pin": "560001",
+        "contact_email": "services@example.test",
+        "contact_phone": "+919000000103",
+        "website_url": "https://services.example.test",
+        "gstin": "29ZXZCZ0003Q1ZG",
+        "pan": "ZXZCZ0003Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Professional Services",
+        "principal_address": "Synthetic Demo Campus, Unit 3, Bengaluru, 560001 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Software support inward",
+          "hsn_sac": "998313",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1048.00",
+          "taxable_value": "2096.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "377.28",
+          "cess": "0.00"
+        },
+        {
+          "description": "Software support inward - accessory/support",
+          "hsn_sac": "998313",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1095.00",
+          "taxable_value": "3285.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "394.20",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "5381.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "771.48",
+        "cess": "0.00",
+        "invoice_total": "6152.48"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "books_only",
+      "files": [
+        "services/33ZXZCZ0103Q1ZQ_NL-SER-004.pdf",
+        "services/33ZXZCZ0103Q1ZQ_NL-SER-004.png",
+        "services/33ZXZCZ0103Q1ZQ_NL-SER-004.jpg"
+      ]
+    },
+    {
+      "business": "services",
+      "invoice_number": "NL-SER-005",
+      "invoice_date": "2026-10-05",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "services",
+        "legal_name": "Nature Labs Demo Services Pvt Ltd",
+        "trade_name": "Nature Labs Services",
+        "state_code": "29",
+        "city": "Bengaluru",
+        "pin": "560001",
+        "contact_email": "services@example.test",
+        "contact_phone": "+919000000103",
+        "website_url": "https://services.example.test",
+        "gstin": "29ZXZCZ0003Q1ZG",
+        "pan": "ZXZCZ0003Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Professional Services",
+        "principal_address": "Synthetic Demo Campus, Unit 3, Bengaluru, 560001 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 05",
+        "gstin": "29ZXZCZ0104Q1ZE",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 5, Test City"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "IT consulting",
+          "hsn_sac": "998313",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1185.00",
+          "taxable_value": "2370.00",
+          "gst_rate": "18",
+          "cgst": "213.30",
+          "sgst": "213.30",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "IT consulting - accessory/support",
+          "hsn_sac": "998313",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1232.00",
+          "taxable_value": "3696.00",
+          "gst_rate": "12",
+          "cgst": "221.76",
+          "sgst": "221.76",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "6066.00",
+        "cgst": "435.06",
+        "sgst": "435.06",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "6936.12"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "services/29ZXZCZ0003Q1ZG_NL-SER-005.pdf",
+        "services/29ZXZCZ0003Q1ZG_NL-SER-005.png",
+        "services/29ZXZCZ0003Q1ZG_NL-SER-005.jpg"
+      ]
+    },
+    {
+      "business": "services",
+      "invoice_number": "NL-SER-006",
+      "invoice_date": "2026-10-06",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "services",
+        "legal_name": "Nature Labs Demo Services Pvt Ltd",
+        "trade_name": "Nature Labs Services",
+        "state_code": "29",
+        "city": "Bengaluru",
+        "pin": "560001",
+        "contact_email": "services@example.test",
+        "contact_phone": "+919000000103",
+        "website_url": "https://services.example.test",
+        "gstin": "29ZXZCZ0003Q1ZG",
+        "pan": "ZXZCZ0003Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Professional Services",
+        "principal_address": "Synthetic Demo Campus, Unit 3, Bengaluru, 560001 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 06",
+        "gstin": "29ZXZCZ0105Q1ZD",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 6, Test City"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Technical maintenance outward",
+          "hsn_sac": "998313",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1322.00",
+          "taxable_value": "2644.00",
+          "gst_rate": "18",
+          "cgst": "237.96",
+          "sgst": "237.96",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Technical maintenance outward - accessory/support",
+          "hsn_sac": "998313",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1369.00",
+          "taxable_value": "4107.00",
+          "gst_rate": "12",
+          "cgst": "246.42",
+          "sgst": "246.42",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "6751.00",
+        "cgst": "484.38",
+        "sgst": "484.38",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "7719.76"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "services/29ZXZCZ0003Q1ZG_NL-SER-006.pdf",
+        "services/29ZXZCZ0003Q1ZG_NL-SER-006.png",
+        "services/29ZXZCZ0003Q1ZG_NL-SER-006.jpg"
+      ]
+    },
+    {
+      "business": "services",
+      "invoice_number": "NL-SER-007",
+      "invoice_date": "2026-10-07",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "services",
+        "legal_name": "Nature Labs Demo Services Pvt Ltd",
+        "trade_name": "Nature Labs Services",
+        "state_code": "29",
+        "city": "Bengaluru",
+        "pin": "560001",
+        "contact_email": "services@example.test",
+        "contact_phone": "+919000000103",
+        "website_url": "https://services.example.test",
+        "gstin": "29ZXZCZ0003Q1ZG",
+        "pan": "ZXZCZ0003Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Professional Services",
+        "principal_address": "Synthetic Demo Campus, Unit 3, Bengaluru, 560001 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 07",
+        "gstin": "33ZXZCZ0106Q1ZN",
+        "state_code": "33",
+        "principal_address": "Fictional Industrial Road 7, Test City"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Equipment installation",
+          "hsn_sac": "998313",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1459.00",
+          "taxable_value": "2918.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "525.24",
+          "cess": "0.00"
+        },
+        {
+          "description": "Equipment installation - accessory/support",
+          "hsn_sac": "998313",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1506.00",
+          "taxable_value": "4518.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "542.16",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "7436.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "1067.40",
+        "cess": "0.00",
+        "invoice_total": "8503.40"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "services/29ZXZCZ0003Q1ZG_NL-SER-007.pdf",
+        "services/29ZXZCZ0003Q1ZG_NL-SER-007.png",
+        "services/29ZXZCZ0003Q1ZG_NL-SER-007.jpg"
+      ]
+    },
+    {
+      "business": "services",
+      "invoice_number": "NL-SER-008",
+      "invoice_date": "2026-10-08",
+      "invoice_type": "debit_note",
+      "direction": "sale",
+      "supplier": {
+        "key": "services",
+        "legal_name": "Nature Labs Demo Services Pvt Ltd",
+        "trade_name": "Nature Labs Services",
+        "state_code": "29",
+        "city": "Bengaluru",
+        "pin": "560001",
+        "contact_email": "services@example.test",
+        "contact_phone": "+919000000103",
+        "website_url": "https://services.example.test",
+        "gstin": "29ZXZCZ0003Q1ZG",
+        "pan": "ZXZCZ0003Q",
+        "constitution": "Company",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "business_nature": "Professional Services",
+        "principal_address": "Synthetic Demo Campus, Unit 3, Bengaluru, 560001 (fictional address)",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Synthetic Customer 08",
+        "gstin": "29ZXZCZ0107Q1ZB",
+        "state_code": "29",
+        "principal_address": "Fictional Industrial Road 8, Test City"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Software support debit note",
+          "hsn_sac": "998313",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1596.00",
+          "taxable_value": "3192.00",
+          "gst_rate": "18",
+          "cgst": "287.28",
+          "sgst": "287.28",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Software support debit note - accessory/support",
+          "hsn_sac": "998313",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1643.00",
+          "taxable_value": "4929.00",
+          "gst_rate": "12",
+          "cgst": "295.74",
+          "sgst": "295.74",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "8121.00",
+        "cgst": "583.02",
+        "sgst": "583.02",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "9287.04"
+      },
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "rate_assumption": "18% and 12% illustrative test rates; HSN/SAC classification not legally certified",
+      "itc_assumption": "Pending review until a user establishes eligibility; no automatic ITC approval",
+      "reconciliation": "not_applicable",
+      "files": [
+        "services/29ZXZCZ0003Q1ZG_NL-SER-008.pdf",
+        "services/29ZXZCZ0003Q1ZG_NL-SER-008.png",
+        "services/29ZXZCZ0003Q1ZG_NL-SER-008.jpg"
+      ]
+    }
+  ],
+  "edge_cases": [
+    {
+      "file": "edge_cases/duplicate_invoice.pdf",
+      "expected": "business duplicate"
+    },
+    {
+      "file": "edge_cases/renamed_same_file.pdf",
+      "expected": "exact file duplicate"
+    },
+    {
+      "file": "edge_cases/invalid_gstin.pdf",
+      "expected": "block confirmation"
+    },
+    {
+      "file": "edge_cases/missing_supplier_gstin.pdf",
+      "expected": "block confirmation"
+    },
+    {
+      "file": "edge_cases/missing_date.pdf",
+      "expected": "block confirmation"
+    },
+    {
+      "file": "edge_cases/missing_number.pdf",
+      "expected": "block confirmation"
+    },
+    {
+      "file": "edge_cases/incorrect_total.pdf",
+      "expected": "block confirmation"
+    },
+    {
+      "file": "edge_cases/incorrect_tax.pdf",
+      "expected": "block confirmation"
+    },
+    {
+      "file": "edge_cases/invalid_tax_heads.pdf",
+      "expected": "block confirmation"
+    },
+    {
+      "file": "edge_cases/low_quality.jpg",
+      "expected": "manual review; extraction may fail"
+    },
+    {
+      "file": "edge_cases/rotated.jpg",
+      "expected": "manual review"
+    },
+    {
+      "file": "edge_cases/multi_page.pdf",
+      "expected": "one invoice, two pages"
+    },
+    {
+      "file": "edge_cases/credit_note.pdf",
+      "expected": "signed reduction after validated confirmation"
+    },
+    {
+      "file": "edge_cases/debit_note.pdf",
+      "expected": "signed increase after validated confirmation"
+    },
+    {
+      "file": "edge_cases/multiple_rates.pdf",
+      "expected": "validate each line separately"
+    },
+    {
+      "file": "edge_cases/incomplete_supplier.pdf",
+      "expected": "manual correction required"
+    },
+    {
+      "file": "edge_cases/different_financial_year.pdf",
+      "expected": "distinct FY; not automatically duplicate"
+    },
+    {
+      "file": "edge_cases/unsupported_upload.txt",
+      "expected": "reject unsupported content"
+    }
+  ],
+  "file_hashes": {
+    "edge_cases/credit_note.pdf": "68a9a3390ee6fe79c71c8169a90d5f032f7c37862c313959a271ed80daf9c94b",
+    "edge_cases/debit_note.pdf": "6ef0d12d68e03b3a0ebbdbb6a896014ebbcae6bd947ee90ee3e71420b00e282f",
+    "edge_cases/different_financial_year.pdf": "7ac9d2cbf1da8399d500013196efe14e1df7e16402b5c045dbd0f6024865245a",
+    "edge_cases/duplicate_invoice.pdf": "0a4953d9be3729ca1e790782718ed9a82927ffea0a5d93c818598184e050fe7f",
+    "edge_cases/incomplete_supplier.pdf": "2627e3883b630981819dd289046e80cc30292f99691283ec4a2079053cc6ead9",
+    "edge_cases/incorrect_tax.pdf": "0d9d71138a6894f2fd929e2c8f3c62db600bad0985a8a80aee92d4afc5de5704",
+    "edge_cases/incorrect_total.pdf": "cfa2f7ac28c62291551ef8a18c08b2dd053b27733960d1a0872a7767ebbdd794",
+    "edge_cases/invalid_gstin.pdf": "3a7d6406e7b0cab7594c985fc6d01658a8500bb533730d3b69fcee1f3006e1b8",
+    "edge_cases/invalid_tax_heads.pdf": "c598c18d317a0b9ae715f830851f4d4bdf5b61e450ef098bcfa99da8adb8f385",
+    "edge_cases/low_quality.jpg": "e4b7b1e179d1391a3ff0cf3ff7dacc6e17cf907a3216b105f7276b2092b7cde4",
+    "edge_cases/manufacturing_duplicate_statement.json": "7b66638417ae042289802d0feaf07e03d738d00e16a5c7dd065348a5a546463d",
+    "edge_cases/missing_date.pdf": "5703dc754a8f005b50ef0e62a31308f00dfa97714a09e7f7c3eab9811c07bacb",
+    "edge_cases/missing_number.pdf": "152d822237e3761e502e06c21be782b43f89c3e8e2563d1ad734a241425d7363",
+    "edge_cases/missing_supplier_gstin.pdf": "e5617309cdb41038e36c4720f46cd193678430cfa653da033779df501ea23757",
+    "edge_cases/multi_page.pdf": "4c631fe9cf28154448eb7ad7415c854c2727a58df0d064f1f0f42b8718b02e5c",
+    "edge_cases/multiple_rates.pdf": "517f10451182bea9bf81738e4e2ef8e883068f794df3e8ed0b8249bea49caf7f",
+    "edge_cases/renamed_same_file.pdf": "0a4953d9be3729ca1e790782718ed9a82927ffea0a5d93c818598184e050fe7f",
+    "edge_cases/rotated.jpg": "bd2cec225a6b3a3e92f7881f785b2de44c13fb4e8d76d0ffc62d997d1f1eb26f",
+    "edge_cases/services_duplicate_statement.json": "9461126a70b93dc2f2dd5ec2641886a651b0abbf5e79bef61b7a1ccfb1242e03",
+    "edge_cases/trading_duplicate_statement.json": "0a188c5255bbb9b5315725e230189a17a50c97bb39a91407bd549f557f00555f",
+    "edge_cases/unsupported_upload.txt": "acba3f90d07b137df1601a033af13b73da3e2fc75b4fa39f0f323f56f05157b5",
+    "EXPECTED_RESULTS.xlsx": "352a6b6f5206dfb1842a47af821067bc2c83b8691ec41b3c1e87b164dc8189cd",
+    "gstr2b/manufacturing.json": "dc4a270fe7af43b1311f86f831068b82fb6b7729c9bd846d2fb394771762da75",
+    "gstr2b/services.json": "a588530a5ecf4787c2b8b41dabc255ccace2facf3552eb5a0ea08e060d9d9c49",
+    "gstr2b/trading.json": "597bc92c5024acf186c1a52429b67075f06614fd9126a92bad7fc7b63f34e8a9",
+    "logos/manufacturing.png": "52dd5f5fa2161066fa7540be204939e7dbee26684e27043d521da9b4f708722f",
+    "logos/services.png": "70e8d4a049a515761fb58c3027c54b309790160de14ad690703f1c3a14b14ce2",
+    "logos/trading.png": "192cd7caeda5d482825b6ac5ef34116e13b690954da99b746f79c8722351c269",
+    "manufacturing/29ZXZCZ0100Q1ZI_NL-MAN-001.jpg": "9c98e4c20432664bf016573d3ca2a000ccb52963041cfd5514df79479e389ed1",
+    "manufacturing/29ZXZCZ0100Q1ZI_NL-MAN-001.pdf": "0a4953d9be3729ca1e790782718ed9a82927ffea0a5d93c818598184e050fe7f",
+    "manufacturing/29ZXZCZ0100Q1ZI_NL-MAN-001.png": "0b693c2d7365adf4edb675cb813d70f6fbde5ac3177ae5de97de41fbfc67993b",
+    "manufacturing/29ZXZCZ0103Q1ZF_NL-MAN-004.jpg": "31f5d519d197d6978bb9d2f4f1a594707a5742fbe892533205a74b51c650f737",
+    "manufacturing/29ZXZCZ0103Q1ZF_NL-MAN-004.pdf": "9019af92165159800b39e86726fa1c445e183c77558e15f69dba86c82d313539",
+    "manufacturing/29ZXZCZ0103Q1ZF_NL-MAN-004.png": "0d067f28fac3487561b79f26558e7ffcaa427413c926243012614919eea699d6",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-007.jpg": "105a6a3127dd313be064ae1cc67d7cf2f55d8dce8d0ff8ae3b22946864a94462",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-007.pdf": "8453d64f9198b62d1e0cb28e20a0fc8552054b8ffa631ce7add8eed07ed29f32",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-007.png": "efe06a6fb18d6b48db7f6bf39b5eabe06ebb53d3a6a85e6d5ba58d98f8296ac7",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-008.jpg": "6833d34e817405d4e3edd889bc138a2fd53e7d3915b136c483c827f1c49d6fba",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-008.pdf": "79a140d3dc90e9d91d7d5c476c8a223419f7a379ecc21bd47738637eb0a2bab6",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-008.png": "d09a1e77bd7b0daf29c37d1aee2ee8f56b5a4d29857b94887059b7f71d0eca0b",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-009.jpg": "99d1727a3c4852d340c1f3efb14bbab7ff218a64aab330c9489b1059fddf0ca1",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-009.pdf": "c169f3550f4cf20393a5b59fbe200db03290943c676936caea607d2ed91c449c",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-009.png": "3e5240e7fbe5670214371d777781e93032892c237a1cc1c4e70e694d5e689ac5",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-010.jpg": "f6c4468f0aa4b9ab66f2bc2c95b414316c32dbaa2b34eb15c81b43e966df2da3",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-010.pdf": "d0f941cd4c7c0b5fb8fe3e348cfeddb15eac3def5a5862b2a0496a9edfcd3d81",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-010.png": "acaa55fb0bf4a3fbd251347c641b83f55c2f8f1733d6603f8fd6171b62daa9b1",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-011.jpg": "09dba4b2ed8c3a0fa8086330943a5e5276b6af48da287be32c557e0e03f4464a",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-011.pdf": "89a6270853d0adbbb1b431e944c90586812ae1531543c966d86f757d4acc3bdc",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-011.png": "145eb95d92cc1fbc83b604b25ec2d13290fa13f50ed537db168b4b789074c832",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-012.jpg": "1c6ab7e2ae4c3ccd213ebb85ffebf74528907256d005515d571226f3a7a11484",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-012.pdf": "40d525b162aed1e7290c53007e1bafa2cb883406653d1acc26566c6899b14aed",
+    "manufacturing/33ZXZCZ0001Q1ZT_NL-MAN-012.png": "57d8af896f4bc32f96552cdf913092c4d77a77f96884b57ee6fb9d3badd08269",
+    "manufacturing/33ZXZCZ0101Q1ZS_NL-MAN-002.jpg": "206459bcde6087f353ea972a39fd13fc7940e628989bbe050efa8ee46bdad159",
+    "manufacturing/33ZXZCZ0101Q1ZS_NL-MAN-002.pdf": "792fe77abce9b7ab8ae20ff6986bec821f214155d7e63d7b6b91050394c952ad",
+    "manufacturing/33ZXZCZ0101Q1ZS_NL-MAN-002.png": "4a3d3b49e7848a92836861f2bfba751c25428c83c69bbbc667a429916f66f526",
+    "manufacturing/33ZXZCZ0102Q1ZR_NL-MAN-003.jpg": "1136b990d59ef91166f310ccecb5e959f33954c59eca85c6d9843f4e18570313",
+    "manufacturing/33ZXZCZ0102Q1ZR_NL-MAN-003.pdf": "3aa279397f7c6f5360bb6d1ea9ed2d058e02722d560203a684ae912bab37f775",
+    "manufacturing/33ZXZCZ0102Q1ZR_NL-MAN-003.png": "80042575375dd0331cd9346dd87e9b37f61afc3cdd957f7a80d784f958ed8327",
+    "manufacturing/33ZXZCZ0104Q1ZP_NL-MAN-005.jpg": "4ed2529209e83a26e5912be257096b6ce72a3f3334edbc8e71475b90ff8770b4",
+    "manufacturing/33ZXZCZ0104Q1ZP_NL-MAN-005.pdf": "6860a86707cb8921a6f5e42d69385b0e13a444caa1453f36338015780ee1e7aa",
+    "manufacturing/33ZXZCZ0104Q1ZP_NL-MAN-005.png": "8043e6e3d1d8c0a6d256cbf64034463dce6a022f5e7c32b75ffa6c83da82962b",
+    "manufacturing/33ZXZCZ0105Q1ZO_NL-MAN-006.jpg": "ddf49f6ece8d9ee06e4b5323bcd0df57a548c60edbb2104b4b910b37ff91b47a",
+    "manufacturing/33ZXZCZ0105Q1ZO_NL-MAN-006.pdf": "d01b0f5073dd8b1fdf364dd002aefa4c502cb21abe41ea1f55c41c71f51c287c",
+    "manufacturing/33ZXZCZ0105Q1ZO_NL-MAN-006.png": "7f0fa80b0f65a596aa67c3120f8cf1ddb8b870c0035425b6940929a27575a0ff",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-005.jpg": "1a274bda9be2cb91ff668fa0851d9ea34b0710c31a01999651b35a16cfea257d",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-005.pdf": "c20f9568d5095e322a3478d78426c653152cad5c46f2f435f7fb8966edb9a064",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-005.png": "74dd0403e624bdeddcbdefdae1f2d8e732d4fb36c88f8d8b24527c2f5e0a7990",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-006.jpg": "b248de4dee63a11eb8498010a2bc6c07afaaebb0185852d4e80e23f9134bee64",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-006.pdf": "9b96e94020da8641ba45ccd6734675546fc417771482090fd0ebf0b349737987",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-006.png": "ac525e4f5c6eb7f56a8c733e914664c3994f89c0ac9167da6f16c5604d424d3d",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-007.jpg": "f196329ca5f86547300f35a43735b083d1b6ee07414607e91c0192041af2ccc3",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-007.pdf": "2b889214fa367e1f61e225d8ca23177122626072259973136100aee71d7b3989",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-007.png": "ebedc2b605fbe175e608605d15bcacbed0b625bb509571392871790f89c5f17c",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-008.jpg": "e954b8cd6a8a3ab420ead0514af96cbc4cca2c8bac3c7ccd778d012d297f1899",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-008.pdf": "0ffe76c6767596e623bb0a791382b86c17c69192fb53a21494a314e7e39efea4",
+    "services/29ZXZCZ0003Q1ZG_NL-SER-008.png": "b65553d88241393a80a2a4064f984136dfd933666c83da72644511fb786823cf",
+    "services/29ZXZCZ0101Q1ZH_NL-SER-002.jpg": "adaf91172e4f9810b633e8ee4fd5c9451cfc91a26d9918b6155f28ac28f8e21e",
+    "services/29ZXZCZ0101Q1ZH_NL-SER-002.pdf": "21fcce192668de4d7f4f0ca0632d602aa8d060d3d9dc1a6a77b1480265fd755e",
+    "services/29ZXZCZ0101Q1ZH_NL-SER-002.png": "6b904fb6f6d69858f54a6219dd80a085fadeb7659090fa190ebf17564a37d6fe",
+    "services/29ZXZCZ0102Q1ZG_NL-SER-003.jpg": "79f3335c19cf38f0118ee9fbbd7366b8185a34faea8d381713ccbd5a5200cf51",
+    "services/29ZXZCZ0102Q1ZG_NL-SER-003.pdf": "a140b470c142b2f2fd87df049e0af169ec754d625d3a39d956f33ced17b1cf57",
+    "services/29ZXZCZ0102Q1ZG_NL-SER-003.png": "774dee04d21c18c4adf503e2d474532f623e6f1e257d129689438b60b50e404d",
+    "services/33ZXZCZ0100Q1ZT_NL-SER-001.jpg": "3f1eff9a8d89f4e1dc8d9cd62d58729a2601b084dff6b21bdb16e0c403580d1f",
+    "services/33ZXZCZ0100Q1ZT_NL-SER-001.pdf": "ab0de994a6f87f2e4a6d22c813266fe06884a63d6d7a1c887997adba001c437c",
+    "services/33ZXZCZ0100Q1ZT_NL-SER-001.png": "34261a2754ee75ed8e737ef9e6acec8a29e8b5eee19a0c227ba63927b1732729",
+    "services/33ZXZCZ0103Q1ZQ_NL-SER-004.jpg": "100b4b6eb1b1609c9540acbc64778a0a100fc64e96caaa904d0e5c9a256a9c22",
+    "services/33ZXZCZ0103Q1ZQ_NL-SER-004.pdf": "4ec33610f756f26ec1601306da24277831540444238929bb8090607207cf567e",
+    "services/33ZXZCZ0103Q1ZQ_NL-SER-004.png": "dc8f027d0d00b73980589d02981fe7373a9a5cbbde5d32f53bd06373db2662e2",
+    "trading/29ZXZCZ0100Q1ZI_NL-TRA-001.jpg": "b59c6fefc3120d7e2d6a2503a04ca70e96795fc28c11bd358ec4fdfbb4e8beee",
+    "trading/29ZXZCZ0100Q1ZI_NL-TRA-001.pdf": "fbb350520bbdbfbdd8d1ce685d415e59fba3dac8dba08bb05e4661bd2ca6910e",
+    "trading/29ZXZCZ0100Q1ZI_NL-TRA-001.png": "59572ce7d82b6bd4d8eb67f03e9ebde2b0259ffda09d134cdfa31161072d95bb",
+    "trading/29ZXZCZ0103Q1ZF_NL-TRA-004.jpg": "a65f9c569926f625f1bcbf0090a4e03a1d6622f2a8b87f46a1531e7860518aab",
+    "trading/29ZXZCZ0103Q1ZF_NL-TRA-004.pdf": "4b969ec8855281dc00d9255fc777dc2f2757ced50cf02194706da4185b462694",
+    "trading/29ZXZCZ0103Q1ZF_NL-TRA-004.png": "bdd78cbf690dd6296a0385bfcdd6c5b724921086d60d2fb0284cf02f8d6fd988",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-005.jpg": "bc3c9edacf9f7c758139f9f5dbf098b6926e572aec8e1ff5a4b0b042372d88e1",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-005.pdf": "760376c5958e6c75c15a59a972778efb0a83c288a2b7dd10cec408e057041c93",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-005.png": "3bad3fc432bfd748fdd57eff857b8c386b022c69abb82867322085be8f80a836",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-006.jpg": "5d7c716b1889271925c568b4b2a0ca2d2f9512dd7b963e28c7241629d5cfc7bd",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-006.pdf": "90d0bb16e45ef5f58b56b5f381dcf938de4584ba796a268455f80d841047cd0e",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-006.png": "b18ab6d32370d73383396eaf44479c29d78f48ec02cec47f3d27f491b00b46f9",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-007.jpg": "5216dadc6abdccd6dc0f8546c4e1c5c2019a0333abe6678eeeefa06eb40d11cb",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-007.pdf": "c93a6dbbabdd9908b9b484c0e4c414e26940cc90f57b2a028184916dccfbcd55",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-007.png": "57550748bcbe53c19cf9cde3c07f21648858f056bd1ea728c9cecfa932b9a687",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-008.jpg": "05712a34521a5a1c5455179d3230534979f891bcc7f5e446d5014aa80974c0ff",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-008.pdf": "624025d94a44226084e5f7741b361de7f0b420d35af5397e5688355d24e4c44f",
+    "trading/33ZXZCZ0002Q1ZS_NL-TRA-008.png": "c58f54879d4f26168f025ec8ea25937f4f26f6f483f6464788bce9e273373b84",
+    "trading/33ZXZCZ0101Q1ZS_NL-TRA-002.jpg": "20fb41ed219cf811d8113c1f82ef74f35a13b34a3381f132efa8221056eb00b3",
+    "trading/33ZXZCZ0101Q1ZS_NL-TRA-002.pdf": "a899f854fffe6b8f8ed94c4e7281aac5a3f0973c358b95bd8c7c8e5c81ea052e",
+    "trading/33ZXZCZ0101Q1ZS_NL-TRA-002.png": "2e320eed8f55e6cd526b68aa96e6e1079814a7ad8b74205985557db90618fb8f",
+    "trading/33ZXZCZ0102Q1ZR_NL-TRA-003.jpg": "d90ce8213858f9ead45583cb8cf07a97b107beafef0391fda965b9185d3bf3e6",
+    "trading/33ZXZCZ0102Q1ZR_NL-TRA-003.pdf": "9976524b39c3990cb6581d63f5a8a283a8fb601fbb18b7b7a11f02f31186668d",
+    "trading/33ZXZCZ0102Q1ZR_NL-TRA-003.png": "cf0de633cd11846a68107dd512cc70a42b67dbcbd6f9c13984e64d8734f86d02"
+  }
+}

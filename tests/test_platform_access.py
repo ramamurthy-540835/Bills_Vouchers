@@ -32,6 +32,8 @@ def access(monkeypatch):
     app = FastAPI()
     app.add_middleware(SessionMiddleware, secret_key='synthetic-test-secret')
     app.include_router(routes.router)
+    from app.services.gst.account import router as account_router
+    app.include_router(account_router)
     app.dependency_overrides[get_db] = lambda: repo
 
     @app.get('/test/access')
@@ -54,6 +56,13 @@ def test_normal_login_never_grants_admin_even_to_legacy_admin(access):
     assert response.json()['access_mode'] == 'client'
     assert http.get('/test/access').json() == {'role': 'client', 'admin': False}
     assert http.get('/users').status_code == 403
+    assert http.get('/api/admin/workspace').status_code == 403
+    assert http.post('/settings/client/create',data={'name':'Unauthorized','code':'unauthorized'}).status_code == 403
+
+
+def test_unauthenticated_administration_denied(access):
+    http, _, _ = access
+    assert http.get('/api/admin/workspace').status_code == 401
 
 
 def test_legacy_cookie_does_not_inherit_admin(access):

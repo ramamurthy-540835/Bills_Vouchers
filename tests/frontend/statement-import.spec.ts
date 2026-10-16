@@ -1,0 +1,60 @@
+import {test,expect} from '../../frontend/node_modules/@playwright/test'
+test.beforeEach(async({context,request,baseURL})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Local synthetic statements only')
+ await request.post('http://127.0.0.1:8103/__test__/reset')
+ await request.post('http://127.0.0.1:8103/__test__/statement-profile')
+ await context.addCookies([{name:'session',value:'local-browser-test',url:baseURL!}])
+})
+test.afterEach(async({request})=>{
+ if(!process.env.BV_TEST_URL)await request.post('http://127.0.0.1:8103/api/workspace/client',{data:{client_id:'browser-client'}})
+})
+const statement={gstin:'33ABCDE1234F1Z7',rtnprd:'092026',docdata:{b2b:[{ctin:'33BCDEF2345G1ZS',inv:[{inum:'LOCAL-STATEMENT',dt:'01-09-2026',txval:'1000',cgst:'90',sgst:'90',igst:'0',cess:'0',itcavl:'Y'}]}]}}
+test('real canonical import persists evidence, rejects invalid and duplicate records, and isolates businesses',async({page})=>{
+ await page.goto('/gst/filing?period=2026-09')
+ const section=page.getByRole('region',{name:'Reconciliation Evidence'})
+ const picker=section.getByLabel('Import GSTR-2B',{exact:true})
+ await expect(picker).toBeEnabled()
+ const chooser=page.waitForEvent('filechooser');await picker.locator('..').click();await chooser
+ for(const payload of ['invalid',JSON.stringify({...statement,gstin:'33BCDEF2345G1ZS'}),JSON.stringify({...statement,rtnprd:'082026'})]){
+  const response=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/api/gst/bills/gstr2b?'))
+  await picker.setInputFiles({name:'statement.json',mimeType:'application/json',buffer:Buffer.from(payload)})
+  expect((await response).status()).toBe(422)
+  await expect(section.getByRole('status')).toContainText('Check that this is the GSTR-2B JSON')
+ }
+ const content=Buffer.from(JSON.stringify(statement))
+ const imported=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/api/gst/bills/gstr2b?'))
+ await picker.setInputFiles({name:'statement.json',mimeType:'application/json',buffer:content})
+ expect((await imported).status()).toBe(200)
+ await expect(section.locator('.reconciliation-counters dd')).toHaveText(['0','1','0','0'])
+ await expect(section.getByText('LOCAL-STATEMENT',{exact:true})).toBeVisible()
+ const history=(await (await page.request.get('/api/gst/bills/gstr2b/history?period=2026-09')).json()).statements
+ expect(history).toHaveLength(1)
+ const evidence=`/api/gst/bills/gstr2b/${history[0].sha256}/original?period=2026-09`
+ expect(await (await page.request.get(evidence)).body()).toEqual(content)
+ await page.reload();await expect(section.getByText('LOCAL-STATEMENT',{exact:true})).toBeVisible()
+ const duplicate=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/api/gst/bills/gstr2b?'))
+ await picker.setInputFiles({name:'statement.json',mimeType:'application/json',buffer:content})
+ expect((await duplicate).status()).toBe(409)
+ expect((await (await page.request.get('/api/gst/bills/reconciliation?period=2026-09')).json()).statement_count).toBe(1)
+ await page.setViewportSize({width:390,height:844})
+ await page.evaluate(()=>window.scrollTo(0,0))
+ await page.screenshot({path:'../artifacts/gst_easy/statement-import-mobile.png',fullPage:true})
+ await page.getByLabel('Account menu',{exact:true}).click()
+ await page.getByLabel('Switch business',{exact:true}).selectOption('browser-readonly')
+ await expect(picker).toHaveCount(0)
+ expect((await page.request.get(evidence)).status()).toBe(404)
+ expect((await page.request.post('/api/gst/bills/gstr2b?period=2026-09',{data:statement})).status()).toBe(403)
+})
+test('actual return API loads draft prerequisites and retains synthetic preparation guard',async({page})=>{
+ await page.goto('/gst/filing?period=2026-09')
+ const response=await page.request.get('/api/gst/returns?period=2026-09')
+ expect(response.status()).toBe(200)
+ expect((await response.json()).state).toBe('draft')
+ const section=page.getByRole('region',{name:'Return preparation',exact:true})
+ await expect(section.getByText('No return working paper has been prepared for this period.')).toBeVisible()
+ await expect(section.getByRole('alert')).toHaveCount(0)
+ await expect(section.getByRole('button',{name:'Prepare snapshot'})).toHaveCount(0)
+ expect((await page.request.post('/api/gst/returns/prepare?period=2026-09',{data:{version:0}})).status()).toBe(403)
+ await page.evaluate(()=>window.scrollTo(0,0))
+ await page.screenshot({path:'../artifacts/gst_easy/return-preparation-restored.png',fullPage:true})
+})

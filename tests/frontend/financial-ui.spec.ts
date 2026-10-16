@@ -1,0 +1,51 @@
+import {test,expect} from '../../frontend/node_modules/@playwright/test'
+test.beforeEach(async({request,context,baseURL})=>{
+ test.skip(Boolean(process.env.BV_TEST_URL),'Local financial UI fixtures only')
+ await request.post('http://127.0.0.1:8103/__test__/reset')
+ await context.addCookies([{name:'session',value:'local-browser-test',url:baseURL!}])
+})
+test('report information and returns disclosures, empty states and retry are responsive',async({page})=>{
+ let unavailable=true
+ await page.route('**/api/gst/returns?*',route=>route.fulfill(unavailable?{status:503,json:{detail:'Do not expose internal error details'}}:{json:{state:'draft',version:0,is_test:true,source_changed:false}}))
+ for(const [width,label] of [[1440,'desktop'],[1000,'tablet'],[390,'mobile']] as const){
+  await page.setViewportSize({width,height:1000})
+  await page.goto('/reports/purchase-register?period=2026-09')
+  await expect(page.getByRole('heading',{name:'No records found'})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Report Information'})).toBeVisible()
+  const calculation=page.locator('details').filter({has:page.locator('summary',{hasText:'Calculation details & data limitations'})})
+  await calculation.locator('summary').focus();await page.keyboard.press('Enter')
+  await expect(calculation).toHaveAttribute('open','')
+  await expect(calculation).toContainText('Credit notes')
+  const provenance=page.locator('details').filter({has:page.locator('summary',{hasText:'Data Sources & Report Provenance'})})
+  await provenance.locator('summary').click()
+  await expect(provenance).toContainText('Report fingerprint')
+  await expect(page.getByRole('link',{name:/Back to Reports/})).toHaveCSS('background-color','rgb(24, 118, 83)')
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+  await page.evaluate(()=>window.scrollTo(0,0))
+  await page.screenshot({path:`../artifacts/gst_easy/financial-reports-${label}.png`,fullPage:true})
+  unavailable=true
+  await page.goto('/gst/filing?period=2026-09')
+  await expect(page.getByText('No GSTR-2B statement has been imported for this period.',{exact:true})).toBeVisible()
+  await expect(page.locator('.reconciliation-counters dd')).toHaveText(['0','0'])
+  await page.getByLabel('Reconciliation Cases',{exact:true}).selectOption('all')
+  const workflow=page.getByRole('region',{name:'Return preparation',exact:true})
+  await expect(workflow.getByRole('alert')).toContainText('Return preparation could not be loaded. Please retry.')
+  await expect(workflow).not.toContainText('Do not expose internal error details')
+  await workflow.locator('summary').click()
+  await expect(workflow).toContainText('Maker-checker separation')
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+  await page.evaluate(()=>window.scrollTo(0,0))
+  await page.screenshot({path:`../artifacts/gst_easy/financial-returns-${label}.png`,fullPage:true})
+  unavailable=false
+  await workflow.getByRole('button',{name:'Retry return preparation'}).click()
+  await expect(workflow.getByRole('alert')).toHaveCount(0)
+  await expect(workflow.getByRole('status')).toHaveText('Status: draft')
+  await expect(page.getByLabel('Upload bills',{exact:true})).toHaveCount(0)
+ }
+})
+test('an imported empty statement is not presented as never imported',async({page})=>{
+ await page.route('**/api/gst/bills/gstr2b/history?*',route=>route.fulfill({json:{statements:[{record_count:0}]}}))
+ await page.goto('/gst/filing?period=2026-09')
+ await expect(page.getByText('No reconciliation cases match the selected filter.',{exact:true})).toBeVisible()
+ await expect(page.getByText('No GSTR-2B statement has been imported for this period.',{exact:true})).toHaveCount(0)
+})

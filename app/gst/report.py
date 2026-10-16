@@ -64,5 +64,6 @@ def calculate(invoices, profile, two_b):
             'heads': {'credit': {h: max(ZERO, v) for h, v in pools['eligible'].items()},
                       'output': {h: output[h] + eco[h] for h in HEADS}, 'cash': chosen['cash_by_head']},
             'scenarios': {key: value['cash_required'] for key, value in scenarios.items()},
+            'credit_pools': pools, 'scenario_details': scenarios,
             'utilisation': chosen['utilisation'], 'matches': matches, 'decisions': decisions,
             'confirmed_count': len(confirmed)}

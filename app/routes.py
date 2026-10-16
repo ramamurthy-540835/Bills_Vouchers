@@ -24,7 +24,8 @@ from .services.gst.compliance import RETURN_STATUSES, RETURN_TYPES, gst_health_s
 from .services.tasks import dispatch_scan
 from .services.ocr import decimal_or_none
 from .services import auth_identity, auth_mail
-from .services.access import is_provisioned_admin, workspace_role
+from .services.demo_identity import identity_can_sign_in
+from .services.access import is_provisioned_admin, workspace_role, require_platform_admin
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
@@ -45,7 +46,7 @@ def current_user(request: Request, repo=Depends(get_db)):
         request.session.clear()
         raise HTTPException(403, 'Platform administrator access has been revoked.')
     user.role = 'admin' if user.is_platform_admin else workspace_role(user.role)
-    if getattr(user, 'email_verified', None) is False:
+    if not identity_can_sign_in(user):
         request.session.clear()
         raise HTTPException(403, 'Verify your email address before signing in.')
     session_version = int(getattr(user, "session_version", 0) or 0)
@@ -59,7 +60,10 @@ def current_user(request: Request, repo=Depends(get_db)):
         raise HTTPException(403, {'code': 'mobile_verification_required', 'message': 'Verify your mobile number in account settings before continuing.'})
     if getattr(user, "must_change_password", False) and request.url.path not in {"/settings", "/api/auth/me", "/api/auth/csrf", "/api/auth/password", "/logout", "/api/auth/logout"}:
         raise HTTPException(403, {"code": "password_change_required", "message": "Change your password before continuing."})
-    request.session["last_seen"] = str(time())
+    # Background permission checks must not keep an otherwise idle session alive.
+    permission_poll = request.method == 'GET' and request.url.path == '/api/settings/account' and request.headers.get('x-permission-refresh') == '1'
+    if not permission_poll:
+        request.session["last_seen"] = str(time())
     if get_settings().medallion_enabled:
         from .services.gst.medallion import param
         clients = FinanceRepository(repo).clients(user.id)
@@ -68,9 +72,7 @@ def current_user(request: Request, repo=Depends(get_db)):
             request.session["client_id"] = selected.id
             if getattr(selected, 'is_test', False) and (request.url.path.startswith('/api/gst/filing/generate/') or request.url.path == '/api/gst/filing/transition'):
                 raise HTTPException(403, {'code': 'sample_data_blocked', 'message': 'Test workspace figures cannot be exported or filed.'})
-            role = repo.one(f"SELECT role FROM `{repo.table('client_user_role')}` WHERE client_id=@client_id AND email=@email AND is_current=TRUE ORDER BY effective_from DESC LIMIT 1", [param("client_id", selected.id), param("email", user.email.lower())])
-            if not role:
-                role = repo.one(f"SELECT access_role AS role FROM `{repo.table('client_memberships')}` WHERE client_id=@client_id AND user_id=@uid AND is_active=TRUE LIMIT 1", [param('client_id', selected.id), param('uid', str(user.id))])
+            role = repo.one(f"SELECT access_role AS role FROM `{repo.table('client_memberships')}` WHERE client_id=@client_id AND user_id=@uid AND is_active=TRUE ORDER BY created_at DESC LIMIT 1", [param('client_id', selected.id), param('uid', str(user.id))])
             user.role = 'admin' if user.is_platform_admin else workspace_role(role.role if role else 'viewer')
         if request.method in {"POST", "PUT", "PATCH", "DELETE"} and user.role == "viewer" and request.url.path not in {"/api/settings/invitations/accept", "/api/auth/mobile/start", "/api/auth/mobile/check", "/api/settings/account", "/api/auth/password", "/api/auth/logout", "/api/assistant/chat", "/api/demo/chat", "/logout", "/clients/select", "/api/workspace/client", "/api/workspace/period"}:
             raise HTTPException(403, "Viewer access is read-only.")
@@ -155,7 +157,7 @@ def login(request: Request, email: str = Form(...), password: str = Form(...), r
         record_login_failure(key)
         return page("login.html", request, status_code=400, error="Invalid email or password")
     record_login_success(key)
-    if not getattr(user, 'is_active', True) or getattr(user, 'email_verified', None) is False:
+    if not getattr(user, 'is_active', True) or not identity_can_sign_in(user):
         return page('login.html', request, status_code=403, error='Verify your email address before signing in.')
     request.session.clear()
     request.session["last_seen"] = str(time())
@@ -959,8 +961,7 @@ def powerbi_model(request: Request, repo=Depends(get_db), user=Depends(current_u
 
 @router.get("/audit-logs")
 def audit_logs(request: Request, page_num: int = 1, repo=Depends(get_db), user=Depends(current_user)):
-    if not getattr(user, "is_platform_admin", False):
-        raise HTTPException(403, "Admin access is required.")
+    require_platform_admin(user, request.url.path)
     client, clients = client_context(request, repo, user)
     page_num = max(1, page_num)
     per_page = 50
@@ -986,8 +987,7 @@ def audit_logs(request: Request, page_num: int = 1, repo=Depends(get_db), user=D
 
 @router.get("/users")
 def users(request: Request, repo=Depends(get_db), user=Depends(current_user)):
-    if not getattr(user, "is_platform_admin", False):
-        raise HTTPException(403, "Admin access is required.")
+    require_platform_admin(user, request.url.path)
     client, clients = client_context(request, repo, user)
     rows = repo.query(
         f"SELECT u.id,u.email,u.full_name,u.role,u.is_active,u.created_at,m.access_role,m.is_active membership_active FROM `{repo.table('client_memberships')}` m JOIN `{repo.table('users')}` u ON u.id=m.user_id WHERE m.client_id=@client ORDER BY u.created_at DESC",
@@ -1027,8 +1027,7 @@ def update_user(
     repo=Depends(get_db),
     user=Depends(current_user),
 ):
-    if not getattr(user, "is_platform_admin", False):
-        raise HTTPException(403, "Admin access is required.")
+    require_platform_admin(user, request.url.path)
     client = active_client(request, repo, user)
     from google.cloud import bigquery
     target = repo.one(
@@ -1114,8 +1113,7 @@ def update_client(
     repo=Depends(get_db),
     user=Depends(current_user),
 ):
-    if not getattr(user, "is_platform_admin", False):
-        raise HTTPException(403, "Admin access is required.")
+    require_platform_admin(user, request.url.path)
     from google.cloud import bigquery
 
     client = active_client(request, repo, user)
@@ -1137,8 +1135,7 @@ def update_client(
 def create_client(
     request: Request, name: str = Form(...), code: str = Form(...), repo=Depends(get_db), user=Depends(current_user)
 ):
-    if not getattr(user, "is_platform_admin", False):
-        raise HTTPException(403, "Admin access is required.")
+    require_platform_admin(user, request.url.path)
     from uuid import uuid4
 
     client_id = str(uuid4())
@@ -1304,7 +1301,7 @@ async def api_login(request: Request, repo=Depends(get_db)):
         record_login_failure(key)
         raise HTTPException(401, "Invalid email or password.")
     record_login_success(key)
-    if not getattr(user, 'is_active', True) or getattr(user, 'email_verified', None) is False:
+    if not getattr(user, 'is_active', True) or not identity_can_sign_in(user):
         raise HTTPException(403, 'Verify your email address before signing in.')
     admin_mode = request.url.path == '/api/auth/admin/login'
     if admin_mode and not is_provisioned_admin(user, repo):
