@@ -140,9 +140,9 @@ def main():
             if index==2:row['igst']=money(D(row['cgst'])+D(row['sgst']));row['cgst']=row['sgst']='0.00'
             statement['docdata']['b2b'].append({'ctin':inv['supplier']['gstin'],'inv':[row]})
         statement['docdata']['b2b'].append({'ctin':gstin('33',900),'inv':[{'inum':'STATEMENT-ONLY-001','dt':'20-10-2026','txval':'1000.00','cgst':'90.00','sgst':'90.00','igst':'0.00','cess':'0.00','itcavl':'Y'}]})
-        (ROOT/'gstr2b'/f'{b["key"]}.json').write_text(json.dumps(statement,indent=2),encoding='utf-8')
+        (ROOT/'gstr2b'/f'{b["key"]}.json').write_text(json.dumps(statement,indent=2),encoding='utf-8', newline='\n')
         duplicate=deepcopy(statement);duplicate['docdata']['b2b'][0]['inv']*=2
-        (ROOT/'edge_cases'/f'{b["key"]}_duplicate_statement.json').write_text(json.dumps(duplicate,indent=2),encoding='utf-8')
+        (ROOT/'edge_cases'/f'{b["key"]}_duplicate_statement.json').write_text(json.dumps(duplicate,indent=2),encoding='utf-8', newline='\n')
     base=manifest['invoices'][0]
     cases=[('duplicate_invoice','business duplicate'),('renamed_same_file','exact file duplicate'),('invalid_gstin','block confirmation'),('missing_supplier_gstin','block confirmation'),('missing_date','block confirmation'),('missing_number','block confirmation'),('incorrect_total','block confirmation'),('incorrect_tax','block confirmation'),('invalid_tax_heads','block confirmation'),('low_quality','manual review; extraction may fail'),('rotated','manual review'),('multi_page','one invoice, two pages'),('credit_note','signed reduction after validated confirmation'),('debit_note','signed increase after validated confirmation'),('multiple_rates','validate each line separately'),('incomplete_supplier','manual correction required'),('different_financial_year','distinct FY; not automatically duplicate'),('unsupported_upload','reject unsupported content')]
     for name,expected in cases:
@@ -166,7 +166,7 @@ def main():
         if name=='unsupported_upload':ext='txt'
         path=ROOT/'edge_cases'/(name+'.'+ext)
         if name in ['duplicate_invoice','renamed_same_file']:path.write_bytes((ROOT/base['files'][0]).read_bytes())
-        elif ext=='txt':path.write_text('Synthetic unsupported upload - not an invoice',encoding='utf-8')
+        elif ext=='txt':path.write_text('Synthetic unsupported upload - not an invoice',encoding='utf-8', newline='\n')
         elif ext=='pdf':pdf(image,path,pages)
         else:image.save(path)
         manifest['edge_cases'].append({'file':str(path.relative_to(ROOT)).replace('\\','/'),'expected':expected})
@@ -176,8 +176,8 @@ def main():
         for col in tab.columns:tab.column_dimensions[col[0].column_letter].width=25
     wb.save(ROOT/'EXPECTED_RESULTS.xlsx')
     manifest['file_hashes']={str(p.relative_to(ROOT)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(ROOT.rglob('*')) if p.is_file() and p.name not in {'TEST_MANIFEST.json','README.md'}}
-    (ROOT/'TEST_MANIFEST.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
-    (ROOT/'README.md').write_text('# Nature Labs synthetic upload pack\n\n28 distinct invoices (12 manufacturing, 8 trading, 8 services), each in PDF, PNG and JPEG. Upload ONE representation per invoice. All are fictional and marked NOT VALID FOR TAX FILING. No real bank details are used. GSTIN-like identifiers satisfy checksum but are not verified taxpayer identities. Do not use outside the isolated V2 demo.\n\nThe environment is provisioned with profiles ONLY. Upload files yourself, review extracted values and confirm valid invoices before expecting financial dashboard/report figures. Select October 2026. Expected totals are in EXPECTED_RESULTS.xlsx; monetary calculations use Decimal. ITC remains pending until evidence-based review. Test rates (12%, 18%) and HSN/SAC assignments are assumptions, not current-law advice.\n\nGSTR-2B fixtures contain supported B2B matches, amount/tax-head differences and statement-only records. Other purchases are books-only after import. Duplicate statements in edge_cases must be rejected; credit-note GSTR sections are unsupported, not simulated. Imported statements never approve ITC. Edge-case outcomes are in TEST_MANIFEST.json. Credit notes use positive face amounts and negative signed financial contributions.\n\nUse python scripts/generate_gst_easy_v2_demo.py to regenerate with Pillow, ReportLab and openpyxl. Generator has no cloud or application API calls. Logos are fictional programmatic monograms.\n',encoding='utf-8')
+    (ROOT/'TEST_MANIFEST.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8', newline='\n')
+    (ROOT/'README.md').write_text('# Nature Labs synthetic upload pack\n\n28 distinct invoices (12 manufacturing, 8 trading, 8 services), each in PDF, PNG and JPEG. Upload ONE representation per invoice. All are fictional and marked NOT VALID FOR TAX FILING. No real bank details are used. GSTIN-like identifiers satisfy checksum but are not verified taxpayer identities. Do not use outside the isolated V2 demo.\n\nThe environment is provisioned with profiles ONLY. Upload files yourself, review extracted values and confirm valid invoices before expecting financial dashboard/report figures. Select October 2026. Expected totals are in EXPECTED_RESULTS.xlsx; monetary calculations use Decimal. ITC remains pending until evidence-based review. Test rates (12%, 18%) and HSN/SAC assignments are assumptions, not current-law advice.\n\nGSTR-2B fixtures contain supported B2B matches, amount/tax-head differences and statement-only records. Other purchases are books-only after import. Duplicate statements in edge_cases must be rejected; credit-note GSTR sections are unsupported, not simulated. Imported statements never approve ITC. Edge-case outcomes are in TEST_MANIFEST.json. Credit notes use positive face amounts and negative signed financial contributions.\n\nUse python scripts/generate_gst_easy_v2_demo.py to regenerate with Pillow, ReportLab and openpyxl. Generator has no cloud or application API calls. Logos are fictional programmatic monograms.\n',encoding='utf-8', newline='\n')
     print('Generated',len(manifest['invoices']),'invoices in three formats; no application records written.')
 
 
