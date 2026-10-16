@@ -15,3 +15,9 @@ Actual cloud integration passed in gst_easy_customer_test_7839bf6a72e7 using 24-
 Changed files: app/services/customer_workspace.py; app/services/gst/account.py; app/routes.py; frontend/app/settings/customer-form.tsx and account-page.tsx; tests/test_customer_workspace.py; tests/frontend/copy.spec.ts; scripts/check_customer_setup_integration.py and check_gst_easy_preview.py.
 
 Rollback: move only gst-easy preview tags to API bills-voucher-00123-hol and web bills-voucher-web-00060-nuy. Existing customer records remain compatible; preserve all memberships, profiles, audit records and GCS evidence. No financial data, government verification or production-readiness approval is inferred from customer creation. Refer to the production gap review for remaining release gates.
+
+## Preview deployment evidence
+
+Deployed source 97df444d26b6f4915598afd96f134377c5dbf69f, pushed to GST_EASY. API build 27157ce5-af5e-46e5-9ee6-26202aef73d9 succeeded; revision bills-voucher-00124-jiw; image SHA256 f597a91eccc078c133c88df34b7fc95cafe930a9ada5a11bfc4a7b00f1966808. Frontend build f2a9467d-64c6-4684-8d28-b388397ac05f succeeded; revision bills-voucher-web-00061-mox; image SHA256 2722f19f686795338d646a893e52a3b0f71a10b2335573a3df2036b8544d64b0.
+
+Both use no-traffic gst-easy tags; production percentages and all other previews were verified unchanged. Preview: https://gst-easy---bills-voucher-web-foovqasysa-el.a.run.app/settings/profile . Live public pages, health/readiness and unauthenticated access denials passed at 2026-10-16T03:04:58Z, including customer creation (403). Monitoring now tracks these revisions without changing alert recipients. Authenticated live customer creation was not performed; cloud persistence was tested separately using synthetic records as described above.
