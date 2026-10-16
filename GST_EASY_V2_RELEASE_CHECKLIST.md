@@ -10,13 +10,15 @@
 - [x] Existing service configuration/IAM captured.
 - [x] Backend full tests, Ruff, mypy, TypeScript and build passed.
 - [x] Final browser rerun: 67 passed.
-- [ ] Reviewed application commit pushed and remote SHA verified.
-- [ ] Immutable Cloud Builds successful.
-- [ ] Both independent V2 services deployed and actual URLs verified.
-- [ ] Existing service/IAM baseline unchanged after deployment.
-- [ ] Owner supplies approved password secret version.
-- [ ] Exactly three profiles and owner memberships provisioned.
-- [ ] Live login, switching, profile/logo and empty module checks passed.
+- [x] Reviewed application commit pushed and remote SHA verified.
+- [x] Immutable Cloud Builds successful.
+- [x] Both independent V2 services deployed and actual URLs verified.
+- [x] Existing service/IAM baseline unchanged after deployment and configuration correction.
+- [x] Owner supplied approved password, securely stored in V2 secret version 1.
+- [x] Exactly three profiles and owner memberships provisioned.
+- [x] Live login/logout, three-business switching, profile/logo, refresh and nine report checks passed.
+- [x] Live platform-admin and unrelated-business access denied.
+- [x] Profile screenshots at 1440px, 768px and 390px captured; desktop/mobile inspected, no horizontal overflow.
 - [ ] Financial upload/extraction/reconciliation live acceptance after owner uploads.
 
-Do not convert pending checks into passed checks. Full presentation-ready acceptance depends on secure credential provisioning and real live tests.
+Runtime isolation verified against actual deployed environment, including private API identity audience. Financial live acceptance remains pending user uploads by explicit instruction.

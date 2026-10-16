@@ -6,6 +6,22 @@ from pathlib import Path
 from prepare_gst_easy_v2 import cloud, PROJECT, REGION, PREFIX, ART, account
 
 
+def environment_file(name, values):
+    # JSON is valid YAML. Files avoid Windows cmd.exe consuming gcloud's ^ delimiter.
+    path = ART / (name + '-environment.json')
+    path.write_text(json.dumps(values, indent=2), encoding='utf-8')
+    return str(path)
+
+
+def api_environment(source):
+    return {'APP_ENV':'production','GCP_PROJECT_ID':PROJECT,'GCP_REGION':REGION,'BIGQUERY_DATASET':PREFIX+'finance_analytics',
+            'GST_DATASET_PREFIX':PREFIX,'GCS_BUCKET_NAME':PROJECT+'-gst-easy-v2-documents','GST_BILLS_ENABLED':'true',
+            'MEDALLION_ENABLED':'true','DEMO_FALLBACK':'false','DEMO_OPERATOR_IDENTITY_ENABLED':'true',
+            'GEMINI_ENABLED':'true','GEMINI_MODEL':'gemini-2.5-flash','PLATFORM_ADMIN_EMAILS':'','REQUIRE_OTP':'false',
+            'GST_BILLS_QUEUE':f'projects/{PROJECT}/locations/{REGION}/queues/gst-easy-v2-bills','GST_BILLS_WORKER_ACCOUNT':account('api'),
+            'RELEASE_REVISION':source}
+
+
 def snapshot_unchanged():
     before=json.loads((ART/'services-before.json').read_text(encoding='utf-8'))
     after=json.loads(cloud('run','services','list','--project',PROJECT,'--platform=managed','--format=json'))
@@ -38,24 +54,20 @@ def main():
         images[kind]=expected+'@'+matches[0]['digest']
     snapshot_unchanged()
     common=['--project',PROJECT,'--region',REGION,'--platform=managed','--quiet','--max-instances=2','--min-instances=0']
-    values={'APP_ENV':'production','GCP_PROJECT_ID':PROJECT,'GCP_REGION':REGION,'BIGQUERY_DATASET':PREFIX+'finance_analytics',
-            'GST_DATASET_PREFIX':PREFIX,'GCS_BUCKET_NAME':PROJECT+'-gst-easy-v2-documents','GST_BILLS_ENABLED':'true',
-            'MEDALLION_ENABLED':'true','DEMO_FALLBACK':'false','DEMO_OPERATOR_IDENTITY_ENABLED':'true',
-            'GEMINI_ENABLED':'true','GEMINI_MODEL':'gemini-2.5-flash','PLATFORM_ADMIN_EMAILS':'','REQUIRE_OTP':'false',
-            'GST_BILLS_QUEUE':f'projects/{PROJECT}/locations/{REGION}/queues/gst-easy-v2-bills','GST_BILLS_WORKER_ACCOUNT':account('api'),
-            'RELEASE_REVISION':source}
+    values=api_environment(source)
     cloud('run','deploy','gst-easy-v2-api','--image',images['api'],'--service-account',account('api'),'--no-allow-unauthenticated',
           '--port=8000','--memory=1Gi','--cpu=1','--concurrency=4','--timeout=1800',
-          '--set-env-vars','^~^'+'~'.join(k+'='+v for k,v in values.items()),'--set-secrets=APP_SECRET_KEY=gst-easy-v2-session:1',*common)
+          '--env-vars-file',environment_file('api',values),'--set-secrets=APP_SECRET_KEY=gst-easy-v2-session:1',*common)
     api=cloud('run','services','describe','gst-easy-v2-api','--project',PROJECT,'--region',REGION,'--format=value(status.url)')
     for kind in ['api','web']:
         cloud('run','services','add-iam-policy-binding','gst-easy-v2-api','--project',PROJECT,'--region',REGION,'--member=serviceAccount:'+account(kind),'--role=roles/run.invoker')
     cloud('run','deploy','gst-easy-v2-web','--image',images['web'],'--service-account',account('web'),'--allow-unauthenticated',
           '--port=3000','--memory=512Mi','--cpu=1','--concurrency=20','--timeout=1800',
-          '--set-env-vars','^~^BACKEND_URL='+api+'~BACKEND_ID_TOKEN_AUDIENCE='+api+'~RELEASE_REVISION='+source,*common)
+          '--env-vars-file',environment_file('web',{'BACKEND_URL':api,'BACKEND_ID_TOKEN_AUDIENCE':api,'RELEASE_REVISION':source}),*common)
     web=cloud('run','services','describe','gst-easy-v2-web','--project',PROJECT,'--region',REGION,'--format=value(status.url)')
-    cloud('run','services','update','gst-easy-v2-api','--project',PROJECT,'--region',REGION,'--update-env-vars',
-          '^~^GST_BILLS_WORKER_URL='+api+'~GST_BILLS_WORKER_AUDIENCE='+api+'~ALLOWED_ORIGINS='+web+'~AUTH_PUBLIC_URL='+web,'--quiet')
+    values.update(GST_BILLS_WORKER_URL=api,GST_BILLS_WORKER_AUDIENCE=api,ALLOWED_ORIGINS=web,AUTH_PUBLIC_URL=web)
+    cloud('run','services','update','gst-easy-v2-api','--project',PROJECT,'--region',REGION,
+          '--env-vars-file',environment_file('api',values),'--quiet')
     report={'source_commit':source,'api_build':args.api_build,'web_build':args.web_build,'images':images,'frontend_url':web,'backend_url':api,
             'existing_services_unchanged':snapshot_unchanged(),'public_access_policy':'public frontend login; private API IAM; application authentication and worker OIDC retained','financial_rows_seeded':0}
     (ART/'deployment.json').write_text(json.dumps(report,indent=2),encoding='utf-8')

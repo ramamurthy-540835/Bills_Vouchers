@@ -4,7 +4,7 @@ Repository: https://github.com/ramamurthy-540835/Bills_Vouchers
 Branch: GST-EASY-V2, created from f4f6d69 plus all current approved local edits. Historical 14 October handoff and snapshot reviewed; current source takes precedence.
 
 ## Latest scope
-Only profiles, logos and memberships are to be provisioned. No financial invoices, GSTR-2B statements, ledger balances or dashboard figures are seeded. The generated upload pack is supplied for manual use. The requested weak password was rejected without weakening policy. The owner chose to supply a stronger password in V2 Secret Manager; provisioning waits for a numeric secret version.
+Only profiles, logos and memberships were provisioned. No financial invoices, GSTR-2B statements, ledger balances or dashboard figures were seeded. The generated upload pack is supplied for manual use. The requested weak password was rejected without weakening policy. The owner supplied an approved stronger password, stored through hidden input in V2 Secret Manager version 1.
 
 ## Implementation
 Preserves latest registration, account, business, website/logo, navigation, dashboard, upload, reconciliation, returns and nine-report changes. Adds configurable canonical BigQuery dataset prefix (empty by default), private Cloud Run API invocation from server-only Next.js fetches, and narrowly scoped operator-activated synthetic demo identity. Email/mobile/GST verification flags are never fabricated. Operator identity is disabled by default, allowed only with all V2 resource settings and explicit synthetic user flags, and cannot become platform admin.
@@ -20,4 +20,6 @@ Provisioning: scripts/provision_gst_easy_v2_demo.py uses existing registration, 
 Deployment: scripts/deploy_gst_easy_v2.py validates immutable image digests/build source and refuses pre-existing V2 services. Existing build YAML files are unchanged. New files: cloudbuild-gst-easy-v2-api.yaml and cloudbuild-gst-easy-v2-web.yaml.
 
 ## Pending acceptance
-Real demo login/business provisioning awaits owner-managed secret version. Live financial processing tests require manual uploads or a separately authorized disposable workspace; none may populate the three demo dashboards automatically. Email delivery, SMS and GSP providers remain unconfigured unless explicitly supplied. No claim of real-client GST/filing certification.
+Demo account and three profiles have been provisioned and live sign-in verified. Live financial processing tests require manual uploads or a separately authorized disposable workspace; none may populate the three demo dashboards automatically. Email delivery, SMS and GSP providers remain unconfigured unless explicitly supplied. No claim of real-client GST/filing certification.
+
+Deployment follow-up: Windows command processing consumed the custom gcloud environment separator, causing proxy HTTP 503. Corrected the two new services using JSON environment files (valid YAML), and changed the deployment helper to use those files. Added actual runtime configuration verification. Application image source remains eaaabd8b7a21cff1d7d15e41fe9a1fe3cceb505e; subsequent commits contain release tooling/evidence only.
