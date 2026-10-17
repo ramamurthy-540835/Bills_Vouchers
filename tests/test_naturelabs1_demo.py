@@ -36,5 +36,12 @@ def test_synthetic_pack_validates_and_matches_independent_expectations():
     assert comparison['counts'].get('missing_book',0)+comparison['counts'].get('missing_statement',0)==manifest['expected_kpis']['unmatched_invoices']
     assert sum(v for k,v in comparison['counts'].items() if k not in {'exact','missing_book','missing_statement'})==3
     assert len(invoices)==23 and sum(i.status=='confirmed' for i in invoices)==20
+    from app.gst.evidence import documents, confirmed_summary
+    from app.services.gst.evidence_search import search_evidence
+    assert search_evidence(documents(invoices,manifest['period']),'Fictional Customer')['total']==11
+    summary=confirmed_summary(invoices)
+    assert Decimal(summary['confirmed_sales'])==Decimal(manifest['expected_kpis']['confirmed_sales'])
+    assert Decimal(summary['confirmed_purchases'])==Decimal(manifest['expected_kpis']['confirmed_purchases'])
+    assert summary['pending_review_count']==2
     with pytest.raises(ValueError):
         parse_gstr2b((ROOT/'gstr2b-duplicate-invalid.json').read_text(),profile,manifest['period'])
