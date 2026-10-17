@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useState,useRef} from 'react'
 import Link from 'next/link'
 import {FileUp} from 'lucide-react'
+import OriginalInvoicePreview from './original-invoice-preview'
 import {GST} from '../../lib/copy/gst'
 import {money} from '../workspace'
 
@@ -86,7 +87,7 @@ export default function BillsPanel({data}:{data:any}){
   {selected&&<dialog ref={dialog} className="bill-review-drawer" aria-labelledby="bill-review-title" onCancel={event=>{event.preventDefault();close()}}>
    {message&&<p className="notice" role="status">{message}</p>}
    <div className="section-heading"><button className="button quiet" disabled={busy} onClick={close}>{GST.back}</button><span className="chip">{GST.status[selected.status]}</span></div>
-   <div className="invoice-review"><section className="bv-card invoice-form"><h2 id="bill-review-title">{GST.invoice}: {selected.invoice_number||'New bill'}</h2><p className="muted">{GST.inputHint}</p><div className="account-form">{['supplier_gstin','supplier_legal_name','supplier_address','recipient_gstin','recipient_legal_name','recipient_address','invoice_number','invoice_date','place_of_supply_state_code'].map(f=>input(f,selected[f],v=>save({[f]:v}),f==='invoice_date'?'date':'text'))}
+   <h2 id="bill-review-title">{GST.invoice}: {selected.invoice_number||'New bill'}</h2><div className="invoice-review"><section className="bv-card invoice-form"><p className="muted">{GST.inputHint}</p><div className="account-form">{['supplier_gstin','supplier_legal_name','supplier_address','recipient_gstin','recipient_legal_name','recipient_address','invoice_number','invoice_date','place_of_supply_state_code'].map(f=>input(f,selected[f],v=>save({[f]:v}),f==='invoice_date'?'date':'text'))}
     <label>{GST.direction}<select disabled={!write||busy} value={selected.direction} onChange={e=>save({direction:e.target.value})}><option value="purchase">{GST.purchase}</option><option value="sale">{GST.sale}</option></select></label>
     <label>{GST.type}<select disabled={!write||busy} value={selected.invoice_type} onChange={e=>save({invoice_type:e.target.value})}>{[['tax_invoice',GST.taxInvoice],['bill_of_supply',GST.billOfSupply],['debit_note',GST.debitNote],['credit_note',GST.creditNote]].map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
     <label>{GST.reverseCharge}<input type="checkbox" checked={selected.reverse_charge} disabled={!write||busy} onChange={e=>save({reverse_charge:e.target.checked})}/></label>
@@ -94,9 +95,9 @@ export default function BillsPanel({data}:{data:any}){
    {write&&<button className="button secondary" disabled={busy} onClick={()=>save({line_items:[...selected.line_items,{description:'',hsn_sac:'',quantity:'1',unit:'NOS',taxable_value:'0',gst_rate:'0',cgst:'0',sgst:'0',igst:'0',cess:'0'}]})}>{GST.addLine}</button>}
    <h3>{GST.total}</h3>{write&&<button className="button secondary" disabled={busy||!selected.line_items.length} onClick={sumLines}>Sum line totals</button>}<div className="account-form">{Object.keys(selected.totals).map(f=>input(f,selected.totals[f],v=>save({totals:{...selected.totals,[f]:v}})))}</div>
    {selected.rejection_reason&&<p>Recorded rejection reason: {selected.rejection_reason}</p>}
-   {write&&selected.status!=='rejected'&&<label>Rejection reason<textarea value={rejectionReason} maxLength={1000} disabled={busy} onChange={event=>setRejectionReason(event.target.value)}/></label>}
+   {write&&selected.status!=='rejected'&&<label className="bill-rejection-reason">Rejection reason<textarea value={rejectionReason} maxLength={1000} disabled={busy} onChange={event=>setRejectionReason(event.target.value)}/></label>}
    <ul className="review-reasons">{selected.review_reasons.map((r:string)=><li key={r}>{GST.reasons[r]||GST.attention}</li>)}</ul><p>{GST.confirmNote}</p><div className="filing-actions">{write&&<><button className="button secondary" disabled={busy||!dirty} onClick={saveChanges}>Save changes</button><button className="button quiet" disabled={busy} onClick={remove}>Delete bill</button><button className="button primary" disabled={busy||(!dirty&&(selected.status==='confirmed'||selected.status==='rejected'))} onClick={()=>decision('confirm')}>{GST.confirm}</button><button className="button quiet" disabled={busy||selected.status==='rejected'} onClick={()=>decision('reject')}>{GST.reject}</button></>}</div></section>
-   <aside className="bv-card original-bill"><h2>{GST.original}</h2><Link href={`/api/gst/bills/${selected.invoice_id}/original`} target="_blank">{GST.originalDownload}</Link>{/\.(pdf|png|jpe?g)$/i.test(selected.extraction.raw_ref)?<iframe title={GST.original} src={`/api/gst/bills/${selected.invoice_id}/original`}/>:<p>{GST.spreadsheetOriginal}</p>}</aside></div>
+   <OriginalInvoicePreview key={selected.invoice_id} invoiceId={selected.invoice_id} filename={selected.filename||selected.invoice_number} source={selected.extraction.raw_ref}/></div>
   </dialog>}
  </>
 }
