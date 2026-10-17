@@ -16,10 +16,20 @@ def main():
     with sync_playwright() as p:
         browser=p.chromium.launch(executable_path=r'C:\Program Files\Google\Chrome\Application\chrome.exe',headless=True)
         context=browser.new_context(viewport={'width':1440,'height':1000});page=context.new_page();page.set_default_timeout(120000)
-        page.goto(base+'/login',wait_until='domcontentloaded');page.get_by_label('Email',exact=True).fill('naturelabs1@demo.com')
+        page.goto(base+'/login',wait_until='networkidle')
+        page.get_by_role('button',name='Show password',exact=True).click()
+        page.get_by_role('button',name='Hide password',exact=True).wait_for()
+        page.get_by_role('button',name='Hide password',exact=True).click()
+        print('Interactive sign-in form ready',flush=True)
+        page.get_by_label('Email',exact=True).fill('naturelabs1@demo.com')
         password=cloud('secrets','versions','access','1','--secret=gst-easy-v2-naturelabs1-password','--project',PROJECT)
         page.locator('input[type=password]').fill(password);del password
-        page.get_by_role('button',name='Sign in',exact=True).click();page.wait_for_url('**/gst/workspace**',wait_until='domcontentloaded',timeout=180000)
+        page.get_by_role('button',name='Sign in',exact=True).click()
+        try:page.wait_for_url('**/gst/workspace**',wait_until='domcontentloaded',timeout=180000)
+        except Exception:
+            print('Sign-in navigation blocked: '+page.url+'; alerts: '+str(page.locator('.error,[role=alert]').all_text_contents()),flush=True)
+            raise
+        print('Authenticated V2 demo session',flush=True)
         csrf=context.request.get(base+'/api/auth/csrf',timeout=180000).json()['token']
         def req(method,url,**kwargs):
             return context.request.fetch(base+url,method=method,headers={'Origin':base,'x-csrf-token':csrf},timeout=180000,max_retries=2 if method=='GET' else 0,**kwargs)
@@ -77,6 +87,7 @@ def main():
                 page.goto(base+'/settings/profile?period=2026-10',wait_until='domcontentloaded')
                 page.get_by_text('Current business logo',exact=True).wait_for()
                 page.get_by_role('link',name='Open Website',exact=True).wait_for()
+                page.get_by_text('Automatic verification not configured',exact=True).wait_for()
                 page.screenshot(path=str(ART/f'naturelabs1-profile-{width}.png'),full_page=True,animations='disabled')
             record('profile_logo_rendered',True)
         assert req('POST','/api/auth/logout').status==200;record('logout',True)

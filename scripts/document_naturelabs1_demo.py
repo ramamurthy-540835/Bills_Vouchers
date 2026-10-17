@@ -14,7 +14,7 @@ def main():
     release=json.loads((ART/'naturelabs1-r5-deployment.json').read_text())
     assert all(state['kpi_comparison'].values()) and len(state['invoices'])==23
     assert acceptance['checks'].get('assistant_reconciliation_corrected') is True
-    assert all(acceptance['checks'].get(key) is True for key in ['responsive_1440','responsive_900','responsive_390','original_preview_1440','original_preview_390','logout','logged_out_denied'])
+    assert all(acceptance['checks'].get(key) is True for key in ['responsive_1440','responsive_900','responsive_390','original_preview_1440','original_preview_390','logout','logged_out_denied','profile_logo_rendered'])
     expected=manifest['expected_kpis']; actual=state['actual_kpis']
     extraction_counts=dict(Counter(value['extraction']['method'] for value in state['invoices'].values()))
     table='| KPI | Expected | Actual |\n|---|---:|---:|\n'+''.join(f'| {key} | {value} | {actual[key]} |\n' for key,value in expected.items())
@@ -85,7 +85,7 @@ No mocked network responses were used. See `artifacts/gst_easy_v2/naturelabs1-pr
 - The assistant lacked confirmed sales/purchase totals; it now receives signed confirmed-only Decimal aggregates.
 - The extraction prompt assumed purchase bills. Direction and note type are now required, with selected-business context. Existing validation caught the misclassified sale; authorized review corrected it before confirmation.
 - The first unmatched-invoice AI answer repeated line items and treated an unsupported credit note as unmatched. The assistant now receives actual deduplicated reconciliation cases. Simple pending-review and unmatched-purchase questions are answered directly from authoritative status classifications, excluding rejected bills and amount mismatches; live semantic checks were rerun. Synthetic labeling is enforced in responses.
-- A live GET connection reset interrupted report verification; safe reads were retried without re-uploading completed invoices. A browser network-idle wait timed out; visual verification uses actual component readiness instead.
+- A live GET connection reset interrupted report verification; safe reads were retried without re-uploading completed invoices. A browser network-idle wait timed out; visual verification uses actual component readiness instead. Sign-in test retries exposed a pre-hydration interaction race; the harness now verifies the password toggle responds before entering credentials, and live login passed.
 
 {checks}
 
