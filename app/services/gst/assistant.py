@@ -53,7 +53,41 @@ def grounded_context(dashboard, documents, question, demo_scenario=None, ledger=
                         'href': suffix + '&tab=documents' if demo_scenario else doc.get('href',f"/documents/{doc['doc_id']}?period={period}"),
                         'facts': {k: header.get(k) for k in ('supplier_name', 'invoice_no', 'invoice_date', 'total', 'validation_status', 'validation_errors')}})
     return {'sample': bool(demo_scenario or dashboard.get('sample')), 'period': period, 'customer': dashboard.get('profile', {}).get('legal_name'),
-            'document_scope': 'Up to eight relevant documents from the selected customer and period; not an exhaustive search.', 'sources': sources}
+            'document_scope': 'Up to eight relevant documents from the selected customer and period; not an exhaustive search.', 'sources': sources,
+            'canonical_status_records': [{'id':d['doc_id'],'number':(d.get('silver') or {}).get('invoice_no'),
+                                          'status':d.get('stage'),'href':d.get('href')} for d in documents]
+                                        if dashboard.get('source')=='canonical' else None}
+
+
+def status_answer(question, context):
+    """Answer simple status lists from authoritative classifications, without inference."""
+    query=question.casefold().strip().rstrip('?').strip()
+    records=context.get('canonical_status_records')
+    if records is None:
+        return None
+    sources=context['sources']
+    summary=sources[0]
+    selected=[]
+    if query in {'which invoices need review', 'which bills need review', 'show pending invoices'}:
+        selected=[r for r in records if r['status'] in {'extracted','needs_review'}]
+        answer='Invoices awaiting review:\n'+'\n'.join('- '+str(r['number']) for r in selected) if selected else 'No invoices are awaiting review in the supplied period records.'
+    elif query in {'which purchase invoices are unmatched', 'show unmatched purchase invoices'}:
+        reconciliation=summary['facts'].get('reconciliation') or {}
+        if not reconciliation.get('statement_imported'):
+            answer='No GSTR-2B statement has been imported for this period; unmatched purchases cannot be established.'
+        else:
+            ids={r['invoice_id'] for r in reconciliation.get('cases',[]) if r['status']=='missing_statement'}
+            selected=[r for r in records if r['id'] in ids]
+            answer='Books-only purchase invoices missing from GSTR-2B:\n'+'\n'.join('- '+str(r['number']) for r in selected) if selected else 'No books-only unmatched purchases were found.'
+            answer+='\nAmount mismatches and statement-only records are separate categories in the reconciliation reports.'
+    else:
+        return None
+    if context['sample']:
+        answer='Synthetic demo examples, not real customer data.\n\n'+answer
+    return {'answer':answer,'sample':context['sample'],
+            'sources':[{k:summary[k] for k in ('id','label','href','layer')},
+                       *[{'id':r['id'],'label':str(r['number']),'href':r['href'],'layer':'Source evidence'} for r in selected if r['href']]],
+            'followups':[]}
 
 
 def generate_answer(payload, context):
@@ -62,6 +96,9 @@ def generate_answer(payload, context):
     settings = get_settings()
     if not settings.gemini_enabled:
         raise HTTPException(503, 'The AI assistant is not enabled. Search and financial figures remain available.')
+    grounded_status=status_answer(payload.question,context)
+    if grounded_status is not None:
+        return grounded_status
     client = (genai.Client(api_key=settings.gemini_api_key, http_options=types.HttpOptions(timeout=45000))
               if settings.gemini_api_key else genai.Client(vertexai=True, project=settings.gcp_project_id,
                   location=settings.gcp_region, http_options=types.HttpOptions(timeout=45000)))

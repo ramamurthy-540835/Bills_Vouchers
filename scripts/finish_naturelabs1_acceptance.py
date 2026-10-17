@@ -19,7 +19,7 @@ def main():
         page.goto(base+'/login',wait_until='domcontentloaded');page.get_by_label('Email',exact=True).fill('naturelabs1@demo.com')
         password=cloud('secrets','versions','access','1','--secret=gst-easy-v2-naturelabs1-password','--project',PROJECT)
         page.locator('input[type=password]').fill(password);del password
-        page.get_by_role('button',name='Sign in',exact=True).click();page.wait_for_url('**/gst/workspace')
+        page.get_by_role('button',name='Sign in',exact=True).click();page.wait_for_url('**/gst/workspace**',wait_until='domcontentloaded',timeout=180000)
         csrf=context.request.get(base+'/api/auth/csrf',timeout=180000).json()['token']
         def req(method,url,**kwargs):
             return context.request.fetch(base+url,method=method,headers={'Origin':base,'x-csrf-token':csrf},timeout=180000,max_retries=2 if method=='GET' else 0,**kwargs)
@@ -31,7 +31,9 @@ def main():
                     page.goto(base+route+'?period=2026-10',wait_until='domcontentloaded')
                     page.locator('h1').wait_for()
                     if label=='dashboard':page.get_by_text('₹5,781.60',exact=True).first.wait_for()
-                    elif label=='profile':page.get_by_text('https://naturelabs-manufacturing.example.test',exact=True).first.wait_for()
+                    elif label=='profile':
+                        page.get_by_role('link',name='Open Website',exact=True).wait_for()
+                        page.get_by_text('Current business logo',exact=True).wait_for()
                     else:page.locator('table tbody tr').first.wait_for()
                     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth+1'),f'{label}: overflow at {width}'
                     page.screenshot(path=str(ART/f'naturelabs1-{label}-{width}.png'),full_page=True,animations='disabled')
@@ -66,9 +68,17 @@ def main():
                 if 'cash requirement' in question:assert '18178.56' in text
                 if 'unmatched' in question:
                     assert text.count('NL1-P-005')==1 and text.count('NL1-P-009')==1
-                    assert 'NL1-P-010' not in text or 'unsupported' in text.lower()
+                    assert all(number not in text for number in ['NL1-P-010','NL1-P-002','NL1-P-003','NL1-ONLY-001'])
+                if 'need review' in question:assert 'NL1-P-011' in text and 'NL1-S-012' in text and 'NL1-P-013' not in text
             assert req('GET','/api/gst/bills?period=2026-10').json()==before
             record('assistant_reconciliation_corrected',True);record('read_only_assistant_preserved_invoices',True)
+            for width in [1440,390]:
+                page.set_viewport_size({'width':width,'height':1000})
+                page.goto(base+'/settings/profile?period=2026-10',wait_until='domcontentloaded')
+                page.get_by_text('Current business logo',exact=True).wait_for()
+                page.get_by_role('link',name='Open Website',exact=True).wait_for()
+                page.screenshot(path=str(ART/f'naturelabs1-profile-{width}.png'),full_page=True,animations='disabled')
+            record('profile_logo_rendered',True)
         assert req('POST','/api/auth/logout').status==200;record('logout',True)
         assert req('GET','/api/gst/bills?period=2026-10').status==401;record('logged_out_denied',True)
         browser.close()

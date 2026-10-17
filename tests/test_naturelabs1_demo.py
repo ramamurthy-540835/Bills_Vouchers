@@ -55,6 +55,19 @@ def test_synthetic_pack_validates_and_matches_independent_expectations():
     assert {row['invoice_number'] for row in context['cases'] if row['status']=='missing_statement'}=={'NL1-P-005','NL1-P-009'}
     assert len(context['cases'])==11
     assert reconciliation_context(invoices,[],False)=={'statement_imported':False,'cases':[]}
+    from app.services.gst.assistant import grounded_context, status_answer
+    grounded=grounded_context({'source':'canonical','period':manifest['period'],'sample':True,
+                              'reconciliation':context},documents(invoices,manifest['period']),'review')
+    pending=status_answer('Which invoices need review?',grounded)
+    assert 'NL1-P-011' in pending['answer'] and 'NL1-S-012' in pending['answer']
+    assert 'NL1-P-013' not in pending['answer']
+    unmatched=status_answer('Which purchase invoices are unmatched?',grounded)
+    assert 'NL1-P-005' in unmatched['answer'] and 'NL1-P-009' in unmatched['answer']
+    assert all(number not in unmatched['answer'] for number in ['NL1-P-002','NL1-P-003','NL1-P-010','NL1-ONLY-001'])
+    assert len(unmatched['sources'])==3
+    assert status_answer('Change my invoices',grounded) is None
+    grounded['sources'][0]['facts']['reconciliation']={'statement_imported':False}
+    assert 'cannot be established' in status_answer('Which purchase invoices are unmatched?',grounded)['answer']
     from app.gst.report_details import project
     for kind,count in manifest['expected_report_rows'].items():
         _,rows,_,_=project(kind,invoices,profile,statement,True,manifest['period'])

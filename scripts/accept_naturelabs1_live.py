@@ -127,7 +127,7 @@ def main():
             for route,label in [('/gst/workspace','dashboard'),('/settings/profile','profile'),('/bills','bills'),('/reports/usable-itc','itc')]:
                 page.goto(base+route+'?period=2026-10',wait_until='domcontentloaded')
                 if label=='dashboard':page.get_by_text('₹5,781.60',exact=True).first.wait_for()
-                elif label=='profile':page.get_by_text('https://naturelabs-manufacturing.example.test',exact=True).first.wait_for()
+                elif label=='profile':page.get_by_role('link',name='Open Website',exact=True).wait_for()
                 else:page.locator('table tbody tr').first.wait_for()
                 assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth+1')
                 page.screenshot(path=str(ART/f'naturelabs1-{label}-{width}.png'),full_page=True)
