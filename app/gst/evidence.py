@@ -25,3 +25,12 @@ def confirmed_summary(invoices):
                     for inv in confirmed if inv.direction==direction),Decimal('0')))
                for direction,label in [('sale','sales'),('purchase','purchases')]},
             'pending_review_count':sum(inv.status in {'extracted','needs_review'} for inv in invoices)}
+
+
+def reconciliation_context(invoices, statements, imported):
+    from .reconciliation import compare
+    by_id={inv.invoice_id:inv for inv in invoices}
+    return {'statement_imported':imported,
+            'cases':[{**{key:case[key] for key in ('invoice_id','invoice_number','supplier_gstin','status')},
+                      'supplier_name':by_id[case['invoice_id']].supplier_legal_name if case['invoice_id'] in by_id else 'Not recorded'}
+                     for case in compare(invoices,statements)['cases']] if imported else []}

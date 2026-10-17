@@ -97,6 +97,7 @@ def main():
                   reconciliation_mismatches=3,unmatched_invoices=3)
     manifest=dict(provenance='SYNTHETIC_TEST_ONLY',period=PERIOD,business=BUSINESS,invoices=docs,
                   expected_signed_totals=totals,expected_kpis=expected,
+                  expected_report_rows={'credit':20,'liability':10,'cash':16,'without_itc':8,'pending':2,'mismatches':3,'unmatched':3,'sales':10,'purchases':10},
                   assumptions=['0%, 12%, 18% illustrative test rates; not legally verified HSN classifications.',
                                'Zero-rate packaging fixture exercises non-creditable reporting only.',
                                'Credit notes have positive face values and negative signed contributions.',
@@ -108,6 +109,10 @@ def main():
     for i in docs:ws.append([i['invoice_number'],i['direction'],i['invoice_type'],i['expected_status'],*[i['totals'][h] for h in HEADS]])
     ws=wb.create_sheet('Expected KPIs');ws.append(['Metric','Expected']);[ws.append([k,v]) for k,v in expected.items()]
     ws=wb.create_sheet('Signed totals');ws.append(['Direction',*HEADS]);[ws.append([d,*[v[h] for h in HEADS]]) for d,v in totals.items()]
+    ws=wb.create_sheet('Expected reports');ws.append(['Report','Expected rows']);[ws.append([kind,count]) for kind,count in manifest['expected_report_rows'].items()]
+    ws.append(['Without ITC: non-eligible purchase value',expected['non_gst']])
+    ws.append(['Without ITC: eligible classification but credit not established',money(sum((D(docs[i]['totals']['invoice_total']) for i in [1,2,8]),D(0)))])
+    ws=wb.create_sheet('Reconciliation');ws.append(['Classification','Count']);[ws.append(row) for row in [('Exact',5),('Amount/head mismatch',2),('Unsupported purchase credit note',1),('Books only',2),('Statement only',1)]]
     ws=wb.create_sheet('Assumptions');[ws.append([s]) for s in manifest['assumptions']]
     wb.save(ROOT/'EXPECTED_RESULTS.xlsx')
     manifest['file_hashes']={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in ROOT.iterdir() if p.is_file() and p.name not in {'TEST_MANIFEST.json','README.md'}}

@@ -54,7 +54,7 @@ def live_chat(payload: ChatRequest, request: Request, repo=Depends(get_db), user
     from app.config import get_settings
     if get_settings().gst_bills_enabled:
         from app.gst.store import BillStore
-        from app.gst.evidence import documents, confirmed_summary
+        from app.gst.evidence import documents, confirmed_summary, reconciliation_context
         from app.gst.report import calculate
         from app.services.auth_identity import throttle
         from app.routes import active_client
@@ -62,10 +62,12 @@ def live_chat(payload: ChatRequest, request: Request, repo=Depends(get_db), user
         bills=BillStore(repo,store.client_id)
         invoices=bills.list(store.period)
         profile=store.profile() or {}
-        report=calculate(invoices,profile,bills.matching_rows(store.period))
+        statements=bills.matching_rows(store.period)
+        report=calculate(invoices,profile,statements)
         dashboard={'period':store.period,'profile':profile,'source':'canonical','summary':{**report,**confirmed_summary(invoices)},
                    'totals':report['totals'],'validated_invoices':report['confirmed_count'],
-                   'sample':getattr(active_client(request,repo,user),'is_test',False)}
+                   'sample':getattr(active_client(request,repo,user),'is_test',False),
+                   'reconciliation':reconciliation_context(invoices,statements,bool(statements) or bool(bills.statement_history(store.period)))}
         context=grounded_context(dashboard,documents(invoices[:500],store.period),payload.question)
         return generate_answer(payload,context)
     workspace = store.workspace()

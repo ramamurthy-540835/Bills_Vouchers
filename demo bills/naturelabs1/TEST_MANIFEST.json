@@ -1847,6 +1847,17 @@
     "reconciliation_mismatches": 3,
     "unmatched_invoices": 3
   },
+  "expected_report_rows": {
+    "credit": 20,
+    "liability": 10,
+    "cash": 16,
+    "without_itc": 8,
+    "pending": 2,
+    "mismatches": 3,
+    "unmatched": 3,
+    "sales": 10,
+    "purchases": 10
+  },
   "assumptions": [
     "0%, 12%, 18% illustrative test rates; not legally verified HSN classifications.",
     "Zero-rate packaging fixture exercises non-creditable reporting only.",
@@ -1857,7 +1868,7 @@
     "GSTIN-like values are fictional by construction; no government lookup or ownership claim."
   ],
   "file_hashes": {
-    "EXPECTED_RESULTS.xlsx": "4b2a0cd215f49bf92333165e82138da013a229687b7cd4ecdbc38340c49e7ae8",
+    "EXPECTED_RESULTS.xlsx": "0ded354ed13603628af0753263bab925224e7914ecc37c46a12dafd4f106c5bb",
     "gstr2b-duplicate-invalid.json": "0038ccfd8e809537a48bff7996309390c196d179a5ed7175e1e9b476cdf27ba8",
     "gstr2b.json": "b93f7f773dbc701585882f5952a2fbe6fb910732aaa1ea44ebd6390c165aa938",
     "logo.png": "65c7015fb898b5dfe401fe7c8f37404eaaafd32b74a10f177fff3318c5e0e4ce",

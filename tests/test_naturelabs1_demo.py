@@ -50,5 +50,14 @@ def test_synthetic_pack_validates_and_matches_independent_expectations():
     assert Decimal(summary['confirmed_sales'])==Decimal(manifest['expected_kpis']['confirmed_sales'])
     assert Decimal(summary['confirmed_purchases'])==Decimal(manifest['expected_kpis']['confirmed_purchases'])
     assert summary['pending_review_count']==2
+    from app.gst.evidence import reconciliation_context
+    context=reconciliation_context(invoices,statement,True)
+    assert {row['invoice_number'] for row in context['cases'] if row['status']=='missing_statement'}=={'NL1-P-005','NL1-P-009'}
+    assert len(context['cases'])==11
+    assert reconciliation_context(invoices,[],False)=={'statement_imported':False,'cases':[]}
+    from app.gst.report_details import project
+    for kind,count in manifest['expected_report_rows'].items():
+        _,rows,_,_=project(kind,invoices,profile,statement,True,manifest['period'])
+        assert len(rows)==count,kind
     with pytest.raises(ValueError):
         parse_gstr2b((ROOT/'gstr2b-duplicate-invalid.json').read_text(),profile,manifest['period'])

@@ -11,6 +11,8 @@ def main():
     base=cloud('run','services','describe','gst-easy-v2-web','--project',PROJECT,'--region=asia-south1','--format=value(status.url)')
     assert base.startswith('https://gst-easy-v2-web-')
     state=json.loads((ART/'naturelabs1-processing.json').read_text());cid=state['client_id']
+    manifest=json.loads(Path('demo bills/naturelabs1/TEST_MANIFEST.json').read_text())
+    assert {kind:row['row_count'] for kind,row in state['reports'].items()}==manifest['expected_report_rows']
     results={'url':base,'checks':{},'limitations':[]}
     def record(name,value):
         results['checks'][name]=value
@@ -24,7 +26,7 @@ def main():
         page.get_by_role('button',name='Sign in',exact=True).click();page.wait_for_url('**/gst/workspace');record('login',True)
         csrf=context.request.get(base+'/api/auth/csrf',timeout=180000).json()['token']
         def req(method,path,**kwargs):
-            return context.request.fetch(base+path,method=method,headers={'Origin':base,'x-csrf-token':csrf},timeout=180000,**kwargs)
+            return context.request.fetch(base+path,method=method,headers={'Origin':base,'x-csrf-token':csrf},timeout=180000,max_retries=2 if method=='GET' else 0,**kwargs)
         before=req('GET','/api/gst/bills?period=2026-10').json()
         assert before['client_id']==cid and len(before['invoices'])==23
         account=req('GET','/api/settings/account').json()
@@ -35,6 +37,12 @@ def main():
         assert account['profile']['website_url']=='https://naturelabs-manufacturing.example.test'
         assert req('GET','/api/settings/profile/logo').status==200
         record('profile_owner_website_logo',True)
+        page.locator('.account-menu summary').click()
+        page.locator('.account-menu').get_by_role('link',name='Business Profile',exact=True).click()
+        page.wait_for_url('**/settings/profile')
+        assert page.locator('.bv-sidebar').get_by_role('link',name='Business Profile',exact=True).count()==0
+        assert page.get_by_label('Switch business',exact=True).count()==0
+        record('client_account_navigation',True)
         record('persisted_status_counts',{s:sum(i['status']==s for i in before['invoices']) for s in ['confirmed','needs_review','rejected']})
         for slug in ['usable-itc','gst-liability','cash-requirement','purchases-without-itc','pending-reviews','reconciliation-mismatches','unmatched-invoices','sales-register','purchase-register']:
             page.goto(base+'/reports/'+slug+'?period=2026-10')
@@ -117,10 +125,17 @@ def main():
         for width in [1440,900,390]:
             page.set_viewport_size({'width':width,'height':1000})
             for route,label in [('/gst/workspace','dashboard'),('/settings/profile','profile'),('/bills','bills'),('/reports/usable-itc','itc')]:
-                page.goto(base+route+'?period=2026-10');page.wait_for_load_state('networkidle')
+                page.goto(base+route+'?period=2026-10',wait_until='domcontentloaded')
+                if label=='dashboard':page.get_by_text('₹5,781.60',exact=True).first.wait_for()
+                elif label=='profile':page.get_by_text('https://naturelabs-manufacturing.example.test',exact=True).first.wait_for()
+                else:page.locator('table tbody tr').first.wait_for()
                 assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth+1')
                 page.screenshot(path=str(ART/f'naturelabs1-{label}-{width}.png'),full_page=True)
             record('responsive_'+str(width),True)
+            if width==390:
+                page.locator('.mobile-tabs summary').click()
+                page.locator('.mobile-tabs').get_by_role('link',name='Reports',exact=True).click()
+                page.wait_for_url('**/reports?**');record('mobile_report_navigation',True)
         for width in [1440,390]:
             page.set_viewport_size({'width':width,'height':1000})
             page.goto(base+'/bills?period=2026-10&invoice='+state['invoices']['NL1-P-001']['invoice_id'])
@@ -137,4 +152,8 @@ def main():
     print('Live acceptance recorded; inspect AI answers and screenshots before claiming readiness.')
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    try:main()
+    except Exception as exc:
+        print(type(exc).__name__+': '+str(exc).split('Call log:')[0].strip())
+        raise SystemExit(1) from None

@@ -34,13 +34,17 @@ def main():
         state['login']=True;save()
         csrf=context.request.get(base+'/api/auth/csrf',timeout=180000).json()['token']
         def call(method,path,**kwargs):
-            response=context.request.fetch(base+path,method=method,headers={'Origin':base,'x-csrf-token':csrf},timeout=180000,**kwargs)
+            response=context.request.fetch(base+path,method=method,headers={'Origin':base,'x-csrf-token':csrf},timeout=180000,max_retries=2 if method=='GET' else 0,**kwargs)
             if not response.ok:raise RuntimeError(f'{method} {path}: {response.status} {response.text()[:600]}')
             return response.json()
         listed=call('GET','/api/gst/bills?period=2026-10')
         assert listed['client_id']==cid
         for index,fixture in enumerate(manifest['invoices']):
             number=fixture['invoice_number'];entry=state['invoices'].setdefault(number,{})
+            if entry.get('review_completed'):
+                saved=next((i for i in listed['invoices'] if i['invoice_id']==entry['invoice_id']),None)
+                assert saved and saved['status']==entry['status'],'Previously provisioned invoice changed; refusing to overwrite'
+                continue
             if not entry.get('job_id'):
                 # Never adopt an unrelated invoice just because its number matches.
                 assert not any(i['invoice_number']==number for i in listed['invoices']), 'Existing identity without provisioning record requires review'
@@ -103,4 +107,8 @@ def main():
     print('Persisted synthetic invoices and all nine KPI comparisons passed. See sanitized processing report.')
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    try:main()
+    except Exception as exc:
+        print(type(exc).__name__+': '+str(exc).split('Call log:')[0].strip())
+        raise SystemExit(1) from None

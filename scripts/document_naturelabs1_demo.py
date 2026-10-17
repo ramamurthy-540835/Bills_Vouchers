@@ -11,8 +11,9 @@ def main():
     manifest=json.loads((ROOT/'TEST_MANIFEST.json').read_text())
     state=json.loads((ART/'naturelabs1-processing.json').read_text())
     acceptance=json.loads((ART/'naturelabs1-acceptance.json').read_text())
-    release=json.loads((ART/'naturelabs1-r3-deployment.json').read_text())
+    release=json.loads((ART/'naturelabs1-r4-deployment.json').read_text())
     assert all(state['kpi_comparison'].values()) and len(state['invoices'])==23
+    assert acceptance['checks'].get('assistant_reconciliation_corrected') is True
     expected=manifest['expected_kpis']; actual=state['actual_kpis']
     extraction_counts=dict(Counter(value['extraction']['method'] for value in state['invoices'].values()))
     table='| KPI | Expected | Actual |\n|---|---:|---:|\n'+''.join(f'| {key} | {value} | {actual[key]} |\n' for key,value in expected.items())
@@ -56,7 +57,7 @@ Branch `GST-EASY-V2`; API source `{release['source_commit']}`; Cloud Build `{rel
 {limits}
 ## Rollback
 
-For application rollback, route **only gst-easy-v2-api** to the prior revision recorded in `artifacts/gst_easy_v2/naturelabs1-r3-deployment.json`. Do not alter original production services. Synthetic data is retained with audit evidence; rollback does not delete invoice originals or unrelated tenants. Account access can be revoked through the existing authorized membership/identity management process.
+For application rollback, route **only gst-easy-v2-api** to the prior revision recorded in `artifacts/gst_easy_v2/naturelabs1-r4-deployment.json`. Do not alter original production services. Synthetic data is retained with audit evidence; rollback does not delete invoice originals or unrelated tenants. Account access can be revoked through the existing authorized membership/identity management process.
 '''
     Path('GST_EASY_V2_NATURELABS1_DEMO_REPORT.md').write_text(overview,encoding='utf-8')
     reportrows='\n'.join(f'- {kind}: {row["row_count"]} actual report rows; export allowed: {row["can_export"]}.' for kind,row in state['reports'].items())
@@ -75,6 +76,15 @@ For application rollback, route **only gst-easy-v2-api** to the prior revision r
 ## Actual live acceptance
 
 No mocked network responses were used. See `artifacts/gst_easy_v2/naturelabs1-processing.json` and `naturelabs1-acceptance.json` for actual API outcomes and AI responses. Screenshots: `artifacts/gst_easy_v2/naturelabs1-*.png`.
+
+## Issues found and corrected
+
+- New demo identity required explicit V2-only operator activation; it remains unverified for email/mobile ownership.
+- Customer names were absent from canonical search text; recipient names/GSTINs are now included in the already tenant-scoped adapter.
+- The assistant lacked confirmed sales/purchase totals; it now receives signed confirmed-only Decimal aggregates.
+- The extraction prompt assumed purchase bills. Direction and note type are now required, with selected-business context. Existing validation caught the misclassified sale; authorized review corrected it before confirmation.
+- The first unmatched-invoice AI answer repeated line items and treated an unsupported credit note as unmatched. The assistant now receives the actual deduplicated reconciliation cases and explicit classification guidance; live semantic checks were rerun. Synthetic labeling is enforced in responses.
+- A live GET connection reset interrupted report verification; safe reads were retried without re-uploading completed invoices. A browser network-idle wait timed out; visual verification uses actual component readiness instead.
 
 {checks}
 

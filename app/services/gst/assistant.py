@@ -41,6 +41,7 @@ def grounded_context(dashboard, documents, question, demo_scenario=None, ledger=
     sources = [{'id': 'gold-summary', 'label': 'Canonical financial summary' if dashboard.get('source')=='canonical' else 'Validated financial summary', 'href': suffix,
                 'layer': 'Checked figures', 'facts': {'period': period, 'summary': dashboard.get('summary'),
                                          'totals': dashboard.get('totals'), 'validated_invoices': dashboard.get('validated_invoices'),
+                                         'reconciliation': dashboard.get('reconciliation'),
                                          'credit_decisions': [{k: row.get(k) for k in ('invoice_no', 'description', 'reason_code', 'rule_ref')}
                                                               for row in (ledger or [])[:30]]}}]
     terms = set(re.findall(r'\w+', question.casefold())) - {'the', 'a', 'my', 'what', 'is', 'are', 'and', 'for', 'this', 'in', 'show', 'me'}
@@ -66,6 +67,7 @@ def generate_answer(payload, context):
                   location=settings.gcp_region, http_options=types.HttpOptions(timeout=45000)))
     system = """You are a read-only financial workspace assistant. Answer only from PROVIDED_FACTS for this customer and period.
 Use the provided financial summary for all financial totals. Source invoices may be unreviewed: label that status and never add their totals to validated figures.
+For unmatched invoice questions, use reconciliation.cases only. missing_statement means a books-only purchase; missing_book means a statement-only record. unsupported_document is NOT an unmatched invoice. List each invoice once, never once per line item. Credit-decision matching fields are not reconciliation case classifications. If reconciliation is unavailable or statement_imported is false, say so.
 Do not invent amounts, tax advice, customer records, or claim a filing/payment/change was performed. You have no write tools.
 If a question asks for a change, explain that you can explain the figures but cannot change records.
 If facts are absent or the question needs other periods/customers, say what is unavailable; do not infer absence from the eight-document sample.
@@ -90,7 +92,10 @@ Do not emit HTML, Markdown links, SQL, credentials or external URLs. Retain exac
         source_ids = response.get('source_ids', [])
         if not isinstance(source_ids, list) or any(not isinstance(x, str) or x not in by_id for x in source_ids):
             raise ValueError('Unknown source')
-        return {'answer': response['answer'][:8000], 'sample': context['sample'],
+        answer=response['answer'][:8000]
+        if context['sample'] and 'synthetic' not in answer.casefold():
+            answer='Synthetic demo examples, not real customer data.\n\n'+answer
+        return {'answer': answer, 'sample': context['sample'],
                 'sources': [{k: by_id[source_id][k] for k in ('id', 'label', 'href', 'layer')} for source_id in dict.fromkeys(source_ids)],
                 'followups': [x[:200] for x in response.get('followups', []) if isinstance(x, str)][:3]}
     except HTTPException:
