@@ -16,7 +16,7 @@ def identity_can_sign_in(user):
             and settings.gcs_bucket_name == 'aidirac-503309-gst-easy-v2-documents'
             and getattr(user, 'demo_operator_activated', False) is True
             and getattr(user, 'identity_provenance', '') == 'SYNTHETIC_TEST_ONLY'
-            and getattr(user, 'email', '') == 'naturelabs@demo.com'
+            and getattr(user, 'email', '') in {'naturelabs@demo.com', 'naturelabs1@demo.com'}
             and getattr(user, 'role', '') == 'client')
 
 

@@ -1,0 +1,1934 @@
+{
+  "provenance": "SYNTHETIC_TEST_ONLY",
+  "period": "2026-10",
+  "business": {
+    "key": "naturelabs1",
+    "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+    "trade_name": "Nature Labs Industrial Manufacturing",
+    "constitution": "Company",
+    "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+    "state_code": "33",
+    "city": "Chennai",
+    "pin": "600032",
+    "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+    "contact_email": "manufacturing-demo@example.test",
+    "contact_phone": "+919000000201",
+    "website_url": "https://naturelabs-manufacturing.example.test",
+    "gstin": "33ZXZCZ0201Q1ZR",
+    "pan": "ZXZCZ0201Q",
+    "registration_type": "Regular",
+    "filing_frequency": "monthly",
+    "is_test": true,
+    "gstin_verified": false,
+    "provenance": "SYNTHETIC_TEST_ONLY"
+  },
+  "invoices": [
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-001",
+      "invoice_date": "2026-10-01",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 01",
+        "gstin": "29ZXZCZ0300Q1ZG",
+        "state_code": "29",
+        "principal_address": "Unit 1, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Steel raw material",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1393.00",
+          "taxable_value": "2786.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "501.48",
+          "cess": "0.00"
+        },
+        {
+          "description": "Steel raw material - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1464.00",
+          "taxable_value": "4392.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "527.04",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "7178.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "1028.52",
+        "cess": "0.00",
+        "invoice_total": "8206.52"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-001.pdf",
+        "NL1-P-001.png",
+        "NL1-P-001.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-002",
+      "invoice_date": "2026-10-02",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 02",
+        "gstin": "33ZXZCZ0301Q1ZQ",
+        "state_code": "33",
+        "principal_address": "Unit 2, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Copper wire",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1586.00",
+          "taxable_value": "3172.00",
+          "gst_rate": "18",
+          "cgst": "285.48",
+          "sgst": "285.48",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Copper wire - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1657.00",
+          "taxable_value": "4971.00",
+          "gst_rate": "12",
+          "cgst": "298.26",
+          "sgst": "298.26",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "8143.00",
+        "cgst": "583.74",
+        "sgst": "583.74",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "9310.48"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-002.pdf",
+        "NL1-P-002.png",
+        "NL1-P-002.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-003",
+      "invoice_date": "2026-10-03",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 03",
+        "gstin": "33ZXZCZ0302Q1ZP",
+        "state_code": "33",
+        "principal_address": "Unit 3, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Electronic components",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1779.00",
+          "taxable_value": "3558.00",
+          "gst_rate": "18",
+          "cgst": "320.22",
+          "sgst": "320.22",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Electronic components - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "1850.00",
+          "taxable_value": "5550.00",
+          "gst_rate": "12",
+          "cgst": "333.00",
+          "sgst": "333.00",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "9108.00",
+        "cgst": "653.22",
+        "sgst": "653.22",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "10414.44"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-003.pdf",
+        "NL1-P-003.png",
+        "NL1-P-003.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-004",
+      "invoice_date": "2026-10-04",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 04",
+        "gstin": "33ZXZCZ0303Q1ZO",
+        "state_code": "33",
+        "principal_address": "Unit 4, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Industrial sensors",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "1972.00",
+          "taxable_value": "3944.00",
+          "gst_rate": "18",
+          "cgst": "354.96",
+          "sgst": "354.96",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Industrial sensors - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "2043.00",
+          "taxable_value": "6129.00",
+          "gst_rate": "12",
+          "cgst": "367.74",
+          "sgst": "367.74",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "10073.00",
+        "cgst": "722.70",
+        "sgst": "722.70",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "11518.40"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-004.pdf",
+        "NL1-P-004.png",
+        "NL1-P-004.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-005",
+      "invoice_date": "2026-10-05",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 05",
+        "gstin": "33ZXZCZ0304Q1ZN",
+        "state_code": "33",
+        "principal_address": "Unit 5, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Packaging materials",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "2165.00",
+          "taxable_value": "4330.00",
+          "gst_rate": "0",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Packaging materials - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "2236.00",
+          "taxable_value": "6708.00",
+          "gst_rate": "0",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "11038.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "11038.00"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-005.pdf",
+        "NL1-P-005.png",
+        "NL1-P-005.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-006",
+      "invoice_date": "2026-10-06",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 06",
+        "gstin": "29ZXZCZ0305Q1ZB",
+        "state_code": "29",
+        "principal_address": "Unit 6, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Machinery spare parts",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "2358.00",
+          "taxable_value": "4716.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "848.88",
+          "cess": "0.00"
+        },
+        {
+          "description": "Machinery spare parts - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "2429.00",
+          "taxable_value": "7287.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "874.44",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "12003.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "1723.32",
+        "cess": "0.00",
+        "invoice_total": "13726.32"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-006.pdf",
+        "NL1-P-006.png",
+        "NL1-P-006.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-007",
+      "invoice_date": "2026-10-07",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 07",
+        "gstin": "33ZXZCZ0306Q1ZL",
+        "state_code": "33",
+        "principal_address": "Unit 7, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Factory maintenance services",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "2551.00",
+          "taxable_value": "5102.00",
+          "gst_rate": "18",
+          "cgst": "459.18",
+          "sgst": "459.18",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Factory maintenance services - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "2622.00",
+          "taxable_value": "7866.00",
+          "gst_rate": "12",
+          "cgst": "471.96",
+          "sgst": "471.96",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "12968.00",
+        "cgst": "931.14",
+        "sgst": "931.14",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "14830.28"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-007.pdf",
+        "NL1-P-007.png",
+        "NL1-P-007.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-008",
+      "invoice_date": "2026-10-08",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 08",
+        "gstin": "33ZXZCZ0307Q1ZK",
+        "state_code": "33",
+        "principal_address": "Unit 8, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Electrical equipment",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "2744.00",
+          "taxable_value": "5488.00",
+          "gst_rate": "18",
+          "cgst": "493.92",
+          "sgst": "493.92",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Electrical equipment - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "2815.00",
+          "taxable_value": "8445.00",
+          "gst_rate": "12",
+          "cgst": "506.70",
+          "sgst": "506.70",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "13933.00",
+        "cgst": "1000.62",
+        "sgst": "1000.62",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "15934.24"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-008.pdf",
+        "NL1-P-008.png",
+        "NL1-P-008.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-009",
+      "invoice_date": "2026-10-09",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 09",
+        "gstin": "29ZXZCZ0308Q1Z8",
+        "state_code": "29",
+        "principal_address": "Unit 9, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Interstate raw material",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "2937.00",
+          "taxable_value": "5874.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "1057.32",
+          "cess": "0.00"
+        },
+        {
+          "description": "Interstate raw material - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "3008.00",
+          "taxable_value": "9024.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "1082.88",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "14898.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "2140.20",
+        "cess": "0.00",
+        "invoice_total": "17038.20"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-009.pdf",
+        "NL1-P-009.png",
+        "NL1-P-009.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-010",
+      "invoice_date": "2026-10-10",
+      "invoice_type": "credit_note",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 10",
+        "gstin": "33ZXZCZ0309Q1ZI",
+        "state_code": "33",
+        "principal_address": "Unit 10, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Purchase credit note",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "3130.00",
+          "taxable_value": "6260.00",
+          "gst_rate": "18",
+          "cgst": "563.40",
+          "sgst": "563.40",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Purchase credit note - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "3201.00",
+          "taxable_value": "9603.00",
+          "gst_rate": "12",
+          "cgst": "576.18",
+          "sgst": "576.18",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "15863.00",
+        "cgst": "1139.58",
+        "sgst": "1139.58",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "18142.16"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-010.pdf",
+        "NL1-P-010.png",
+        "NL1-P-010.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-001",
+      "invoice_date": "2026-10-01",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 01",
+        "gstin": "29ZXZCZ0330Q1ZA",
+        "state_code": "29",
+        "principal_address": "Unit 1, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Industrial control panels",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "2786.00",
+          "taxable_value": "5572.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "1002.96",
+          "cess": "0.00"
+        },
+        {
+          "description": "Industrial control panels - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "2928.00",
+          "taxable_value": "8784.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "1054.08",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "14356.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "2057.04",
+        "cess": "0.00",
+        "invoice_total": "16413.04"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-001.pdf",
+        "NL1-S-001.png",
+        "NL1-S-001.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-002",
+      "invoice_date": "2026-10-02",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 02",
+        "gstin": "33ZXZCZ0331Q1ZK",
+        "state_code": "33",
+        "principal_address": "Unit 2, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Electrical distribution boards",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "3172.00",
+          "taxable_value": "6344.00",
+          "gst_rate": "18",
+          "cgst": "570.96",
+          "sgst": "570.96",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Electrical distribution boards - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "3314.00",
+          "taxable_value": "9942.00",
+          "gst_rate": "12",
+          "cgst": "596.52",
+          "sgst": "596.52",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "16286.00",
+        "cgst": "1167.48",
+        "sgst": "1167.48",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "18620.96"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-002.pdf",
+        "NL1-S-002.png",
+        "NL1-S-002.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-003",
+      "invoice_date": "2026-10-03",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 03",
+        "gstin": "33ZXZCZ0332Q1ZJ",
+        "state_code": "33",
+        "principal_address": "Unit 3, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Sensor assemblies",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "3558.00",
+          "taxable_value": "7116.00",
+          "gst_rate": "18",
+          "cgst": "640.44",
+          "sgst": "640.44",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Sensor assemblies - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "3700.00",
+          "taxable_value": "11100.00",
+          "gst_rate": "12",
+          "cgst": "666.00",
+          "sgst": "666.00",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "18216.00",
+        "cgst": "1306.44",
+        "sgst": "1306.44",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "20828.88"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-003.pdf",
+        "NL1-S-003.png",
+        "NL1-S-003.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-004",
+      "invoice_date": "2026-10-04",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 04",
+        "gstin": "33ZXZCZ0333Q1ZI",
+        "state_code": "33",
+        "principal_address": "Unit 4, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Industrial wiring equipment",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "3944.00",
+          "taxable_value": "7888.00",
+          "gst_rate": "18",
+          "cgst": "709.92",
+          "sgst": "709.92",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Industrial wiring equipment - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "4086.00",
+          "taxable_value": "12258.00",
+          "gst_rate": "12",
+          "cgst": "735.48",
+          "sgst": "735.48",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "20146.00",
+        "cgst": "1445.40",
+        "sgst": "1445.40",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "23036.80"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-004.pdf",
+        "NL1-S-004.png",
+        "NL1-S-004.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-005",
+      "invoice_date": "2026-10-05",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 05",
+        "gstin": "33ZXZCZ0334Q1ZH",
+        "state_code": "33",
+        "principal_address": "Unit 5, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Fabricated steel components",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "4330.00",
+          "taxable_value": "8660.00",
+          "gst_rate": "18",
+          "cgst": "779.40",
+          "sgst": "779.40",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Fabricated steel components - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "4472.00",
+          "taxable_value": "13416.00",
+          "gst_rate": "12",
+          "cgst": "804.96",
+          "sgst": "804.96",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "22076.00",
+        "cgst": "1584.36",
+        "sgst": "1584.36",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "25244.72"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-005.pdf",
+        "NL1-S-005.png",
+        "NL1-S-005.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-006",
+      "invoice_date": "2026-10-06",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 06",
+        "gstin": "29ZXZCZ0335Q1Z5",
+        "state_code": "29",
+        "principal_address": "Unit 6, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Machinery accessories",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "4716.00",
+          "taxable_value": "9432.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "1697.76",
+          "cess": "0.00"
+        },
+        {
+          "description": "Machinery accessories - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "4858.00",
+          "taxable_value": "14574.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "1748.88",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "24006.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "3446.64",
+        "cess": "0.00",
+        "invoice_total": "27452.64"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-006.pdf",
+        "NL1-S-006.png",
+        "NL1-S-006.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-007",
+      "invoice_date": "2026-10-07",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 07",
+        "gstin": "33ZXZCZ0336Q1ZF",
+        "state_code": "33",
+        "principal_address": "Unit 7, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Industrial automation parts",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "5102.00",
+          "taxable_value": "10204.00",
+          "gst_rate": "18",
+          "cgst": "918.36",
+          "sgst": "918.36",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Industrial automation parts - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "5244.00",
+          "taxable_value": "15732.00",
+          "gst_rate": "12",
+          "cgst": "943.92",
+          "sgst": "943.92",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "25936.00",
+        "cgst": "1862.28",
+        "sgst": "1862.28",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "29660.56"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-007.pdf",
+        "NL1-S-007.png",
+        "NL1-S-007.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-008",
+      "invoice_date": "2026-10-08",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 08",
+        "gstin": "33ZXZCZ0337Q1ZE",
+        "state_code": "33",
+        "principal_address": "Unit 8, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Electronic control units",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "5488.00",
+          "taxable_value": "10976.00",
+          "gst_rate": "18",
+          "cgst": "987.84",
+          "sgst": "987.84",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Electronic control units - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "5630.00",
+          "taxable_value": "16890.00",
+          "gst_rate": "12",
+          "cgst": "1013.40",
+          "sgst": "1013.40",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "27866.00",
+        "cgst": "2001.24",
+        "sgst": "2001.24",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "31868.48"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-008.pdf",
+        "NL1-S-008.png",
+        "NL1-S-008.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-009",
+      "invoice_date": "2026-10-09",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 09",
+        "gstin": "29ZXZCZ0338Q1Z2",
+        "state_code": "29",
+        "principal_address": "Unit 9, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "29",
+      "line_items": [
+        {
+          "description": "Interstate finished goods",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "5874.00",
+          "taxable_value": "11748.00",
+          "gst_rate": "18",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "2114.64",
+          "cess": "0.00"
+        },
+        {
+          "description": "Interstate finished goods - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "6016.00",
+          "taxable_value": "18048.00",
+          "gst_rate": "12",
+          "cgst": "0.00",
+          "sgst": "0.00",
+          "igst": "2165.76",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "29796.00",
+        "cgst": "0.00",
+        "sgst": "0.00",
+        "igst": "4280.40",
+        "cess": "0.00",
+        "invoice_total": "34076.40"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-009.pdf",
+        "NL1-S-009.png",
+        "NL1-S-009.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-010",
+      "invoice_date": "2026-10-10",
+      "invoice_type": "credit_note",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 10",
+        "gstin": "33ZXZCZ0339Q1ZC",
+        "state_code": "33",
+        "principal_address": "Unit 10, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Sales credit note",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "6260.00",
+          "taxable_value": "12520.00",
+          "gst_rate": "18",
+          "cgst": "1126.80",
+          "sgst": "1126.80",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Sales credit note - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "6402.00",
+          "taxable_value": "19206.00",
+          "gst_rate": "12",
+          "cgst": "1152.36",
+          "sgst": "1152.36",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "31726.00",
+        "cgst": "2279.16",
+        "sgst": "2279.16",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "36284.32"
+      },
+      "expected_status": "confirmed",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-010.pdf",
+        "NL1-S-010.png",
+        "NL1-S-010.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-011",
+      "invoice_date": "2026-10-11",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 11",
+        "gstin": "33ZXZCZ0310Q1ZP",
+        "state_code": "33",
+        "principal_address": "Unit 11, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Steel raw material",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "3323.00",
+          "taxable_value": "6646.00",
+          "gst_rate": "18",
+          "cgst": "598.14",
+          "sgst": "598.14",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Steel raw material - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "3394.00",
+          "taxable_value": "10182.00",
+          "gst_rate": "12",
+          "cgst": "610.92",
+          "sgst": "610.92",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "16828.00",
+        "cgst": "1209.06",
+        "sgst": "1209.06",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "19246.12"
+      },
+      "expected_status": "needs_review",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-011.pdf",
+        "NL1-P-011.png",
+        "NL1-P-011.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-S-012",
+      "invoice_date": "2026-10-12",
+      "invoice_type": "tax_invoice",
+      "direction": "sale",
+      "supplier": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "recipient": {
+        "legal_name": "Fictional Customer 12",
+        "gstin": "33ZXZCZ0341Q1ZI",
+        "state_code": "33",
+        "principal_address": "Unit 12, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Electrical distribution boards",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "7032.00",
+          "taxable_value": "14064.00",
+          "gst_rate": "18",
+          "cgst": "1265.76",
+          "sgst": "1265.76",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Electrical distribution boards - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "7174.00",
+          "taxable_value": "21522.00",
+          "gst_rate": "12",
+          "cgst": "1291.32",
+          "sgst": "1291.32",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "35586.00",
+        "cgst": "2557.08",
+        "sgst": "2557.08",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "40700.16"
+      },
+      "expected_status": "needs_review",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-S-012.pdf",
+        "NL1-S-012.png",
+        "NL1-S-012.jpg"
+      ]
+    },
+    {
+      "business": "naturelabs1",
+      "invoice_number": "NL1-P-013",
+      "invoice_date": "2026-10-13",
+      "invoice_type": "tax_invoice",
+      "direction": "purchase",
+      "supplier": {
+        "legal_name": "Fictional Supplier 13",
+        "gstin": "33ZXZCZ0312Q1ZN",
+        "state_code": "33",
+        "principal_address": "Unit 13, Synthetic Industrial Road, Demo City (fictional)"
+      },
+      "recipient": {
+        "key": "naturelabs1",
+        "legal_name": "Nature Labs Synthetic Manufacturing Pvt Ltd",
+        "trade_name": "Nature Labs Industrial Manufacturing",
+        "constitution": "Company",
+        "business_nature": "Manufacturing industrial electrical panels, electronic components, sensors and machinery equipment",
+        "state_code": "33",
+        "city": "Chennai",
+        "pin": "600032",
+        "principal_address": "No. 25, Fictional Industrial Estate, Demo Technology Road, Chennai, Tamil Nadu - 600032",
+        "contact_email": "manufacturing-demo@example.test",
+        "contact_phone": "+919000000201",
+        "website_url": "https://naturelabs-manufacturing.example.test",
+        "gstin": "33ZXZCZ0201Q1ZR",
+        "pan": "ZXZCZ0201Q",
+        "registration_type": "Regular",
+        "filing_frequency": "monthly",
+        "is_test": true,
+        "gstin_verified": false,
+        "provenance": "SYNTHETIC_TEST_ONLY"
+      },
+      "place_of_supply_state_code": "33",
+      "line_items": [
+        {
+          "description": "Electronic components",
+          "hsn_sac": "853710",
+          "quantity": "2",
+          "unit": "NOS",
+          "unit_price": "3709.00",
+          "taxable_value": "7418.00",
+          "gst_rate": "18",
+          "cgst": "667.62",
+          "sgst": "667.62",
+          "igst": "0.00",
+          "cess": "0.00"
+        },
+        {
+          "description": "Electronic components - accessory",
+          "hsn_sac": "853710",
+          "quantity": "3",
+          "unit": "NOS",
+          "unit_price": "3780.00",
+          "taxable_value": "11340.00",
+          "gst_rate": "12",
+          "cgst": "680.40",
+          "sgst": "680.40",
+          "igst": "0.00",
+          "cess": "0.00"
+        }
+      ],
+      "totals": {
+        "taxable_value": "18758.00",
+        "cgst": "1348.02",
+        "sgst": "1348.02",
+        "igst": "0.00",
+        "cess": "0.00",
+        "invoice_total": "21454.04"
+      },
+      "expected_status": "rejected",
+      "provenance": "SYNTHETIC_TEST_ONLY",
+      "files": [
+        "NL1-P-013.pdf",
+        "NL1-P-013.png",
+        "NL1-P-013.jpg"
+      ]
+    }
+  ],
+  "expected_signed_totals": {
+    "purchase": {
+      "taxable_value": "83479.00",
+      "cgst": "2751.84",
+      "sgst": "2751.84",
+      "igst": "4892.04",
+      "cess": "0.00",
+      "invoice_total": "93874.72"
+    },
+    "sale": {
+      "taxable_value": "166958.00",
+      "cgst": "7088.04",
+      "sgst": "7088.04",
+      "igst": "9784.08",
+      "cess": "0.00",
+      "invoice_total": "190918.16"
+    }
+  },
+  "expected_kpis": {
+    "eligible_credit": "5781.60",
+    "output_tax": "23960.16",
+    "cash_required": "18178.56",
+    "non_gst": "11038.00",
+    "confirmed_sales": "190918.16",
+    "confirmed_purchases": "93874.72",
+    "pending_reviews": 2,
+    "reconciliation_mismatches": 3,
+    "unmatched_invoices": 3
+  },
+  "assumptions": [
+    "0%, 12%, 18% illustrative test rates; not legally verified HSN classifications.",
+    "Zero-rate packaging fixture exercises non-creditable reporting only.",
+    "Credit notes have positive face values and negative signed contributions.",
+    "Five matched eligible purchases less the purchase credit note form eligible credit.",
+    "GSTR-2B B2B only. Duplicate fixture must be rejected; credit-note sections unsupported.",
+    "Reconciliation exceptions: two amount/head differences plus one unsupported credit note; three unmatched records.",
+    "GSTIN-like values are fictional by construction; no government lookup or ownership claim."
+  ],
+  "file_hashes": {
+    "EXPECTED_RESULTS.xlsx": "4b2a0cd215f49bf92333165e82138da013a229687b7cd4ecdbc38340c49e7ae8",
+    "gstr2b-duplicate-invalid.json": "0038ccfd8e809537a48bff7996309390c196d179a5ed7175e1e9b476cdf27ba8",
+    "gstr2b.json": "b93f7f773dbc701585882f5952a2fbe6fb910732aaa1ea44ebd6390c165aa938",
+    "logo.png": "65c7015fb898b5dfe401fe7c8f37404eaaafd32b74a10f177fff3318c5e0e4ce",
+    "NL1-P-001.jpg": "09d0e8090f6a80d93f96f80ed34b594afb96d84aa9eb34406b32464671f59965",
+    "NL1-P-001.pdf": "3f1ad218963f36ac3a81101bba7aef10aa5b542a3fa18207fc0386cefb1a8ee4",
+    "NL1-P-001.png": "f74ee52747b7a5344a11a73fe9b7650a92f6ac40ac67d4be46c8037793ea4674",
+    "NL1-P-002.jpg": "72785f0a3e4ed9c7a83042c7c25008c00ce2ad1f5ef2294ba53d75aceff8a3e3",
+    "NL1-P-002.pdf": "8fdc78c3f587afae784b48b7b19ca08a10bfdaa47072c52840b9f3ac2202d0fa",
+    "NL1-P-002.png": "6b3730ccf817973f811c1bb11bd5c96e429a9011ece4724594cfff6a27dfb31a",
+    "NL1-P-003.jpg": "61486b49354a5dde655c0cd48cb75ff2ffb688b806d223c22abd88a0ac826c5a",
+    "NL1-P-003.pdf": "bc312df37f3531c0d3c14a34cb51ac24cee191fcf3fe9a4234ebf67ff95cb8ea",
+    "NL1-P-003.png": "0003a23ccc3a093649195abac9d652580ba86f1dbcc6020808ed387b8d4ac0cd",
+    "NL1-P-004.jpg": "ef5c98c38787a5e69a988eb64102c666de16813f2a474a586872d6b8345193c8",
+    "NL1-P-004.pdf": "7acb97a188a3b4834a79160363752481462539023205fd312a4fe0f781b9827c",
+    "NL1-P-004.png": "6920a8356007532f9abaf4c2813ff58148fa63be60035862343f476a7f05fab2",
+    "NL1-P-005.jpg": "6667ce666a6c575094317aaf227da6981086d258b0d68e66557baea71351bcd2",
+    "NL1-P-005.pdf": "dce2c53c34007872f328af4dbc7b600eeca5d37dfee9e37e167fdbbb11698772",
+    "NL1-P-005.png": "bb295797ac2a229dd786df764e2ad21595d7823278ff8e5f3cc80c94fde09eb7",
+    "NL1-P-006.jpg": "387f3508c29e58e2156e4b7fbb8fe668d73300570463c0b60907de4b2e0795c4",
+    "NL1-P-006.pdf": "8920a0d574b7e79c14762e5dc9d9d4dae4cb69104d05a308fa0cd03ec4d34375",
+    "NL1-P-006.png": "801261588b23e5f5abbf7902c74244b048c1f53b09c66aa27eab9e051d686621",
+    "NL1-P-007.jpg": "398a6043ea222723b628ba2a9fdb7bfa85eb90405445b2ccf6f4e2c78bad3f0b",
+    "NL1-P-007.pdf": "a1e9db4a800a77dfe6a61f6299e8a748093846bde4634c9c05074b3e7acd5e1b",
+    "NL1-P-007.png": "116ddaa5c73a4966bce2a3db59bc56aa09362b1892cc05ca72517dd9da7e7c74",
+    "NL1-P-008.jpg": "d60e8887df52e4959023a6fc6412a562273f3af46662203f793ae0540e6495a4",
+    "NL1-P-008.pdf": "f8761bdbd9e5d1b3fb1e476d6af2894589a55723139ded7a72871f887c8b5222",
+    "NL1-P-008.png": "7102fea5717287615cc8048890e2557615214f2bff84e10238c3d664473e5c6e",
+    "NL1-P-009.jpg": "8f20611628645f5642876f2c3f703240879a480413b02002c07b9f066da35a5d",
+    "NL1-P-009.pdf": "7790c68587a5a07af68f8b956b7e46a882b1e92cf1bddbe101f259b9a01fbb62",
+    "NL1-P-009.png": "1d0298ca258942b6325e3aa0e8d371d9ec63b800972236e92626c22cca5f5642",
+    "NL1-P-010.jpg": "4773dc3a1ac315599b913314ff2f6de1ab953643522bd741ce3e0c8c84909d8a",
+    "NL1-P-010.pdf": "55b9a2d2d0c07be962d2aa416b726d44c0dca1d0dfd9b5406daa93e77bf7d7a1",
+    "NL1-P-010.png": "5e72efd329c73ed64c1b3386a90aa06c2f46af7c690693407f568e89bc8e0f0e",
+    "NL1-P-011.jpg": "39096afc2a7f5c440cb30579d9b556791ce3bc562dfa2ff9e21246c3eeaa2a86",
+    "NL1-P-011.pdf": "ee0f991da5ba6f64c0aa765cea7647d8dacbaa542e5ee764ede49277da529784",
+    "NL1-P-011.png": "2da812205f379b487cd182e61fa8d4dcf2da970d094b5310caa2a030723d0d03",
+    "NL1-P-013.jpg": "bb4eb282fe98224f2d048d4a8f21f316549d36ef2f405862b6fbdaac2b008fec",
+    "NL1-P-013.pdf": "e26496e516b4d518cf77df9019df265f5f62118fa6fa07a72f48adf7916bc6a3",
+    "NL1-P-013.png": "5a46f723c0e8b73f7b9fc38a0769373a923d731f2578f5d1774af0eeeef878f9",
+    "NL1-S-001.jpg": "a3e9116aa56076ef35048fdcb0479263178a5e83317f362eeefc253bd485de11",
+    "NL1-S-001.pdf": "eb147a7ea11e552c46b85549949a5ddf4b3f45d3460f546c39aac4b3b131a057",
+    "NL1-S-001.png": "cfe55f7c87d421bbc9b6a092b3244dfdb956a30c09634eb1800c1d0e79928442",
+    "NL1-S-002.jpg": "1cd8ebe0257446a466c1835f8cae4c1f377d8877eccb2f43ab6f35cb708b4c9d",
+    "NL1-S-002.pdf": "4c4c35140929cb64c11e066b053a7f1e8925662d087e97e74c4454faa2655bf5",
+    "NL1-S-002.png": "c2054790ce5dabec07e4fd5ce897ff5d97fefaf900576e1a7c643a2e62670d95",
+    "NL1-S-003.jpg": "ca7ee2332103710161a6b0ac2b0340229c6d5dc7f27bb1730d3485b0939d4b85",
+    "NL1-S-003.pdf": "9f0de84a096995e822f241ca40ba8abd63359a64695c3f7628fee8d69690ae50",
+    "NL1-S-003.png": "9fc3d7e111ced45bcb76ce14f313d91e64bc3c70104ccd2f3a109db80ef4bb73",
+    "NL1-S-004.jpg": "ad6367568f158397bb9d71b11d4397d0609249f32891e6e16d433d04f64d1068",
+    "NL1-S-004.pdf": "a03b0deadd0cba6360ebfb89baeb26b9cfabc89aa36d9261fd34d96effbb03a5",
+    "NL1-S-004.png": "a046c16dd9bdcb143200a246b8a0c763fa5c67c5ba39a7017392946b5bdcf638",
+    "NL1-S-005.jpg": "14d2409656f1c08d9932002bc9b316c5af4379027ba70209836b5ffe4d2ad0f5",
+    "NL1-S-005.pdf": "7790873c320e22a4703bc721448cc653756345f150773e383ac155fc1a8b134c",
+    "NL1-S-005.png": "7c0dad5224b027417a1e5aefe79cde5a44fcdf15afdf527a24f2e5fa4b091999",
+    "NL1-S-006.jpg": "3709f6665d7876e07c5370365cfe309101cbdd7c506f5250e0c2a34f9b33eb79",
+    "NL1-S-006.pdf": "d01de2cf0a18194f3328175a8929cb8664ae48a961f70f02ae0492327a68e8da",
+    "NL1-S-006.png": "4b4375e24eec19c1bf8c1349551af6bf60116ac816175ac1dbff6d549a79b812",
+    "NL1-S-007.jpg": "71eccfc9e282dbd497c78710155ae1bcaee93d5d3ba0c5b132caafba2c80f30c",
+    "NL1-S-007.pdf": "e7363489cca55d55d72a465fa080e124aa6f632c7aefbad69b3de3f5b92d6472",
+    "NL1-S-007.png": "bb30987e18b59bce8abf99784f792fd4b6c1500e9a171da8bf1a33a634bb835e",
+    "NL1-S-008.jpg": "085472a5e92783f579b998a8c3074bf9d8b3340e16bd7ee46927c894c9257f1c",
+    "NL1-S-008.pdf": "c93cb810ec91b2c41895675d23d05a9b6acc0953e6ff91ad777f03fd052522d3",
+    "NL1-S-008.png": "42ba831b3e47aaff607c4f9ccf8611cb82017d8fbac8402aa129e5618126fa53",
+    "NL1-S-009.jpg": "ae218c0ac0a3d6f4ffadd435021ea7afbc876f28a8597f0ad05f8cad1f485d56",
+    "NL1-S-009.pdf": "17217d4736d55f4aedcd35ce7a0c84ac97720f3e6c39a827095f83b5e06d2337",
+    "NL1-S-009.png": "5eef49c270307671bea9204e9a09ceeb69b29b784eb91692c0fcc2c42076376b",
+    "NL1-S-010.jpg": "8b61f263f217d34231b171bb9182f6795c6f8df5b11ded38059e4b0c4442726a",
+    "NL1-S-010.pdf": "9a580000a33004f52ca3d441d1577dd2bd97ce4a410501626e3af1621c6f3a70",
+    "NL1-S-010.png": "5e03c70854c313796657de2362c7ba7451b1d90fab3a03e907ef11d9f944ff7e",
+    "NL1-S-012.jpg": "9f686b5822f39ef5b74e4a23d109c3615e365ee5caf094aca16de2474af4e67b",
+    "NL1-S-012.pdf": "68b743b9b64aa3e6cd3e56f5f72df6ecbc725306ee55a7713894d63961d6f503",
+    "NL1-S-012.png": "98faeaa8f425863f38be8b0223661a770ad370783b9d5dc7fb5aedc9d2a1d632"
+  }
+}

@@ -19,10 +19,11 @@ def test_canonical_tables_are_isolated_and_default_unchanged():
     with pytest.raises(ValueError):BillStore(repo,'client').table('gold','gst_invoice')
 
 
-def test_operator_activation_is_not_email_verification(monkeypatch):
+@pytest.mark.parametrize('email', ['naturelabs@demo.com', 'naturelabs1@demo.com'])
+def test_operator_activation_is_not_email_verification(monkeypatch, email):
     settings=SimpleNamespace(demo_operator_identity_enabled=True,bigquery_dataset='gst_easy_v2_finance_analytics',gst_dataset_prefix='gst_easy_v2_',gcs_bucket_name='aidirac-503309-gst-easy-v2-documents')
     monkeypatch.setattr(demo_identity,'get_settings',lambda:settings)
-    user=SimpleNamespace(email='naturelabs@demo.com',role='client',email_verified=False,demo_operator_activated=True,identity_provenance='SYNTHETIC_TEST_ONLY')
+    user=SimpleNamespace(email=email,role='client',email_verified=False,demo_operator_activated=True,identity_provenance='SYNTHETIC_TEST_ONLY')
     assert demo_identity.identity_can_sign_in(user)
     assert user.email_verified is False
     for field,value in [('demo_operator_identity_enabled',False),('bigquery_dataset','finance_analytics'),('gst_dataset_prefix',''),('gcs_bucket_name','production')]:
