@@ -14,6 +14,13 @@ from app.gst.reconciliation import compare
 ROOT=Path('demo bills/naturelabs1')
 
 
+def test_extraction_requires_direction_and_note_type():
+    from app.gst.extract import extraction_schema
+    schema=extraction_schema()
+    assert {'direction','invoice_type'} <= set(schema['required'])
+    assert set(schema['properties']['direction']['enum'])=={'purchase','sale'}
+
+
 def test_synthetic_pack_validates_and_matches_independent_expectations():
     manifest=json.loads((ROOT/'TEST_MANIFEST.json').read_text())
     profile=manifest['business']; invoices=[]

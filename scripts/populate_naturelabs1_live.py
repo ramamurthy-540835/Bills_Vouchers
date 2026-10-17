@@ -1,5 +1,6 @@
 """Authorized synthetic review through live HTTP APIs; resumable, no direct invoice SQL."""
 import json
+import hashlib
 import mimetypes
 import time
 from pathlib import Path
@@ -78,7 +79,10 @@ def main():
                 entry.update(review_completed=True,status=current['status']);save()
             print(f'{number}: {entry["status"]}',flush=True)
         if not state.get('statement_imported'):
-            result=call('POST','/api/gst/bills/gstr2b?period=2026-10',data=(ROOT/'gstr2b.json').read_bytes())
+            content=(ROOT/'gstr2b.json').read_bytes()
+            history=call('GET','/api/gst/bills/gstr2b/history?period=2026-10')['statements']
+            prior=next((s for s in history if s['sha256']==hashlib.sha256(content).hexdigest()),None)
+            result={'imported':prior['record_count']} if prior else call('POST','/api/gst/bills/gstr2b?period=2026-10',data=content)
             state['statement_imported']=result;save()
         dashboard=call('GET','/api/gst/bills/dashboard?period=2026-10')
         actual={**dashboard['totals'],**{k:dashboard[k] for k in ['confirmed_sales','confirmed_purchases']},

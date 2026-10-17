@@ -22,6 +22,9 @@ def main():
     if args.phase=='before' and path.exists():raise RuntimeError('Preservation baseline already exists; refusing overwrite')
     path.write_text(json.dumps(result,indent=2))
     if args.phase=='after':assert result==json.loads((ART/'naturelabs1-other-tenants-before.json').read_text()),'Other tenant records changed; investigate concurrent activity'
+    target=list(client.query(f'SELECT invoice_id FROM `{PROJECT}.gst_easy_v2_gold.gst_invoice` WHERE client_id != @cid LIMIT 1',
+                            job_config=bigquery.QueryJobConfig(query_parameters=[bigquery.ScalarQueryParameter('cid','STRING',cid)])).result())
+    if target:(ART/'naturelabs1-isolation-target.json').write_text(json.dumps({'invoice_id':target[0]['invoice_id']}))
     print('Other-tenant preservation '+args.phase+' snapshot verified.')
 
 

@@ -13,7 +13,7 @@ def service(name):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--build-id',required=True)
     parser.add_argument('--tag',default='naturelabs1');args=parser.parse_args()
-    assert args.tag in {'naturelabs1','naturelabs1-r2'}
+    assert args.tag in {'naturelabs1','naturelabs1-r2','naturelabs1-r3'}
     assert subprocess.check_output(['git','branch','--show-current'],text=True).strip()=='GST-EASY-V2'
     sha=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
     build=json.loads(cloud('builds','describe',args.build_id,'--project',PROJECT,'--format=json'))
