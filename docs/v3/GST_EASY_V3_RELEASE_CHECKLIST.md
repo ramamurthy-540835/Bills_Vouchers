@@ -15,5 +15,8 @@
 - Government filing and live connector activation remain unavailable.
 - This is an engineering preview, not a legally certified client-ready release.
 
-Pending release evidence is recorded in GST_EASY_V3_DEPLOYMENT_REPORT.md; no URL,
-build ID or live success is inferred from local tests.
+Actual build IDs, image digests, revisions, URLs and preservation results are in
+GST_EASY_V3_DEPLOYMENT_REPORT.md. Independent deployment is verified.
+Client-ready acceptance is NOT achieved: mailbox delivery failed, authenticated
+live workflows are blocked, and the broader adjustment/consolidation/connector
+and legal-review gaps remain recorded in GST_EASY_IMPLEMENTATION_STATUS.md.

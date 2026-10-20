@@ -35,6 +35,30 @@ release; the initial deployment above does not prove those changes are live.
 The guarded update script checks expected V3 revisions, pushed commit, successful
 image digests, synthetic tenant provenance and the older-service baseline.
 
+## Verified follow-up release
+
+The follow-up was deployed from ed8a2c095b4116b02ab5a39f425d5320c62c71aa.
+Cloud Build 917517d9-c284-484a-997b-96a31b24d881 succeeded.
+
+- API revision: gst-easy-v3-api-00003-rdp
+- Web revision: gst-easy-v3-web-00002-wqs
+- API digest: sha256:7070b469a0c912debd4982df0d3e6923c1ef41cce86f0ff859837e03ba7ed065
+- Web digest: sha256:eda26f5730353887670864aa95f54a24c2d791447b286aec1df39f316d4da510
+
+The URLs above are unchanged. The global model is enabled only for the approved
+synthetic acceptance client. Existing service/IAM preservation passed again at
+10:56:25 UTC. The six live authentication-boundary checks passed after rollout.
+The fresh email was still not received; this is not a completed onboarding release.
+
+The first follow-up build submission was rejected because gcloud selected the
+default staging bucket, which the V3 build identity cannot read. No IAM was
+broadened. Retrying with the explicit V3 staging bucket succeeded. The exact
+new temporary archive in the default bucket was checksum-verified and removed
+by its generation; no pre-existing object was removed or overwritten. Future
+builds must specify `--gcs-source-staging-dir=gs://aidirac-503309-gst-easy-v3-builds/source`.
+
+Later documentation/test-only commits are not implied to be the deployed image.
+
 Rollback boundary: never route to or redeploy V2/older services. For a failed new
 V3 release, stop further provisioning, preserve diagnostics and data, and use
 only a separately reviewed V3 revision rollback. Do not delete datasets or

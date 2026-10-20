@@ -2,7 +2,7 @@
 
 | Gate | Executed result |
 |---|---|
-| Full pytest | Initial 474 passed; model-isolation follow-up 478 passed, 7 warnings, 9.51 seconds |
+| Full pytest | Final 481 passed, 7 warnings, 9.52 seconds |
 | Ruff app/tests | Passed |
 | mypy app | Passed, 86 source files after model-isolation follow-up |
 | TypeScript noEmit | Passed |
@@ -13,6 +13,9 @@
 | Live V3 public pages | Desktop/mobile login and registration 200; no overflow |
 | Actual inbox | Failed: user confirmed verification and plain diagnostic were not received |
 | Authenticated live V3 / GSP | Blocked / disabled, not counted as passed |
+| Live V3 auth boundary | 6 passed after follow-up deployment |
+| Live Gemini connectivity | One synthetic operator-identity request returned 200 and expected text; not invoice workflow acceptance |
+| Live private health sample | 20/20 returned 200; p50 43.79 ms, p95 86.32 ms, p99 206.12 ms; not load acceptance |
 
 The initial browser run had 71 passes and three failures. Separate labels fixed
 the rejection accessibility defect. Upload readiness was guarded before file
@@ -39,3 +42,8 @@ The subsequent full run passed 478 tests. A further mail timeout/redaction test
 was added; the final focused mail/model/extraction/assistant run passed 36 tests.
 Ruff and mypy passed. The 76 browser tests and frontend build apply to the initial
 frontend release; follow-up changes are backend and release tooling only.
+
+Final regression also includes both verification/reset callback generation tests.
+All 481 backend tests passed after those additions. Actual mailbox delivery
+failed three observations (initial verification, plain diagnostic, fresh
+verification); it is not counted as a pass.

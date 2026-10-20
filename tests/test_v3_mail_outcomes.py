@@ -59,3 +59,17 @@ def test_smtp_timeout_is_retryable_and_does_not_log_link(monkeypatch, caplog):
     assert 'smtp_dispatch_failed' in caplog.text
     for sensitive in ['private-token-value','not-a-real-secret','private provider details','approved@example.test']:
         assert sensitive not in caplog.text
+
+
+@pytest.mark.parametrize('purpose,path',[('verify','verify-email'),('reset','reset-password')])
+def test_v3_links_use_correct_frontend_and_fragment(monkeypatch,purpose,path):
+    base='https://gst-easy-v3-web-foovqasysa-el.a.run.app'
+    monkeypatch.setattr(auth_identity,'delivery_ready',lambda:SimpleNamespace(auth_public_url=base))
+    send=Mock()
+    monkeypatch.setattr(auth_identity,'send_email',send)
+    auth_identity.send_link('approved@example.test','synthetic-token',purpose)
+    body=send.call_args.args[2]
+    assert base+'/'+path+'#token=synthetic-token' in body
+    assert '30 minutes' in body
+    assert '?token=' not in body
+    assert 'gst-easy-v2' not in body

@@ -53,3 +53,28 @@ These changes improve traceability; they are not presented as a proven delivery
 fix. Cloud Tasks retains five attempts with bounded backoff. Provider acceptance
 is terminal to avoid repeatedly mailing an accepted message. A user-requested
 resend creates a new request; inbox acceptance is still required for live QA.
+
+## Updated runtime test
+
+Release ed8a2c0 is live. Fresh verification request
+`1aac36e9-b104-4646-8132-130898414b4b` returned 200. Its worker returned 200
+and persisted provider_accepted at 10:57:24 UTC (4:27 PM IST).
+Message-ID: `<179249384355.2.9163609360129204728@aidirac.com>`.
+The user again confirmed nonreceipt including spam. No dispatch ERROR entries
+appeared in the sampled V3 logs. The account remains unverified.
+
+MX records resolve to Zoho India, and SMTP authentication/STARTTLS succeeded.
+Actual provider rejection, quarantine, mailbox routing or suppression disposition
+is unavailable through the configured SMTP credentials. The exact downstream
+cause remains unresolved; do not label the integration fixed.
+
+Zoho documents organization SMTP-log access through its OAuth API and admin
+reports. SMTP credentials do not grant that API access:
+https://www.zoho.com/mail/help/api/get-smtp-logs.html
+https://www.zoho.com/mail/help/adminconsole/log-reports.html
+This is an administrator dependency, not a prerequisite for continued source work.
+
+Local tests verify both V3 verification and reset paths, 30-minute wording and
+fragment-only tokens. Live invalid-token checks return 422; unverified sign-in
+returns 403. Actual successful link consumption/recovery remains blocked by
+nonreceipt. No account was manually verified and no token was exposed.
