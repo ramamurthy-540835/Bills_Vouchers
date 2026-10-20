@@ -16,7 +16,7 @@ def api_environment(source):
     return {'APP_ENV':'production','GCP_PROJECT_ID':PROJECT,'GCP_REGION':REGION,'BIGQUERY_DATASET':PREFIX+'finance_analytics',
             'GST_DATASET_PREFIX':PREFIX,'GCS_BUCKET_NAME':PROJECT+'-gst-easy-v3-documents','GST_BILLS_ENABLED':'true',
             'MEDALLION_ENABLED':'true','DEMO_FALLBACK':'false','DEMO_OPERATOR_IDENTITY_ENABLED':'false',
-            'GEMINI_ENABLED':'true','GEMINI_MODEL':'gemini-2.5-flash','PLATFORM_ADMIN_EMAILS':'','REQUIRE_OTP':'false',
+            'GEMINI_ENABLED':'false','PLATFORM_ADMIN_EMAILS':'','REQUIRE_OTP':'false',
             'GST_BILLS_QUEUE':f'projects/{PROJECT}/locations/{REGION}/queues/gst-easy-v3-bills','GST_BILLS_WORKER_ACCOUNT':account('api'),
             'RELEASE_REVISION':source,
             'AUTH_MAIL_QUEUE':f'projects/{PROJECT}/locations/{REGION}/queues/gst-easy-v3-auth',

@@ -69,9 +69,11 @@ def live_chat(payload: ChatRequest, request: Request, repo=Depends(get_db), user
                    'sample':getattr(active_client(request,repo,user),'is_test',False),
                    'reconciliation':reconciliation_context(invoices,statements,bool(statements) or bool(bills.statement_history(store.period)))}
         context=grounded_context(dashboard,documents(invoices[:500],store.period),payload.question)
+        context['client_id']=store.client_id
         return generate_answer(payload,context)
     workspace = store.workspace()
     from ...fixtures.red_taxi_sample import use_sample, sample_dashboard
     dashboard = sample_dashboard(store) if use_sample(store) else customer_dashboard(store)
     context = grounded_context(dashboard, workspace['documents'], payload.question, ledger=workspace['ledger'])
+    context['client_id']=store.client_id
     return generate_answer(payload, context)

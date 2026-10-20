@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     gst_dataset_prefix: str = ""
     demo_operator_identity_enabled: bool = False
     gemini_model: str = "gemini-3.8-flash"
+    gemini_location: str = ""
+    gemini_allowed_client_ids: str = ""
     embedding_model: str = "gemini-embedding-001"
     embedding_dimensions: int = 768
     gemini_api_key: str = ""

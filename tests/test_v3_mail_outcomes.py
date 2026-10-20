@@ -43,3 +43,19 @@ def test_smtp_acceptance_is_not_delivery(monkeypatch,refused):
         result=auth_identity.send_email('approved@example.test','Test','Test')
         assert result['status']=='provider_accepted'
         assert result['message_id'] and result['inbox_delivery_confirmed'] is False
+        message = smtp.send_message.call_args.args[0]
+        assert message['Date']
+        assert message['Message-ID'] == result['message_id']
+
+
+def test_smtp_timeout_is_retryable_and_does_not_log_link(monkeypatch, caplog):
+    settings=SimpleNamespace(smtp_sender='ai@example.test',smtp_host='smtp.example.test',
+                             smtp_port=587,smtp_username='u',smtp_password='not-a-real-secret')
+    monkeypatch.setattr(auth_identity,'delivery_ready',lambda:settings)
+    monkeypatch.setattr(auth_identity.smtplib,'SMTP',Mock(side_effect=TimeoutError('private provider details')))
+    with pytest.raises(HTTPException) as exc:
+        auth_identity.send_email('approved@example.test','Verify','private-token-value')
+    assert exc.value.status_code == 503
+    assert 'smtp_dispatch_failed' in caplog.text
+    for sensitive in ['private-token-value','not-a-real-secret','private provider details','approved@example.test']:
+        assert sensitive not in caplog.text

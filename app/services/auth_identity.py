@@ -1,10 +1,12 @@
 """Single-use ownership/recovery tokens; only hashes are persisted."""
 import hashlib
+import json
+import logging
 import secrets
 import smtplib
 import ssl
 from email.message import EmailMessage
-from email.utils import make_msgid
+from email.utils import formatdate, make_msgid
 from urllib.parse import urlsplit
 from uuid import uuid4
 
@@ -14,6 +16,10 @@ from google.api_core.exceptions import BadRequest, Conflict
 from app.config import get_settings
 from app.security import hash_password, password_is_strong
 from app.services.gst.medallion import param
+
+# Inherit the server's configured handler/INFO level, not the unconfigured
+# root logger (which drops successful dispatch diagnostics in Cloud Run).
+logger = logging.getLogger('uvicorn.error.auth_identity')
 
 
 def delivery_ready():
@@ -38,6 +44,7 @@ def send_email(email, subject, body):
     message['From'] = settings.smtp_sender
     message['To'] = email
     message['Subject'] = subject
+    message['Date'] = formatdate(localtime=False, usegmt=True)
     message['Message-ID'] = make_msgid(domain=settings.smtp_sender.rsplit('@', 1)[-1].strip('>'))
     message.set_content(body)
     try:
@@ -48,8 +55,17 @@ def send_email(email, subject, body):
             refused = smtp.send_message(message)
             if refused:
                 raise smtplib.SMTPRecipientsRefused(refused)
-    except (OSError, smtplib.SMTPException):
+    except (OSError, smtplib.SMTPException) as exc:
+        logger.error(json.dumps({'event': 'smtp_dispatch_failed',
+                                 'message_id': message['Message-ID'],
+                                 'failure_type': type(exc).__name__,
+                                 'smtp_code': getattr(exc, 'smtp_code', None)}))
         raise HTTPException(503, 'Email delivery is temporarily unavailable. Please request a new link shortly.') from None
+    # Correlate with provider message tracing without logging recipient, token,
+    # message body, credentials or a false assertion of inbox delivery.
+    logger.info(json.dumps({'event': 'smtp_provider_accepted',
+                           'message_id': message['Message-ID'],
+                           'inbox_delivery_confirmed': False}))
     return {'status': 'provider_accepted', 'message_id': message['Message-ID'],
             'inbox_delivery_confirmed': False}
 

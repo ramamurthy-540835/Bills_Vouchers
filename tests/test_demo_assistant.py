@@ -135,7 +135,7 @@ def test_model_sources_are_allowlisted_and_failures_are_safe(monkeypatch):
             pass
     monkeypatch.setattr(genai, 'Client', Client)
     monkeypatch.setattr(assistant, 'get_settings', lambda: SimpleNamespace(gemini_enabled=True,
-        gemini_api_key='test-only', gemini_model='test-model'))
+        gemini_api_key='test-only', gemini_model='test-model', gcp_region='asia-south1'))
     data = generate_mock_data()
     context = grounded_context(data['dashboard'], data['documents'], 'What is cash?', 'mixed')
     before = copy.deepcopy(context)

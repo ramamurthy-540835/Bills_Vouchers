@@ -52,7 +52,7 @@ def grounded_context(dashboard, documents, question, demo_scenario=None, ledger=
         sources.append({'id': doc['doc_id'], 'label': doc['original_filename'], 'layer': 'Source evidence',
                         'href': suffix + '&tab=documents' if demo_scenario else doc.get('href',f"/documents/{doc['doc_id']}?period={period}"),
                         'facts': {k: header.get(k) for k in ('supplier_name', 'invoice_no', 'invoice_date', 'total', 'validation_status', 'validation_errors')}})
-    return {'sample': bool(demo_scenario or dashboard.get('sample')), 'period': period, 'customer': dashboard.get('profile', {}).get('legal_name'),
+    return {'client_id':dashboard.get('client_id'), 'sample': bool(demo_scenario or dashboard.get('sample')), 'period': period, 'customer': dashboard.get('profile', {}).get('legal_name'),
             'document_scope': 'Up to eight relevant documents from the selected customer and period; not an exhaustive search.', 'sources': sources,
             'canonical_status_records': [{'id':d['doc_id'],'number':(d.get('silver') or {}).get('invoice_no'),
                                           'status':d.get('stage'),'href':d.get('href')} for d in documents]
@@ -99,9 +99,14 @@ def generate_answer(payload, context):
     grounded_status=status_answer(payload.question,context)
     if grounded_status is not None:
         return grounded_status
+    from ..model_access import model_location
+    try:
+        location = model_location(context.get('client_id'),settings)
+    except ValueError:
+        raise HTTPException(503,'AI processing is not enabled for this business. Search remains available.') from None
     client = (genai.Client(api_key=settings.gemini_api_key, http_options=types.HttpOptions(timeout=45000))
               if settings.gemini_api_key else genai.Client(vertexai=True, project=settings.gcp_project_id,
-                  location=settings.gcp_region, http_options=types.HttpOptions(timeout=45000)))
+                  location=location, http_options=types.HttpOptions(timeout=45000)))
     system = """You are a read-only financial workspace assistant. Answer only from PROVIDED_FACTS for this customer and period.
 Use the provided financial summary for all financial totals. Source invoices may be unreviewed: label that status and never add their totals to validated figures.
 For unmatched invoice questions, use reconciliation.cases only. missing_statement means a books-only purchase; missing_book means a statement-only record. unsupported_document is NOT an unmatched invoice. List each invoice once, never once per line item. Credit-decision matching fields are not reconciliation case classifications. If reconciliation is unavailable or statement_imported is false, say so.
