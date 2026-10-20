@@ -73,3 +73,8 @@ artifacts/gst_new_v3/source-reconciliation-390.png. Both were visually inspected
 The owner separately confirmed verified V3 sign-in and dashboard access.
 Full financial workflows, recovery delivery, certified filing, professional GST
 review and live customer connector acceptance remain incomplete.
+
+Post-release live boundary checks: 8 passed on the deployed 6f7c45f images.
+The initial smoke test expected 401 for an anonymous write; the actual 403
+csrf_token response correctly enforced CSRF before authentication. The test
+expectation was corrected and rerun, with no application security changes.

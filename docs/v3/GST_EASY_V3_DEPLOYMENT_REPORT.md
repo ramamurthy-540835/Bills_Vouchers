@@ -27,7 +27,8 @@ the preservation baseline after deployment.
 
 Actual registration of the authorized synthetic acceptance identity succeeded.
 Email was provider-accepted but the user confirmed nonreceipt, including spam.
-Authenticated live workflow acceptance remains blocked by email delivery.
+At that initial stage, authenticated live workflow acceptance was blocked by
+email nonreceipt; see the later recipient acceptance below.
 No bypass or manual email verification was performed.
 
 Follow-up model isolation and mail trace changes require a separate reviewed
@@ -63,3 +64,37 @@ Rollback boundary: never route to or redeploy V2/older services. For a failed ne
 V3 release, stop further provisioning, preserve diagnostics and data, and use
 only a separately reviewed V3 revision rollback. Do not delete datasets or
 original evidence as rollback. Existing services remain outside the target set.
+
+## Source reconciliation release — 20 October 2026
+
+- Pushed/deployed commit: `6f7c45f75934eeea43a80059372ab2e9c2301683`.
+- Successful Cloud Build: `ee8bab5f-060e-408c-a5be-7591af01809d`.
+- API revision: `gst-easy-v3-api-00004-9gv`.
+- Web revision: `gst-easy-v3-web-00003-tx5`.
+- API digest: `sha256:4ee7403baedab1dff687fed7cc65dc6a1ec652abac4c3e1484f33750f40987a8`.
+- Web digest: `sha256:871074570307d8dca13908a1f8f04d11b9b80cc2d1624a1dbc4936214fec0da1`.
+- Frontend remains https://gst-easy-v3-web-foovqasysa-el.a.run.app.
+- Frontend/backend pairing and isolated V3 dataset/bucket identity were verified.
+- All 31 pre-existing service configuration/IAM fingerprints matched after rollout.
+- V2 branch remains `14df23a305826df0f5024ebd10705555045a9185`;
+  existing/V2 build files are unchanged.
+
+The V3-only source reconciliation audit table was created by job
+`ff62c898-0020-43ef-a23c-739531aef9c5`. No existing financial tables were altered.
+Real synthetic service tests retained original source bytes, rejected foreign
+paths and left canonical invoice counts unchanged.
+
+Eight live checks passed at 11:57:14 UTC: login/registration reached, anonymous
+identity/source history/original access denied, CSRF-less writes denied and direct
+API access without IAM denied. The first smoke expectation incorrectly required
+401 for a write rejected earlier by CSRF middleware with 403; the test was
+corrected to require the exact csrf_token error. No security logic was relaxed.
+These are boundary checks, not full authenticated financial acceptance.
+
+The owner separately confirmed delivery to their authorized Gmail recipient,
+verified sign-in and dashboard access. Same-address mail nonreceipt remains
+unexplained; password recovery and bounce/complaint acceptance remain pending.
+
+The previous V3 revisions are API `gst-easy-v3-api-00003-rdp` and web
+`gst-easy-v3-web-00002-wqs`. A reviewed rollback may target only those V3 revisions;
+retain the additive audit table and all original evidence.

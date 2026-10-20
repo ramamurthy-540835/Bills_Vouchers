@@ -19,4 +19,6 @@ Credentials must use new V3 Secret Manager resources. V3 has a newly generated s
 secret. The existing approved SMTP sender credential was read into a separate V3-only
 secret without logging it or changing the original secret, versions or IAM.
 Do not change V2 IAM, send mail to unapproved customers, or invoke paid GSP services.
-SMTP configuration is not proof of inbox delivery; that acceptance remains pending.
+SMTP configuration is not proof of inbox delivery. Delivery to the subsequently
+authorized Gmail recipient and verified sign-in/dashboard were owner-confirmed.
+Self-address nonreceipt, recovery, bounce and complaint acceptance remain pending.

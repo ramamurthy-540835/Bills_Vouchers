@@ -6,7 +6,7 @@ government filing, universal connectors or production certification.
 | Area | Current status |
 |---|---|
 | Existing V2 workflows | Preserved in source; local regression tested, V3 live acceptance pending |
-| Email outcomes | Gmail delivery confirmed; authorized Gmail account active and email-verified in V3. Self-address delivery unexplained; recovery/bounce acceptance pending |
+| Email outcomes | Gmail delivery and verified sign-in/dashboard owner-confirmed. Self-address delivery unexplained; recovery/bounce acceptance pending |
 | Declared-rate GST comparison | Implemented and locally tested; legal rate selection not implemented |
 | Correction/resubmission | Implemented and locally tested; evidence-replacement and notifications pending |
 | Bulk source intake | Staging, column mapping, exact canonical comparison, cross-source reference checks and audit snapshots implemented; promotion and large async imports incomplete |
@@ -18,3 +18,10 @@ government filing, universal connectors or production certification.
 | V3 deployment | Independent services deployed and public smoke tests passed; full authenticated workflow acceptance pending |
 
 See docs/v3 for per-area details and the review workbook for all 50 scenarios.
+
+Latest deployed application commit: 6f7c45f75934eeea43a80059372ab2e9c2301683.
+Source mapping, exact reconciliation snapshots and private original-source access
+are live in V3. Local gates: 500 backend tests, 78 browser tests, final 4 focused
+browser checks, Ruff, mypy, TypeScript and build passed. Real isolated BQ/GCS
+service integration and eight live access-boundary checks passed. These do not
+establish full authenticated financial or external-provider acceptance.
