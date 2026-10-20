@@ -2,17 +2,17 @@
 
 | Gate | Executed result |
 |---|---|
-| Full pytest | Final 481 passed, 7 warnings, 9.52 seconds |
+| Full pytest | Latest 500 passed, 7 warnings, 22.74 seconds |
 | Ruff app/tests | Passed |
-| mypy app | Passed, 86 source files after model-isolation follow-up |
+| mypy app | Passed, 87 source files |
 | TypeScript noEmit | Passed |
 | Next.js production build | Passed, 29 generated pages |
-| Full local Playwright | 76 passed, 2.0 minutes |
+| Full local Playwright | 78 passed, 3.6 minutes; final source-review subset 4 passed after original-download link addition |
 | Local synthetic REST/MCP + intake subset | 25 passed before final route test addition |
 | CPU benchmark | Executed; see PERFORMANCE_BASELINE.md |
 | Live V3 public pages | Desktop/mobile login and registration 200; no overflow |
-| Actual inbox | Failed: user confirmed verification and plain diagnostic were not received |
-| Authenticated live V3 / GSP | Blocked / disabled, not counted as passed |
+| Actual inbox | Separate authorized Gmail recipient confirmed receipt; earlier self-address messages not received |
+| Authenticated live V3 / GSP | Owner confirmed verified sign-in and dashboard; GSP disabled |
 | Live V3 auth boundary | 6 passed after follow-up deployment |
 | Live Gemini connectivity | One synthetic operator-identity request returned 200 and expected text; not invoice workflow acceptance |
 | Live private health sample | 20/20 returned 200; p50 43.79 ms, p95 86.32 ms, p99 206.12 ms; not load acceptance |
@@ -47,3 +47,29 @@ Final regression also includes both verification/reset callback generation tests
 All 481 backend tests passed after those additions. Actual mailbox delivery
 failed three observations (initial verification, plain diagnostic, fresh
 verification); it is not counted as a pass.
+
+## Source mapping and reconciliation increment
+
+The latest backend gate includes exact canonical identity, source versions,
+ambiguous references, Decimal discrepancies, snapshot replay, concurrent-change
+conflicts, tenant-scoped access and private original downloads. Ruff, mypy,
+TypeScript and the production build passed. The full local browser suite passed
+78 tests; after the last download-link change, the four focused review tests
+passed with no skipped, unexpected or flaky outcomes (13.09 seconds).
+
+Real isolated V3 BigQuery/private GCS integration passed using operator-authorized
+service calls: batch replay and reconciliation replay were idempotent; original
+bytes matched, foreign source paths were denied, and canonical invoice counts
+remained zero before and after. The invoice source was correctly source-only;
+the driver event remained ambiguous without a fully matched canonical invoice.
+This is storage integration evidence, not authenticated live browser acceptance.
+The initial storage attempt exposed a BigQuery conditional SELECT missing FROM;
+the query was corrected and rerun successfully.
+
+Sanitized desktop/mobile screenshots are available locally under
+artifacts/gst_new_v3/source-reconciliation-1440.png and
+artifacts/gst_new_v3/source-reconciliation-390.png. Both were visually inspected.
+
+The owner separately confirmed verified V3 sign-in and dashboard access.
+Full financial workflows, recovery delivery, certified filing, professional GST
+review and live customer connector acceptance remain incomplete.

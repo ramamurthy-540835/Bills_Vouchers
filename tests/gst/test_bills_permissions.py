@@ -75,6 +75,22 @@ def test_source_intake_permission_and_malformed_files(api):
         assert client.post(path,data={'source':'driver'},files={'file':(filename,content)}).status_code==422
 
 
+def test_source_mapping_and_reconciliation_permissions(api):
+    client,user,_=api
+    columns='/api/gst/bills/intake/columns'
+    reconcile='/api/gst/bills/intake/batches/foreign/reconcile?period=2026-09'
+    assert client.post(columns,files={'file':('source.csv',b'ID,Kind\none,trip\n')}).status_code==403
+    assert client.post(reconcile,json={}).status_code==403
+    user.role='client'
+    result=client.post(columns,files={'file':('source.csv',b'ID,event_type\none,trip\n')})
+    assert result.status_code==200
+    assert result.json()['suggested_mapping']=={'event_type':'event_type'}
+    assert 'source_record_id' in result.json()['supported_fields']
+    assert client.post(reconcile,json={}).status_code==404
+    assert client.get('/api/gst/bills/intake/batches/foreign/original').status_code==404
+    assert client.post(columns,files={'file':('empty.json',b'[]')}).status_code==422
+
+
 def test_dashboard_range_keeps_membership_boundary_and_private_cache(api,monkeypatch):
     client,user,_=api
     user.full_name='Viewer';user.email='viewer@example.test'

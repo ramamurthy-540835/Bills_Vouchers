@@ -67,8 +67,9 @@ def main():
             table.time_partitioning=original.time_partitioning;table.range_partitioning=original.range_partitioning
             table.clustering_fields=original.clustering_fields;table.labels={'application':'gst-easy-v3'}
             client.create_table(table,exists_ok=True);tables.append(table.full_table_id or table.table_id)
-    migration=Path('migrations/v3_source_intake.sql').read_text().replace('PROJECT',PROJECT).replace('V3_OPS',PREFIX+'ops')
-    client.query(migration,location=REGION).result()
+    for migration_file in ['migrations/v3_source_intake.sql','migrations/v3_source_reconciliation.sql']:
+        migration=Path(migration_file).read_text().replace('PROJECT',PROJECT).replace('V3_OPS',PREFIX+'ops')
+        client.query(migration,location=REGION).result()
     # Only serialization guards, never customer or financial rows.
     for dataset,table,key,value in [('finance_analytics','auth_guard','id','identity'),('ops','gst_bill_lock','client_id','__guard__')]:
         client.query(f"INSERT INTO `{PROJECT}.{PREFIX}{dataset}.{table}` ({key},touched_at) SELECT '{value}',CURRENT_TIMESTAMP() FROM (SELECT 1) WHERE NOT EXISTS(SELECT 1 FROM `{PROJECT}.{PREFIX}{dataset}.{table}` WHERE {key}='{value}')",location=REGION).result()

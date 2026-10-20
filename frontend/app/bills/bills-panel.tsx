@@ -71,7 +71,7 @@ export default function BillsPanel({data}:{data:any}){
  async function remove(){if(!window.confirm('Delete this bill from your workspace?'))return;setBusy(true);setMessage('');try{await api(`/${selected.invoice_id}`,'DELETE',undefined,selected.version);setJobs(current=>current.map(job=>({...job,invoice_ids:job.invoice_ids?.filter((id:string)=>id!==selected.invoice_id)})));setSelected(null);setDirty(false);await reload();setMessage('Bill deleted.')}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  const labels=GST.fields
  const input=(field:string,value:any,onSave:(value:string)=>void,type='text')=><label key={field}>{labels[field]}<input aria-label={labels[field]} value={value??''} type={type} disabled={!write||busy} onChange={e=>onSave(e.target.value)}/></label>
- return <>{write&&<SourceIntake api={api}/>}
+ return <>{write&&<SourceIntake key={`${data.client_id}:${period}`} api={api} period={period}/>}
   {!selected&&message&&<p className="notice" role="status">{message}</p>}
   {opening&&<p role="status">Opening bill...</p>}
   <section className="bv-card bill-history-card" aria-label="Upload history and deleted bills"><div className="bill-support-header"><div><h2>Upload History &amp; Deleted Bills</h2><p>Track previous uploads, processing results and deleted invoice records.</p></div><div className="bill-history-actions"><button className="button secondary" disabled={busy||historyLoading} aria-expanded={historyView==='uploads'} onClick={()=>loadHistory('uploads')}>View Upload History</button>{write&&<button className="button secondary" disabled={busy||historyLoading} aria-expanded={historyView==='deleted'} onClick={()=>loadHistory('deleted')}>View Deleted Bills</button>}</div></div>

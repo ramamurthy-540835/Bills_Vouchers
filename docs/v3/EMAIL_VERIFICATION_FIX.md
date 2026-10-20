@@ -78,3 +78,25 @@ Local tests verify both V3 verification and reset paths, 30-minute wording and
 fragment-only tokens. Live invalid-token checks return 422; unverified sign-in
 returns 403. Actual successful link consumption/recovery remains blocked by
 nonreceipt. No account was manually verified and no token was exposed.
+
+## Separate-recipient delivery confirmed
+
+The owner authorized a Gmail recipient after noting V2 had delivered successfully
+to that address. A V3-configured SMTP diagnostic at 11:10:07 UTC (4:40 PM IST)
+received DATA response 250. Message-ID:
+`<179249460699.18940.10443393971906013448@aidirac.com>`.
+The owner confirmed receipt and supplied the diagnostic body. This proves
+delivery to that recipient; it was not itself a verification email.
+
+A later read-only check of the isolated V3 users table found that same
+owner-authorized account active with email_verified=true after registration.
+No manual verification or credential change was performed by the agent.
+The successful separate-recipient path must be distinguished from earlier
+same-address nonreceipt. A global V3 email outage is not established.
+The exact self-delivery cause remains unknown. Password-recovery delivery,
+bounce/complaint handling and repeated live onboarding acceptance remain pending.
+
+The owner subsequently confirmed “Sign-in and dashboard work” on the V3 URL.
+This is user-confirmed live acceptance for this account, supported by the
+read-only verified-account check; it is not an automated browser test or proof
+of password-recovery delivery.

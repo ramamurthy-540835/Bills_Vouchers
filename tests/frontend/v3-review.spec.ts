@@ -24,6 +24,51 @@ test('source preview separates trips from invoices and quarantines invalid amoun
  }
 })
 
+test('source column mapping previews renamed fields without creating bills',async({page})=>{
+ await page.goto('/bills?period=2026-09')
+ await page.getByText('Bulk source intake',{exact:true}).click()
+ await page.getByLabel('Source file',{exact:true}).setInputFiles({name:'mapped.csv',mimeType:'text/csv',
+  buffer:Buffer.from('External ID,Event,Amount\ntrip-1,trip,100.00\n')})
+ await page.getByText('Map source columns (3 ignored)',{exact:true}).click()
+ await page.getByLabel('Map External ID',{exact:true}).selectOption('source_record_id')
+ await page.getByLabel('Map Event',{exact:true}).selectOption('event_type')
+ await page.getByLabel('Map Amount',{exact:true}).selectOption('payment_amount')
+ await page.getByRole('button',{name:'Preview import',exact:true}).click()
+ await expect(page.getByText('1 valid records; 0 duplicate, conflicting or invalid rows.')).toBeVisible()
+ await expect(page.locator('.bills-table tbody tr')).toHaveCount(0)
+})
+
+test('saved source reconciliation explains conflicts and retains invoice review links',async({page})=>{
+ // Browser rendering fixture only; storage/calculation are tested separately.
+ const analysis={observed_at:'2026-10-20T12:00:00Z',counts:{matched:1,ambiguous_reference:1},
+  records:[{source_record_id:'vendor-1',status:'matched',message:'Source values match.',href:'/bills?period=2026-09&invoice=synthetic'},
+   {source_record_id:'driver-1',status:'ambiguous_reference',message:'Resolve conflicting trip references.'}]}
+ await page.route('**/api/gst/bills/intake/**',async route=>{
+  const path=new URL(route.request().url()).pathname
+  let body:any
+  if(path.endsWith('/reconcile'))body=analysis
+  else if(path.endsWith('/reconciliations'))body={snapshots:[]}
+  else if(path.endsWith('/batches'))body={batches:[{batch_id:'batch-1',created_at:'2026-10-20'}]}
+  else body={batch_id:'batch-1',records:[{source_record_id:'vendor-1',source_system:'vendor',source_version:1,status:'staged'}]}
+  await route.fulfill({json:body})
+ })
+ await page.goto('/bills?period=2026-09')
+ await page.getByText('Bulk source intake',{exact:true}).click()
+ await page.getByRole('button',{name:'Import history',exact:true}).click()
+ await page.getByRole('button',{name:'View import',exact:true}).click()
+ await expect(page.getByRole('link',{name:'Download original source',exact:true})).toHaveAttribute('href','/api/gst/bills/intake/batches/batch-1/original')
+ await page.getByRole('button',{name:'Reconcile with invoices',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'Reconciliation results',exact:true})).toBeVisible()
+ await expect(page.getByText(/Resolve conflicting trip references/)).toBeVisible()
+ await expect(page.getByRole('link',{name:'Review invoice',exact:true})).toHaveAttribute('href','/bills?period=2026-09&invoice=synthetic')
+ for(const width of [1440,390]){
+  await page.setViewportSize({width,height:1000})
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+  await page.screenshot({path:`../artifacts/gst_new_v3/source-reconciliation-${width}.png`,fullPage:true})
+ }
+ await page.unrouteAll({behavior:'wait'})
+})
+
 test('rejection correction retains evidence and cannot bypass missing GSTIN validation',async({page})=>{
  await page.goto('/bills?period=2026-09')
  await expect(page.getByLabel('Loading bills')).toHaveCount(0)
