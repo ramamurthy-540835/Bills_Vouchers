@@ -41,12 +41,28 @@ def main():
             version=kwargs.pop('version',None)
             headers={'Origin':base,'x-csrf-token':csrf}
             if version is not None:headers['if-match']=str(version)
-            response=context.request.fetch(base+path,method=method,headers=headers,timeout=180000,max_retries=2 if method=='GET' else 0,**kwargs)
+            for attempt in range(3):
+                response=context.request.fetch(base+path,method=method,headers=headers,timeout=180000,max_retries=2 if method=='GET' else 0,**kwargs)
+                if response.status!=409 or version is None or attempt==2:
+                    break
+                if response.json().get('error',{}).get('code')!='bill_conflict':
+                    break
+                # A storage transaction may abort while the invoice is unchanged.
+                # Never retry over another reviewer's newer invoice version.
+                current=call('GET','/api/gst/bills/'+path.split('/')[4])
+                if current['version']!=version:
+                    break
+                time.sleep(3*(attempt+1))
             if not response.ok:raise RuntimeError(f'{method} {path}: {response.status} {response.text()[:600]}')
             return response.json()
         listed=call('GET','/api/gst/bills?period=2026-10')
         assert listed['client_id']==cid
-        for index,fixture in enumerate(manifest['invoices']):
+        history=call('GET','/api/gst/bills/history?period=2026-10')['jobs']
+        completed={job['job_id'] for job in history if job['status']=='completed'}
+        # Review ready documents first while durable workers finish the rest.
+        fixtures=sorted(enumerate(manifest['invoices']),key=lambda pair:
+            state['invoices'].get(pair[1]['invoice_number'],{}).get('job_id') not in completed)
+        for index,fixture in fixtures:
             number=fixture['invoice_number'];entry=state['invoices'].setdefault(number,{})
             if entry.get('review_completed'):
                 saved=next((i for i in listed['invoices'] if i['invoice_id']==entry['invoice_id']),None)
@@ -59,13 +75,21 @@ def main():
                 job=call('POST','/api/gst/bills/upload?period=2026-10',multipart={'files':{'name':filename,'mimeType':mimetypes.guess_type(filename)[0],'buffer':content}})
                 entry.update(job_id=job['job_id'],filename=filename);save()
                 print(f'{number}: uploaded; waiting for durable job',flush=True)
-            deadline=time.monotonic()+600
+            deadline=time.monotonic()+2400
+            recovery_attempts=0
             while True:
                 job=call('GET','/api/gst/bills/upload/'+entry['job_id'])
                 if job['status']=='completed':break
+                if job.get('retryable') and recovery_attempts<3:
+                    entry['job_result']=job;save()
+                    call('POST','/api/gst/bills/upload/'+entry['job_id']+'/retry')
+                    recovery_attempts+=1
+                    print(f'{number}: recovering saved upload (attempt {recovery_attempts})',flush=True)
+                    time.sleep(10)
+                    continue
                 if job['status']=='needs_attention' or time.monotonic()>deadline:
                     entry['job_result']=job;save();raise RuntimeError('Upload needs attention; saved job can be recovered without re-upload')
-                time.sleep(5)
+                time.sleep(20)
             ids=[i for f in job['files'] for i in f['invoice_ids']]
             if len(ids)!=1:raise RuntimeError(f'{number}: expected exactly one canonical invoice, got {len(ids)}')
             iid=ids[0];entry['invoice_id']=iid
@@ -105,7 +129,8 @@ def main():
         for kind in ['credit','liability','cash','without_itc','pending','mismatches','unmatched','sales','purchases']:
             report=call('GET',f'/api/gst/bills/reports?period=2026-10&kind={kind}')
             state['reports'][kind]={'row_count':report['row_count'],'title':report.get('title'),'can_export':report.get('can_export')};save()
-            assert report['row_count']>0,kind
+            assert report['row_count']==manifest['expected_report_rows'][kind],(
+                kind,report['row_count'],manifest['expected_report_rows'][kind])
         for width in [1440,390]:
             page.set_viewport_size({'width':width,'height':1000});page.goto(base+'/gst/workspace?period=2026-10')
             page.get_by_text('Manage your invoices',exact=True).wait_for()

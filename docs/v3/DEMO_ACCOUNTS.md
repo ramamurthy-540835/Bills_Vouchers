@@ -39,6 +39,61 @@ The fixture period is October 2026. There are 23 original invoice identities:
 Expected values are in `demo bills/naturelabs1/EXPECTED_RESULTS.xlsx` and
 `TEST_MANIFEST.json`. No dashboard totals are directly seeded.
 
-Current acceptance: profile provisioning completed; 509 backend tests, Ruff and
-mypy passed. Live activation, invoice processing and both-account acceptance are
-recorded separately after execution.
+October 2026 expected KPI values (INR for monetary rows):
+
+| KPI | Expected |
+|---|---:|
+| Usable input credit | 5,781.60 |
+| Sales GST liability | 23,960.16 |
+| Estimated cash requirement | 18,178.56 |
+| Purchases without ITC | 11,038.00 |
+| Confirmed sales | 1,90,918.16 |
+| Confirmed purchases | 93,874.72 |
+| Pending reviews | 2 |
+| Reconciliation mismatches | 3 |
+| Unmatched invoices | 3 |
+
+These use documented illustrative fixture rates and the existing application's
+supported calculations. They are not a government filing or professional GST
+acceptance. Test-tenant filing/export restrictions remain in force.
+
+Application release: `ee2ae388c70ec5106a15477eabf7f02b42b02fc1`, Cloud Build
+`e4f45dcf-54f7-4074-8294-708782d803da`. Ready revisions are
+`gst-easy-v3-api-00006-g98` and `gst-easy-v3-web-00005-jbp`.
+The release guard verified all 31 older service configurations and IAM policies
+against their preservation baseline.
+
+The first deployment attempt encountered Windows command-wrapper interpretation
+of an environment-variable delimiter; no revision changed in that attempt.
+The release now supplies a structured, nonsecret gcloud flags file. Existing
+environment variables are preserved, and the corrected build/deployment passed.
+
+Acceptance evidence:
+
+- 509 backend tests, Ruff and mypy passed before release.
+- Seven demo-isolation regression tests passed again after deployment (one local
+  pytest cache-write warning).
+- Two synthetic-pack tests passed against the current application calculations,
+  reconciliation, grounded assistant and all nine report projections.
+- Twenty targeted job-recovery, idempotency and evidence-retention tests passed.
+  Warnings were dependency deprecations and the local pytest cache-write warning.
+- Independent Decimal checks reconciled all 23 invoice/line totals and the
+  confirmed purchase/sales expectations.
+- Nine live public reachability/authentication-boundary checks passed, including
+  private backend IAM and CSRF rejection.
+- Manual account: real browser login, all three business profiles/logos,
+  business switching, zero invoice counts, refresh and logout passed.
+- Cross-business switching from the manual account to the preloaded account
+  returned HTTP 403.
+- Manual profile screenshots were captured at desktop and 390px mobile widths.
+- Preloaded account: real browser login, its single authorized business, owner
+  membership, website and logo passed. Desktop/mobile profile screenshots passed
+  the no-horizontal-overflow check.
+- Synthetic invoice uploads encountered BigQuery concurrent job-update aborts.
+  Saved originals and extracted records were retained. Population uses the
+  existing authenticated job retry mechanism with bounded attempts, respecting
+  the 35-minute active-worker protection; it never resets claims directly.
+
+Sanitized local evidence is under `artifacts/gst_new_v3/`. Invoice processing and
+preloaded-account acceptance are complete only when their saved comparison and
+browser reports pass. Credentials are excluded from these artifacts.
