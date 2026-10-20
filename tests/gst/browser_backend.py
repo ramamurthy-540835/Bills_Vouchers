@@ -55,6 +55,19 @@ class Store:
             return invoice
         if id not in items or items[id].client_id!=self.client_id:raise HTTPException(404)
         return items[id]
+    def correction_queue(self,period,state='active',offset=0):
+        rows=[]
+        for invoice in self.list(period):
+            stage=None
+            if invoice.status=='rejected':
+                stage=invoice.correction_state if invoice.correction_state in {'correction_requested','corrected'} else 'rejected'
+            elif invoice.status=='needs_review' and invoice.correction_state=='resubmitted':
+                stage='resubmitted'
+            elif invoice.status=='confirmed' and invoice.correction_state=='approved':
+                stage='approved'
+            if stage and (stage==state or (state=='active' and stage!='approved')):
+                rows.append({**invoice.model_dump(mode='json'),'correction_stage':stage})
+        return {'invoices':rows[offset:offset+50],'has_more':len(rows)>offset+50}
     def save(self,invoice,*args,**kwargs):
         if persisted['enabled']:
             import sqlite3

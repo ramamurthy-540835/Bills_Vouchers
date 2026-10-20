@@ -2,12 +2,12 @@
 
 | Gate | Executed result |
 |---|---|
-| Full pytest | Latest 500 passed, 7 warnings, 22.74 seconds |
+| Full pytest | Latest 507 passed, 7 warnings, 28.21 seconds |
 | Ruff app/tests | Passed |
 | mypy app | Passed, 87 source files |
 | TypeScript noEmit | Passed |
 | Next.js production build | Passed, 29 generated pages |
-| Full local Playwright | 78 passed, 3.6 minutes; final source-review subset 4 passed after original-download link addition |
+| Full local Playwright | Latest 79 passed, 3.5 minutes; focused correction/source-review subset 5 passed |
 | Local synthetic REST/MCP + intake subset | 25 passed before final route test addition |
 | CPU benchmark | Executed; see PERFORMANCE_BASELINE.md |
 | Live V3 public pages | Desktop/mobile login and registration 200; no overflow |
@@ -78,3 +78,28 @@ Post-release live boundary checks: 8 passed on the deployed 6f7c45f images.
 The initial smoke test expected 401 for an anonymous write; the actual 403
 csrf_token response correctly enforced CSRF before authentication. The test
 expectation was corrected and rerun, with no application security changes.
+
+## Correction queue increment
+
+Seven backend tests cover bounded results, legacy rejected payloads, tenant and
+period query parameters, read permissions, invalid filters and access denial.
+Full pytest passed 507 tests; Ruff passed. Incremental mypy initially reported
+inconsistent PIL attributes after sandbox DLL-denial errors; a fresh
+`mypy --no-incremental app` passed all 87 files. No application typing workaround
+or security relaxation was introduced.
+
+TypeScript and the Next production build passed. Five focused browser tests
+passed, including rejection/correction/resubmission through the queue, state
+filters, real API-error display and retry without a false empty state.
+Desktop and 390px mobile screenshots were inspected at
+`artifacts/gst_new_v3/correction-queue-1440.png` and
+`artifacts/gst_new_v3/correction-queue-390.png`.
+
+Actual isolated V3 BigQuery queries ran for all six queue states, returning the
+correct empty result for the synthetic acceptance business. Additional read-only
+SQL fixtures exercised active/approved/requested filters, legacy rejection and
+foreign-tenant/wrong-period exclusion. No records were written. These SQL fixtures
+and local browser tests are not a live authenticated customer workflow test.
+
+The subsequent full browser suite passed all 79 tests in 3.5 minutes, including
+all nine reports, business switching, uploads, returns, settings and the new queue.

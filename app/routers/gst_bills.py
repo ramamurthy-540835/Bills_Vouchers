@@ -235,6 +235,20 @@ def dashboard(request: Request, period: str = '', scope_name: str = 'month', rep
         **calculation}), headers={'Cache-Control': 'private, no-store'})
 
 
+@router.get('/corrections')
+def correction_queue(request: Request, period: str = '', state: str = 'active',
+                     offset: int = Query(0, ge=0, le=100000),
+                     repo=Depends(get_db), user=Depends(current_user)):
+    client, store = scope(request, repo, user)
+    if state not in {'active','rejected','correction_requested','corrected','resubmitted','approved'}:
+        raise HTTPException(422, 'Choose a supported correction state.')
+    period = selected_period(request, client, store, period)
+    result = store.correction_queue(period, state, offset)
+    return JSONResponse(clean({**result, 'period': period, 'state': state,
+        'next_offset': offset+50 if result['has_more'] else None}),
+        headers={'Cache-Control': 'private, no-store'})
+
+
 @router.post('/gstr2b')
 async def import_gstr2b(request: Request, period: str, repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user, 'bills:write')

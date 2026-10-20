@@ -8,7 +8,7 @@ government filing, universal connectors or production certification.
 | Existing V2 workflows | Preserved in source; local regression tested, V3 live acceptance pending |
 | Email outcomes | Gmail delivery and verified sign-in/dashboard owner-confirmed. Self-address delivery unexplained; recovery/bounce acceptance pending |
 | Declared-rate GST comparison | Implemented and locally tested; legal rate selection not implemented |
-| Correction/resubmission | Implemented and locally tested; evidence-replacement and notifications pending |
+| Correction/resubmission | Lifecycle and dedicated correction queue implemented; evidence-replacement, notifications and material-difference maker/checker policy pending |
 | Bulk source intake | Staging, column mapping, exact canonical comparison, cross-source reference checks and audit snapshots implemented; promotion and large async imports incomplete |
 | REST/MCP | Synthetic adapter tests pass; production OAuth/egress/management incomplete |
 | Performance | Local CPU baseline measured; cloud SLO and cost acceptance pending |

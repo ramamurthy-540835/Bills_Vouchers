@@ -64,6 +64,31 @@ class BillStore(JobState):
         payload = rows[0]['payload']
         return GstInvoice.model_validate(json.loads(payload) if isinstance(payload, str) else payload)
 
+    def correction_queue(self, period, state='active', offset=0):
+        # Legacy rejected invoices have no correction_state. Keep them actionable.
+        stage = """CASE
+          WHEN status='rejected' THEN CASE
+            WHEN JSON_VALUE(payload,'$.correction_state') IN ('correction_requested','corrected')
+            THEN JSON_VALUE(payload,'$.correction_state') ELSE 'rejected' END
+          WHEN status='needs_review' AND JSON_VALUE(payload,'$.correction_state')='resubmitted'
+            THEN 'resubmitted'
+          WHEN status='confirmed' AND JSON_VALUE(payload,'$.correction_state')='approved'
+            THEN 'approved' END"""
+        rows = self.query(f"""WITH scoped AS (
+            SELECT invoice_id,payload,updated_at,{stage} AS correction_stage
+            FROM {self.table('gold','gst_invoice')}
+            WHERE client_id=@client_id AND period=@period)
+            SELECT payload,correction_stage FROM scoped
+            WHERE (@state='active' AND correction_stage IN
+                ('rejected','correction_requested','corrected','resubmitted'))
+              OR correction_stage=@state
+            ORDER BY updated_at DESC,invoice_id LIMIT 51 OFFSET @offset""",
+            [param('period',period),param('state',state),param('offset',offset,'INT64')])
+        return {'invoices': [{**GstInvoice.model_validate(
+            json.loads(row['payload']) if isinstance(row['payload'],str) else row['payload']
+            ).model_dump(mode='json'), 'correction_stage': row['correction_stage']} for row in rows[:50]],
+            'has_more': len(rows)>50}
+
     def writable_sql(self):
         return f"""ASSERT NOT EXISTS(SELECT 1 FROM `{self.repo.table('gst_filing_status')}`
             WHERE client_id=@client_id AND period IN (@period,@previous_period) AND is_current=TRUE

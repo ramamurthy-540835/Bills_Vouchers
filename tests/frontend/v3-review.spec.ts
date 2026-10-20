@@ -80,6 +80,14 @@ test('rejection correction retains evidence and cannot bypass missing GSTIN vali
  await page.getByLabel('Rejection reason',{exact:true}).fill('Supplier name needs a correction.')
  await page.getByRole('button',{name:'Reject',exact:true}).click()
  await expect(page.getByRole('button',{name:'Request correction',exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'Back to bills',exact:true}).click()
+ await page.getByRole('button',{name:'Open correction queue',exact:true}).click()
+ const queue=page.getByRole('region',{name:'Bill correction queue',exact:true})
+ await expect(queue.getByRole('heading',{name:'V3-CORRECTION',exact:true})).toBeVisible()
+ await page.getByLabel('Correction state',{exact:true}).selectOption('resubmitted')
+ await expect(queue.getByText('No bills match this correction state for the selected period.')).toBeVisible()
+ await page.getByLabel('Correction state',{exact:true}).selectOption('rejected')
+ await queue.getByRole('button',{name:'Review correction',exact:true}).click()
  await page.getByLabel('Correction reason',{exact:true}).fill('Correct supplier from original evidence.')
  await page.getByRole('button',{name:'Request correction',exact:true}).click()
  await expect(page.getByText('Edit the bill fields and save changes before resubmitting.')).toBeVisible()
@@ -99,4 +107,28 @@ test('rejection correction retains evidence and cannot bypass missing GSTIN vali
   expect(await page.locator('.bill-review-drawer').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBeTruthy()
   await page.screenshot({path:`../artifacts/gst_new_v3/correction-${width}.png`,fullPage:true})
  }
+ await page.getByRole('button',{name:'Back to bills',exact:true}).click()
+ await page.getByLabel('Correction state',{exact:true}).selectOption('resubmitted')
+ await expect(queue.getByRole('heading',{name:'V3-CORRECTION',exact:true})).toBeVisible()
+ for(const width of [1440,390]){
+  await page.setViewportSize({width,height:1000})
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+  await page.screenshot({path:`../artifacts/gst_new_v3/correction-queue-${width}.png`,fullPage:true})
+ }
+})
+
+test('correction queue shows real errors and supports retry without fake empty results',async({page})=>{
+ let failed=true
+ await page.route('**/api/gst/bills/corrections?**',route=>route.fulfill(failed?
+  {status:503,json:{detail:'Queue temporarily unavailable'}}:
+  {json:{invoices:[],next_offset:null}}))
+ await page.goto('/bills?period=2026-09')
+ await page.getByRole('button',{name:'Open correction queue',exact:true}).click()
+ const queue=page.getByRole('region',{name:'Bill correction queue',exact:true})
+ await expect(queue.getByRole('alert')).toContainText('Queue temporarily unavailable')
+ await expect(queue.getByText('No bills match this correction state for the selected period.')).toHaveCount(0)
+ failed=false
+ await queue.getByRole('button',{name:'Retry correction queue',exact:true}).click()
+ await expect(queue.getByText('No bills match this correction state for the selected period.')).toBeVisible()
+ await page.unrouteAll({behavior:'wait'})
 })

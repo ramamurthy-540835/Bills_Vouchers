@@ -15,7 +15,13 @@ verification. Select a rejection category and enter a reason when required.
 For a rejected bill, request correction, edit/save, then resubmit for review.
 Resubmission does not confirm the bill or remove validation warnings.
 
-Bulk source intake accepts bounded CSV/XLSX/JSON with canonical columns. Preview
+In Bills & Vouchers, open **Bill corrections** to find rejected bills and pending
+corrections for the selected period. Filter by correction state and choose
+**Review correction** to open the original review workflow. Approved corrections
+have a separate filter. Refresh the queue after changes; use Next/Previous for
+larger lists. Read-only members can inspect bills but cannot edit or approve them.
+
+Bulk source intake accepts bounded CSV/XLSX/JSON with editable column mappings. Preview
 first. Staging retains source events for review and does not generate taxable
 invoices from trips, payments or settlements. Import history is tenant scoped.
 

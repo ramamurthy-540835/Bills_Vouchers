@@ -5,6 +5,7 @@ import {FileUp} from 'lucide-react'
 import OriginalInvoicePreview from './original-invoice-preview'
 import ReviewEvidence,{rejectionReasons} from './review-evidence'
 import SourceIntake from './source-intake'
+import CorrectionQueue from './correction-queue'
 import {GST} from '../../lib/copy/gst'
 import {money} from '../workspace'
 
@@ -23,6 +24,7 @@ export default function BillsPanel({data}:{data:any}){
  const [bills,setBills]=useState<any[]>([]),[selected,setSelected]=useState<any>(null),[jobs,setJobs]=useState<any[]>([]),[status,setStatus]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true)
  const [dirty,setDirty]=useState(false),[opening,setOpening]=useState(false),[rejectionReason,setRejectionReason]=useState('')
  const [rejectionCode,setRejectionCode]=useState('other')
+ const [queueRevision,setQueueRevision]=useState(0)
  const [history,setHistory]=useState<any[]>([]),[deleted,setDeleted]=useState<any[]>([])
  const dialog=useRef<HTMLDialogElement>(null),openSequence=useRef(0)
  useEffect(()=>{if(selected&&!dialog.current?.open)dialog.current?.showModal()},[selected])
@@ -30,7 +32,7 @@ export default function BillsPanel({data}:{data:any}){
  const [historyView,setHistoryView]=useState<'uploads'|'deleted'|null>(null),[historyLoading,setHistoryLoading]=useState(false),[historyError,setHistoryError]=useState('')
  const period=data.period,write=data.can_write
  const jobKey=`gst-bill-job:${data.client_id}:${period}`
- const reload=useCallback(async()=>{const result=await api(`?period=${period}&status=${status}`);setBills(result.invoices);setLoading(false)},[period,status])
+ const reload=useCallback(async()=>{const result=await api(`?period=${period}&status=${status}`);setBills(result.invoices);setLoading(false);setQueueRevision(value=>value+1)},[period,status])
  useEffect(()=>{reload().catch(e=>{setMessage(e.message);setLoading(false)})},[reload])
  useEffect(()=>{const id=new URLSearchParams(window.location.search).get('invoice');if(id)open(id)},[period,data.client_id])
  useEffect(()=>{setRejectionReason('')},[selected?.invoice_id])
@@ -74,6 +76,7 @@ export default function BillsPanel({data}:{data:any}){
  return <>{write&&<SourceIntake key={`${data.client_id}:${period}`} api={api} period={period}/>}
   {!selected&&message&&<p className="notice" role="status">{message}</p>}
   {opening&&<p role="status">Opening bill...</p>}
+  <CorrectionQueue key={`corrections:${data.client_id}:${period}`} api={api} period={period} revision={queueRevision} busy={busy||opening} onReview={open}/>
   <section className="bv-card bill-history-card" aria-label="Upload history and deleted bills"><div className="bill-support-header"><div><h2>Upload History &amp; Deleted Bills</h2><p>Track previous uploads, processing results and deleted invoice records.</p></div><div className="bill-history-actions"><button className="button secondary" disabled={busy||historyLoading} aria-expanded={historyView==='uploads'} onClick={()=>loadHistory('uploads')}>View Upload History</button>{write&&<button className="button secondary" disabled={busy||historyLoading} aria-expanded={historyView==='deleted'} onClick={()=>loadHistory('deleted')}>View Deleted Bills</button>}</div></div>
    {historyLoading&&<p role="status">Loading history...</p>}{historyError&&<p role="alert">{historyError}</p>}
    {!historyLoading&&!historyError&&historyView==='uploads'&&history.length===0&&<p>No upload jobs for this period.</p>}
