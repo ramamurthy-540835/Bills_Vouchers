@@ -87,8 +87,15 @@ def main():
         allowed_ids.extend(str(row['id']) for row in demos)
     assert_preserved()
     common = ['--project', PROJECT, '--region', REGION, '--quiet']
+    # Structured flags avoid cmd.exe interpreting delimiter characters in
+    # comma-containing allowlists. This file contains no credentials.
+    flags=ART/'release-environment-flags.json'
+    flags.write_text(json.dumps({'--update-env-vars':{
+        'RELEASE_REVISION':source,'GEMINI_ENABLED':'true','GEMINI_MODEL':'gemini-3.8-flash',
+        'GEMINI_LOCATION':'global','GEMINI_ALLOWED_CLIENT_IDS':','.join(allowed_ids),
+        'DEMO_OPERATOR_IDENTITY_ENABLED':str(demo_enabled).lower()}}))
     cloud('run', 'services', 'update', 'gst-easy-v3-api', '--image', images['api'],
-          '--update-env-vars', f"^|^RELEASE_REVISION={source}|GEMINI_ENABLED=true|GEMINI_MODEL=gemini-3.8-flash|GEMINI_LOCATION=global|GEMINI_ALLOWED_CLIENT_IDS={','.join(allowed_ids)}|DEMO_OPERATOR_IDENTITY_ENABLED={str(demo_enabled).lower()}", *common)
+          '--flags-file',str(flags), *common)
     cloud('run', 'services', 'update', 'gst-easy-v3-web', '--image', images['web'],
           '--update-env-vars', 'RELEASE_REVISION=' + source, *common)
     after = {}
