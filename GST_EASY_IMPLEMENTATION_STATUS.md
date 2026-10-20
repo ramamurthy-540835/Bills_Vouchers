@@ -19,9 +19,10 @@ government filing, universal connectors or production certification.
 
 See docs/v3 for per-area details and the review workbook for all 50 scenarios.
 
-Latest deployed application commit: 6f7c45f75934eeea43a80059372ab2e9c2301683.
+Latest deployed application commit: 899114f7bd44946904b80483a29d029a188c49a5.
 Source mapping, exact reconciliation snapshots and private original-source access
-are live in V3. Local gates: 500 backend tests, 78 browser tests, final 4 focused
-browser checks, Ruff, mypy, TypeScript and build passed. Real isolated BQ/GCS
-service integration and eight live access-boundary checks passed. These do not
+and the correction queue are live in V3. Local gates: 507 backend tests, 79 browser
+tests, 5 focused browser checks, Ruff, fresh-cache mypy, TypeScript and build
+passed. Real isolated BQ/GCS service integration, correction SQL checks and nine
+live access-boundary checks passed. These do not
 establish full authenticated financial or external-provider acceptance.

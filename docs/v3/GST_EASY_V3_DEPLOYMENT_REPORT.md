@@ -98,3 +98,27 @@ unexplained; password recovery and bounce/complaint acceptance remain pending.
 The previous V3 revisions are API `gst-easy-v3-api-00003-rdp` and web
 `gst-easy-v3-web-00002-wqs`. A reviewed rollback may target only those V3 revisions;
 retain the additive audit table and all original evidence.
+
+## Correction queue release — 20 October 2026
+
+- Pushed/deployed commit: `899114f7bd44946904b80483a29d029a188c49a5`.
+- Successful Cloud Build: `9defee1c-22b0-4d84-8f93-d1d7707befbb`.
+- API revision: `gst-easy-v3-api-00005-58x`.
+- Web revision: `gst-easy-v3-web-00004-rwm`.
+- API digest: `sha256:6217881c5711b0f5069054a604ddec6bab860d23f9a62a8a1e82e5af9f729f13`.
+- Web digest: `sha256:7793857b64469b4451d6e0e234d4def16d5d584e21667319e2c2a964a4866e60`.
+- No migration or financial-data mutation required.
+
+The frontend URL is unchanged. Nine public/access-boundary smoke checks passed
+at 12:27:53 UTC, including anonymous correction-queue rejection with 401.
+The deployed frontend still targets only the V3 API. All 31 older service
+configuration/IAM fingerprints matched; V2 branch and older build files remain
+unchanged. No model access was broadened.
+
+The queue lifecycle was tested with the local synthetic browser backend; actual
+V3 BigQuery SQL was tested read-only. A live authenticated customer correction
+lifecycle was not exercised and is not claimed.
+
+Previous V3 revisions for a separately reviewed rollback are API
+`gst-easy-v3-api-00004-9gv` and web `gst-easy-v3-web-00003-tx5`. Do not modify V2,
+delete evidence or change financial data as rollback.

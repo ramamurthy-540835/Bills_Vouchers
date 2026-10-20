@@ -103,3 +103,8 @@ and local browser tests are not a live authenticated customer workflow test.
 
 The subsequent full browser suite passed all 79 tests in 3.5 minutes, including
 all nine reports, business switching, uploads, returns, settings and the new queue.
+
+After deployment of 899114f, nine live public/access-boundary checks passed.
+The new correction queue requires authentication (anonymous request returned
+401). All 31 pre-existing service configuration/IAM fingerprints still match.
+This does not substitute for live authenticated financial workflow acceptance.
