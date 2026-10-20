@@ -94,6 +94,19 @@ Acceptance evidence:
   existing authenticated job retry mechanism with bounded attempts, respecting
   the 35-minute active-worker protection; it never resets claims directly.
 
-Sanitized local evidence is under `artifacts/gst_new_v3/`. Invoice processing and
-preloaded-account acceptance are complete only when their saved comparison and
-browser reports pass. Credentials are excluded from these artifacts.
+Live acceptance completed on 20 October 2026. All 23 upload jobs completed, with
+20 confirmed invoices, two pending-review examples and one rejected example.
+All nine persisted KPI comparisons and report row counts passed, and all nine
+report pages rendered in the live browser. Eight supported GSTR-2B records were
+imported, producing 11 reconciliation cases. Search, the grounded pending-review
+assistant answer, original PDF/PNG/JPEG byte checks, tenant restrictions, refresh
+and logout passed. Both accounts' desktop/mobile layouts were inspected.
+
+The extraction audit records 20 Gemini extractions and three manual-review
+fallbacks. Fallback fields were completed from the original synthetic documents
+through the versioned review API. No claim of universal AI extraction accuracy
+or high-concurrency load readiness is made.
+
+See [live acceptance](DEMO_ACCOUNTS_ACCEPTANCE.md) for actual financial values
+and execution limitations. Sanitized local evidence is under
+`artifacts/gst_new_v3/`; credentials are excluded.
