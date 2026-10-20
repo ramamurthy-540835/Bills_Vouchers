@@ -17,7 +17,7 @@ from google.api_core.exceptions import InvalidArgument, PermissionDenied, Failed
 
 from app.db import get_db
 from app.config import get_settings
-from app.services.demo_identity import isolated_v2_demo
+from app.services.demo_identity import isolated_demo_workspace
 from app.repository import FinanceRepository
 from app.routes import active_client, current_user
 from app.services.gst.account import can
@@ -45,7 +45,7 @@ def scope(request, repo, user, action='bills:read'):
     client = active_client(request, repo, user)
     if not can(user, action, client.id, repo):
         raise HTTPException(403, 'You do not have permission for this action.')
-    readonly_demo_report = isolated_v2_demo() and request.url.path.endswith('/reports') and request.query_params.get('format', 'json') == 'json'
+    readonly_demo_report = isolated_demo_workspace() and request.url.path.endswith('/reports') and request.query_params.get('format', 'json') == 'json'
     if getattr(client, 'is_test', False) and not readonly_demo_report and request.url.path.rsplit('/', 1)[-1] in {'export', 'working-papers', 'reports'}:
         raise HTTPException(403, {'code': 'sample_data_blocked', 'message': 'Test workspace figures cannot be exported or filed.'})
     return client, BillStore(repo, client.id)
@@ -397,7 +397,7 @@ def reports_view(request: Request, period: str, kind: str = 'purchases', scope_n
                  format: str = 'json', offset: int = Query(0, ge=0, le=10000),
                  repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user)
-    if getattr(client, 'is_test', False) and not (isolated_v2_demo() and format == 'json'):
+    if getattr(client, 'is_test', False) and not (isolated_demo_workspace() and format == 'json'):
         raise HTTPException(403, 'Synthetic workspaces cannot generate customer reports.')
     if format not in {'json','csv','xlsx','pdf'} or (format == 'pdf' and kind != 'tax'):
         raise HTTPException(422, 'Choose CSV or Excel; PDF is available for the tax-head summary.')

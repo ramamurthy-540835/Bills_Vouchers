@@ -20,8 +20,9 @@ def test_canonical_tables_are_isolated_and_default_unchanged():
 
 
 @pytest.mark.parametrize('email', ['naturelabs@demo.com', 'naturelabs1@demo.com'])
-def test_operator_activation_is_not_email_verification(monkeypatch, email):
-    settings=SimpleNamespace(demo_operator_identity_enabled=True,bigquery_dataset='gst_easy_v2_finance_analytics',gst_dataset_prefix='gst_easy_v2_',gcs_bucket_name='aidirac-503309-gst-easy-v2-documents')
+@pytest.mark.parametrize('version', ['v2','v3'])
+def test_operator_activation_is_not_email_verification(monkeypatch, email, version):
+    settings=SimpleNamespace(demo_operator_identity_enabled=True,bigquery_dataset=f'gst_easy_{version}_finance_analytics',gst_dataset_prefix=f'gst_easy_{version}_',gcs_bucket_name=f'aidirac-503309-gst-easy-{version}-documents')
     monkeypatch.setattr(demo_identity,'get_settings',lambda:settings)
     user=SimpleNamespace(email=email,role='client',email_verified=False,demo_operator_activated=True,identity_provenance='SYNTHETIC_TEST_ONLY')
     assert demo_identity.identity_can_sign_in(user)
@@ -62,6 +63,6 @@ def test_generated_invoices_and_statements_have_reproducible_decimal_totals():
 
 def test_v2_report_view_permission_does_not_grant_platform_access(monkeypatch):
     from app.services import access
-    monkeypatch.setattr(access, 'isolated_v2_demo', lambda: True)
+    monkeypatch.setattr(access, 'isolated_demo_workspace', lambda: True)
     permissions=access.navigation_permissions(SimpleNamespace(role='client'),True,SimpleNamespace(is_test=True))
     assert 'view_reports' in permissions and 'platform_admin' not in permissions

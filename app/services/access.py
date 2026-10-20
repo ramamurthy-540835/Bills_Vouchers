@@ -2,7 +2,7 @@
 import logging
 from fastapi import HTTPException
 from app.config import get_settings
-from app.services.demo_identity import isolated_v2_demo
+from app.services.demo_identity import isolated_demo_workspace
 from app.services.gst.medallion import param
 
 
@@ -25,7 +25,7 @@ def workspace_role(value):
 def navigation_permissions(user, owner=False, client=None):
     """UI capabilities derived from the selected, authorized workspace identity."""
     result = ['view_workspace', 'manage_own_account']
-    if not getattr(client, 'is_test', False) or isolated_v2_demo():
+    if not getattr(client, 'is_test', False) or isolated_demo_workspace():
         result.append('view_reports')
     if user.role in {'client', 'tax_admin', 'admin'}:
         result += ['edit_profile', 'create_customer']
