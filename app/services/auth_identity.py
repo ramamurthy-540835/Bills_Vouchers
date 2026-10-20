@@ -4,6 +4,7 @@ import secrets
 import smtplib
 import ssl
 from email.message import EmailMessage
+from email.utils import make_msgid
 from urllib.parse import urlsplit
 from uuid import uuid4
 
@@ -28,7 +29,7 @@ def send_link(email, token, purpose):
     path = 'verify-email' if purpose == 'verify' else 'reset-password'
     subject = 'Verify your GST Easy email' if purpose == 'verify' else 'Reset your GST Easy password'
     body = f"Open this single-use link within 30 minutes:\n{settings.auth_public_url.rstrip('/')}/{path}#token={token}\n\nIf you did not request this, ignore this email."
-    send_email(email, subject, body)
+    return send_email(email, subject, body)
 
 
 def send_email(email, subject, body):
@@ -37,15 +38,20 @@ def send_email(email, subject, body):
     message['From'] = settings.smtp_sender
     message['To'] = email
     message['Subject'] = subject
+    message['Message-ID'] = make_msgid(domain=settings.smtp_sender.rsplit('@', 1)[-1].strip('>'))
     message.set_content(body)
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as smtp:
             smtp.starttls(context=ssl.create_default_context())
             if settings.smtp_username:
                 smtp.login(settings.smtp_username, settings.smtp_password)
-            smtp.send_message(message)
+            refused = smtp.send_message(message)
+            if refused:
+                raise smtplib.SMTPRecipientsRefused(refused)
     except (OSError, smtplib.SMTPException):
         raise HTTPException(503, 'Email delivery is temporarily unavailable. Please request a new link shortly.') from None
+    return {'status': 'provider_accepted', 'message_id': message['Message-ID'],
+            'inbox_delivery_confirmed': False}
 
 
 def digest(value):

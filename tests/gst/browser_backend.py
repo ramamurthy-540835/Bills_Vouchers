@@ -6,7 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.db import get_db
 from app.routes import current_user
-from app.routers import gst_bills, gst_returns
+from app.routers import gst_bills, gst_returns, gst_intake
 from tests.gst import local_statements, local_businesses
 from app.services.gst.profiles import company_checks
 from app.services.access import navigation_permissions
@@ -101,6 +101,7 @@ gst_bills.can=lambda user,action,*args:action=='bills:read' or user.role!='viewe
 gst_bills.FinanceRepository=lambda repo:SimpleNamespace(clients=lambda uid:[SimpleNamespace(id=id,name=value['legal_name']) for id,value in profiles.items()])
 app=FastAPI()
 app.add_middleware(SessionMiddleware,secret_key="synthetic-local-browser-only")
+app.include_router(gst_intake.router)
 app.include_router(gst_bills.router)
 # The browser harness has synthetic financial data. Keep the production guard:
 # expose actual read routes, but never simulate approval or mutate real returns.

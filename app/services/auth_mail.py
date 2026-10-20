@@ -12,6 +12,7 @@ from app.services.gst.medallion import param
 from app.services import auth_identity
 
 logger = logging.getLogger(__name__)
+TERMINAL = "'sent','provider_accepted','ignored','expired'"
 
 
 def ready():
@@ -56,12 +57,12 @@ def process(repo, mail_id):
     if len(rows) != 1:
         raise HTTPException(404, 'Email request not found.')
     mail = rows[0]
-    if mail['status'] in {'sent', 'ignored'}:
+    if mail['status'] in {'sent', 'provider_accepted', 'ignored', 'expired'}:
         return
     try:
         repo.query(f'''BEGIN TRANSACTION;
         UPDATE `{repo.table('auth_guard')}` SET touched_at=CURRENT_TIMESTAMP() WHERE id='identity';
-        ASSERT (SELECT COUNT(*) FROM `{repo.table('auth_outbox')}` WHERE id=@id AND status NOT IN ('sent','ignored') AND (lease_until IS NULL OR lease_until<CURRENT_TIMESTAMP()))=1 AS 'Mail lease busy';
+        ASSERT (SELECT COUNT(*) FROM `{repo.table('auth_outbox')}` WHERE id=@id AND status NOT IN ({TERMINAL}) AND (lease_until IS NULL OR lease_until<CURRENT_TIMESTAMP()))=1 AS 'Mail lease busy';
         UPDATE `{repo.table('auth_outbox')}` SET status='processing',lease_until=TIMESTAMP_ADD(CURRENT_TIMESTAMP(),INTERVAL 2 MINUTE) WHERE id=@id;
         COMMIT TRANSACTION;''', [param('id', mail_id)])
     except (BadRequest, Conflict):
@@ -75,7 +76,9 @@ def process(repo, mail_id):
             auth_identity.send_email(mail['email'], 'You are invited to a GST Easy workspace',
                 'Sign in with this email address and accept your invitation within 48 hours:\n'
                 + settings.auth_public_url.rstrip('/') + '/accept-invitation#token=' + invite_token(mail_id))
-        repo.query(f"UPDATE `{repo.table('auth_outbox')}` SET status='sent',sent_at=CURRENT_TIMESTAMP(),lease_until=NULL WHERE id=@id", [param('id',mail_id)])
+        status = 'provider_accepted' if invitations else 'ignored'
+        repo.query(f"UPDATE `{repo.table('auth_outbox')}` SET status=@status,sent_at=IF(@status='provider_accepted',CURRENT_TIMESTAMP(),NULL),lease_until=NULL WHERE id=@id",
+                   [param('id',mail_id),param('status',status)])
         return
     users = repo.query(f"SELECT id,email_verified FROM `{repo.table('users')}` WHERE LOWER(email)=@email AND is_active=TRUE", [param('email', mail['email'])])
     if len(users) != 1 or (mail['purpose'] == 'verify' and users[0]['email_verified'] is True):
@@ -84,7 +87,7 @@ def process(repo, mail_id):
     if mail['purpose'] == 'password_changed':
         auth_identity.send_email(mail['email'], 'Your GST Easy password changed',
             'Your password was changed and previous sessions were revoked. If you did not make this change, use account recovery and contact your business administrator immediately.')
-        repo.query(f"UPDATE `{repo.table('auth_outbox')}` SET status='sent',sent_at=CURRENT_TIMESTAMP(),lease_until=NULL WHERE id=@id", [param('id', mail_id)])
+        repo.query(f"UPDATE `{repo.table('auth_outbox')}` SET status='provider_accepted',sent_at=CURRENT_TIMESTAMP(),lease_until=NULL WHERE id=@id", [param('id', mail_id)])
         return
     if mail['purpose'] not in {'reset', 'verify'}:
         raise HTTPException(422, 'Unsupported email request.')
@@ -97,11 +100,14 @@ def process(repo, mail_id):
     usable = repo.query(f"SELECT 1 FROM `{repo.table('auth_tokens')}` WHERE token_hash=@hash AND consumed_at IS NULL AND expires_at>CURRENT_TIMESTAMP()", [param('hash', token_hash)])
     if usable:
         auth_identity.send_link(mail['email'], token, mail['purpose'])
-    repo.query(f"UPDATE `{repo.table('auth_outbox')}` SET status='sent',sent_at=CURRENT_TIMESTAMP(),lease_until=NULL WHERE id=@id", [param('id', mail_id)])
+    status = 'provider_accepted' if usable else 'expired'
+    repo.query(f"UPDATE `{repo.table('auth_outbox')}` SET status=@status,sent_at=IF(@status='provider_accepted',CURRENT_TIMESTAMP(),NULL),lease_until=NULL WHERE id=@id",
+               [param('id', mail_id),param('status',status)])
+    logger.info('auth_mail_outcome', extra={'mail_id':mail_id, 'outcome':status})
 
 
 def repair(repo):
-    rows = repo.query(f'''SELECT id FROM `{repo.table('auth_outbox')}` WHERE status NOT IN ('sent','ignored')
+    rows = repo.query(f'''SELECT id FROM `{repo.table('auth_outbox')}` WHERE status NOT IN ({TERMINAL})
         AND created_at>TIMESTAMP_SUB(CURRENT_TIMESTAMP(),INTERVAL 1 DAY)
         AND (lease_until IS NULL OR lease_until<CURRENT_TIMESTAMP()) ORDER BY created_at LIMIT 50''')
     for row in rows:

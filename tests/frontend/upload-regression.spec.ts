@@ -63,6 +63,8 @@ test('shared upload processes purchases and sales, retains originals and prevent
 
 test('refresh resumes the saved upload job without posting the file again',async({page})=>{
  await page.goto('/bills?period=2026-09')
+ await expect(page.getByLabel('Loading bills')).toHaveCount(0)
+ await expect(page.getByLabel('Upload bills',{exact:true})).toBeEnabled()
  let finished:any;let resumed=false;let posts=0
  await page.route('**/api/gst/bills/upload?*',async route=>{
   posts++

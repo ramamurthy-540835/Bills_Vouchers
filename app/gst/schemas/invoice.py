@@ -87,5 +87,10 @@ class GstInvoice(Model):
     status: Literal['extracted', 'needs_review', 'confirmed', 'rejected'] = 'extracted'
     review_reasons: list[str] = Field(default_factory=list)
     rejection_reason: str = Field(default='', max_length=1000)
+    rejection_code: str = 'other'
+    correction_state: Literal['none','rejected','correction_requested','corrected','resubmitted','approved'] = 'none'
+    correction_reason: str = Field(default='',max_length=1000)
+    correction_actor: str = ''
+    correction_at: str = ''
     version: int = 1
     sample: bool = False

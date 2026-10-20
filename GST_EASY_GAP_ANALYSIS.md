@@ -40,3 +40,18 @@ Full live BigQuery schema/IAM, bucket retention, task queue configuration, Verte
 ## Migration and rollback boundaries
 
 infra/bq/migrations/007_gst_invoice.sql is the canonical schema; migrations/007_v5_medallion.sql is a separate schema. migrations/009_v7_account.sql adds account/mobile fields. Review additive migrations individually; never execute historical seeds as a migration batch. Local changes can be reverted by reviewed commit after preserving subsequent work. There is no cloud rollback needed for this audit because no deployment or schema change was applied.
+
+
+---
+
+# V3 remaining gaps
+
+See docs/v3/CURRENT_GAP_ANALYSIS.md and GST_EASY_IMPLEMENTATION_STATUS.md.
+The largest remaining engineering gaps are canonical multi-source consolidation,
+durable integration sync management, governed return adjustment application,
+complete effective-date legal engines and official schema validation.
+
+External blockers are actual email inbox confirmation/provider diagnostics,
+approved customer connector credentials, authorized GSP integration and
+professional GST acceptance. They do not prevent local engineering work but
+must prevent false live/certified claims.

@@ -1,0 +1,21 @@
+# Independent V3 images only. Deployment is guarded by deploy_gst_new_v3.py.
+steps:
+  - id: api
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "Dockerfile", "-t", "asia-south1-docker.pkg.dev/$PROJECT_ID/gst-easy-v3/api:${_REVISION}", "."]
+    waitFor: ["-"]
+  - id: web
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "frontend/Dockerfile", "-t", "asia-south1-docker.pkg.dev/$PROJECT_ID/gst-easy-v3/web:${_REVISION}", "frontend"]
+    waitFor: ["-"]
+images:
+  - "asia-south1-docker.pkg.dev/$PROJECT_ID/gst-easy-v3/api:${_REVISION}"
+  - "asia-south1-docker.pkg.dev/$PROJECT_ID/gst-easy-v3/web:${_REVISION}"
+serviceAccount: projects/$PROJECT_ID/serviceAccounts/gst-easy-v3-build@$PROJECT_ID.iam.gserviceaccount.com
+substitutions:
+  _REVISION: reviewed-commit-required
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+  diskSizeGb: 100
+timeout: 1800s

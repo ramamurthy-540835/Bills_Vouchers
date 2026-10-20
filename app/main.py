@@ -114,6 +114,8 @@ def create_app():
     app.include_router(filing_workspace_router)
     from .services.gst.account import router as account_router
     app.include_router(account_router)
+    from .routers.gst_intake import router as intake_router
+    app.include_router(intake_router)
     from .routers.gst_bills import router as bills_router
     app.include_router(bills_router)
     from .routers.gst_returns import router as returns_router

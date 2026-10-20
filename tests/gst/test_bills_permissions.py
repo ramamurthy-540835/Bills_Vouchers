@@ -38,7 +38,8 @@ def api(monkeypatch,invoice,profile):
     monkeypatch.setattr(gst_bills,'profile_for',lambda *a:profile)
     import app.services.gst.account as account
     monkeypatch.setattr(account,'FinanceRepository',lambda _:SimpleNamespace(can_access_client=lambda uid,cid:cid=='a'))
-    app=FastAPI();app.include_router(gst_bills.router)
+    from app.routers.gst_intake import router as intake_router
+    app=FastAPI();app.include_router(intake_router);app.include_router(gst_bills.router)
     app.dependency_overrides[get_db]=lambda:repo
     app.dependency_overrides[current_user]=lambda:user
     yield TestClient(app),user,items
@@ -57,6 +58,21 @@ def test_viewer_read_export_but_no_writes(api,invoice):
     assert client.delete(f'/api/gst/bills/{invoice.invoice_id}').status_code==403
     assert client.post('/api/gst/bills/upload/other-client-job/retry').status_code==403
     assert client.post('/api/gst/bills/reconciliation/review?period=2026-09',json={}).status_code==403
+
+
+def test_source_intake_permission_and_malformed_files(api):
+    client,user,_=api
+    path='/api/gst/bills/intake/preview'
+    valid=b'[{"source_record_id":"one","event_type":"trip","payment_amount":"1.00"}]'
+    assert client.post(path,data={'source':'driver'},files={'file':('records.json',valid)}).status_code==403
+    user.role='client'
+    response=client.post(path,data={'source':'driver'},files={'file':('records.json',valid)})
+    assert response.status_code==200
+    assert response.json()['financial_records_created']==0
+    assert response.json()['accepted_count']==1
+    for filename,content in [('records.xlsx',b'not-a-workbook'),('records.csv',b'\xff\xfe\xff'),
+                             ('records.json',b'broken')]:
+        assert client.post(path,data={'source':'driver'},files={'file':(filename,content)}).status_code==422
 
 
 def test_dashboard_range_keeps_membership_boundary_and_private_cache(api,monkeypatch):
@@ -119,9 +135,32 @@ def test_cross_client_id_is_not_found(api,invoice):
         user.role=role
         assert client.get('/api/gst/bills/other').status_code==404
         assert client.get('/api/gst/bills/other/original').status_code==404
-        assert 'other' not in client.get('/api/gst/bills?period=2026-09').text
+        assert all(row['client_id']=='a' and row['invoice_id']!='other'
+                   for row in client.get('/api/gst/bills?period=2026-09').json()['invoices'])
+        assert client.get('/api/gst/bills/other/gst-comparison').status_code==404
+        assert client.get('/api/gst/bills/other/review-history').status_code==404
     assert client.post('/api/gst/bills/other/confirm').status_code==404
     assert client.patch('/api/gst/bills/other',json={'invoice_number':'X'}).status_code==404
+
+
+def test_correction_api_requires_permission_version_and_resubmission(api,invoice):
+    client,user,items=api
+    url=f'/api/gst/bills/{invoice.invoice_id}'
+    assert client.post(url+'/correction/request-correction',json={'reason':'Correct date'}).status_code==403
+    user.role='client'
+    assert client.post(url+'/reject',json={'reason':'Correct date','code':'missing_date'}).status_code==200
+    assert client.patch(url,json={'invoice_number':'NEW'}).status_code==409
+    assert client.post(url+'/correction/request-correction',json={'reason':'Correct date'}).status_code==428
+    assert client.post(url+'/correction/request-correction',headers={'If-Match':'999'},json={'reason':'Correct date'}).status_code==409
+    current=items[invoice.invoice_id]
+    response=client.post(url+'/correction/request-correction',headers={'If-Match':str(current.version)},json={'reason':'Correct date'})
+    assert response.status_code==200
+    assert client.patch(url,json={'invoice_number':'NEW'}).json()['correction_state']=='corrected'
+    assert client.post(url+'/confirm').status_code==409
+    current=items[invoice.invoice_id]
+    response=client.post(url+'/correction/resubmit',headers={'If-Match':str(current.version)},json={'reason':'Checked against original'})
+    assert response.status_code==200 and response.json()['status']=='needs_review'
+    assert client.post(url+'/confirm').json()['correction_state']=='approved'
 
 
 def test_client_can_confirm_but_not_change_tenant(api,invoice):

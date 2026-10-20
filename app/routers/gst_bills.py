@@ -433,7 +433,8 @@ async def edit(invoice_id: str, request: Request, repo=Depends(get_db), user=Dep
     previous = store.get(invoice_id)
     check_version(request, previous)
     body = await request.json()
-    owned = {'client_id', 'invoice_id', 'source_doc_id', 'selected_period', 'extraction', 'itc', 'status', 'review_reasons', 'rejection_reason', 'sample', 'version', 'supply_type'}
+    owned = {'client_id', 'invoice_id', 'source_doc_id', 'selected_period', 'extraction', 'itc', 'status', 'review_reasons', 'rejection_reason', 'sample', 'version', 'supply_type',
+             'rejection_code','correction_state','correction_reason','correction_actor','correction_at'}
     if owned.intersection(body):
         raise HTTPException(422, 'Only bill details may be edited.')
     if 'reverse_charge_paid_reference' in body and user.role not in {'admin', 'tax_admin'}:
@@ -446,6 +447,11 @@ async def edit(invoice_id: str, request: Request, repo=Depends(get_db), user=Dep
     invoice = validate_invoice(invoice, profile_for(repo, client.id, period), store.list())
     if 'duplicate_invoice' in invoice.review_reasons:
         raise HTTPException(409, 'This supplier GSTIN and invoice number already exist for the financial year.')
+    if previous.status=='rejected':
+        if previous.correction_state not in {'correction_requested','corrected'}:
+            raise HTTPException(409,'Request correction before editing a rejected bill.')
+        invoice.status='rejected'
+        invoice.correction_state='corrected'
     store.save(invoice, user.id, 'edit', previous, period)
     return invoice.model_dump(mode='json')
 
@@ -462,6 +468,8 @@ def confirm(invoice_id: str, request: Request, repo=Depends(get_db), user=Depend
     if invoice.review_reasons or previous.status == 'rejected':
         raise HTTPException(409, {'code': 'bill_needs_review', 'message': 'Resolve the highlighted bill details before confirming.'})
     invoice.status = 'confirmed'
+    if previous.correction_state=='resubmitted':
+        invoice.correction_state='approved'
     invoice.version += 1
     store.save(invoice, user.id, 'confirm', previous, period)
     return invoice.model_dump(mode='json')
@@ -479,9 +487,65 @@ async def reject(invoice_id: str, request: Request, repo=Depends(get_db), user=D
     reason = body.get('reason') if isinstance(body, dict) else None
     if not isinstance(reason, str) or not 3 <= len(reason.strip()) <= 1000:
         raise HTTPException(422, 'Enter a rejection reason between 3 and 1000 characters.')
+    from app.gst.correction import REASONS
+    code=body.get('code','other')
+    if not isinstance(code,str) or code not in REASONS:
+        raise HTTPException(422,'Choose a supported rejection reason.')
     invoice = previous.model_copy(deep=True)
     invoice.status = 'rejected'
     invoice.rejection_reason = reason.strip()
+    invoice.rejection_code=code
+    invoice.correction_state='rejected'
     invoice.version += 1
     store.save(invoice, user.id, 'reject', previous, (previous.invoice_date or date.today()).strftime('%Y-%m'))
+    return invoice.model_dump(mode='json')
+
+
+@router.get('/{invoice_id}/gst-comparison')
+def gst_comparison(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from app.gst.comparison import compare_invoice
+    from app.services.gst.medallion import param
+    import json
+    _,store=scope(request,repo,user)
+    invoice=store.get(invoice_id)
+    rows=store.query(f'''SELECT after_payload FROM {store.table('ops','gst_bill_audit')}
+        WHERE client_id=@client_id AND invoice_id=@id
+          AND (before_payload IS NULL OR JSON_TYPE(before_payload)='null')
+        ORDER BY created_at LIMIT 1''',[param('id',invoice_id)])
+    payload=rows[0]['after_payload'] if rows else None
+    source=GstInvoice.model_validate(json.loads(payload) if isinstance(payload,str) else payload) if payload else None
+    return compare_invoice(invoice,source)
+
+
+@router.get('/{invoice_id}/review-history')
+def review_history(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from app.services.gst.medallion import param
+    _,store=scope(request,repo,user)
+    store.get(invoice_id)
+    rows=store.query(f'''SELECT action,actor_id,created_at,
+        JSON_VALUE(after_payload,'$.version') AS version,
+        JSON_VALUE(after_payload,'$.rejection_reason') AS rejection_reason,
+        JSON_VALUE(after_payload,'$.correction_reason') AS correction_reason
+        FROM {store.table('ops','gst_bill_audit')}
+        WHERE client_id=@client_id AND invoice_id=@id ORDER BY created_at DESC LIMIT 100''',[param('id',invoice_id)])
+    return clean({'events':[dict(row) for row in rows]})
+
+
+@router.post('/{invoice_id}/correction/{action}')
+async def correction_action(invoice_id: str, action: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from app.gst.correction import transition
+    client,store=scope(request,repo,user,'bills:write')
+    previous=store.get(invoice_id)
+    if not request.headers.get('if-match'):
+        raise HTTPException(428,'Refresh the bill and submit its current version.')
+    check_version(request,previous)
+    body=await request.json()
+    invoice=transition(previous,action,user.id,body.get('reason') if isinstance(body,dict) else None)
+    period=previous.invoice_date.strftime('%Y-%m') if previous.invoice_date else previous.selected_period
+    if action=='resubmit':
+        validated=validate_invoice(invoice,profile_for(repo,client.id,period),store.list(),human_review=True)
+        if 'duplicate_invoice' in validated.review_reasons:
+            raise HTTPException(409,'Resolve the duplicate before resubmitting.')
+        invoice.review_reasons=validated.review_reasons
+    store.save(invoice,user.id,action,previous,period)
     return invoice.model_dump(mode='json')

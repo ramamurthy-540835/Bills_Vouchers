@@ -1,0 +1,45 @@
+from types import SimpleNamespace
+from unittest.mock import Mock, MagicMock
+import pytest
+from fastapi import HTTPException
+from app.services import auth_identity, auth_mail
+
+
+@pytest.mark.parametrize('usable,expected', [(True,'provider_accepted'),(False,'expired')])
+def test_expired_links_never_report_acceptance(monkeypatch, usable, expected):
+    repo=Mock()
+    repo.table.side_effect=lambda name:'project.finance.'+name
+    repo.query.side_effect=[[{'status':'pending','purpose':'verify','email':'approved@example.test'}],
+                            [],[{'id':'u','email_verified':False}],[],[1] if usable else [],[]]
+    monkeypatch.setattr(auth_mail,'ready',lambda:SimpleNamespace(app_secret_key='s'*32))
+    sender=Mock()
+    monkeypatch.setattr(auth_identity,'send_link',sender)
+    auth_mail.process(repo,'id')
+    assert sender.call_count==int(usable)
+    assert {p.name:p.value for p in repo.query.call_args.args[1]}['status']==expected
+
+
+@pytest.mark.parametrize('status',['provider_accepted','expired','ignored','sent'])
+def test_terminal_mail_not_resent(monkeypatch,status):
+    repo=Mock();repo.table.return_value='project.finance.auth_outbox'
+    repo.query.return_value=[{'status':status}]
+    monkeypatch.setattr(auth_mail,'ready',lambda:None)
+    auth_mail.process(repo,'id')
+    assert repo.query.call_count==1
+
+
+@pytest.mark.parametrize('refused',[{}, {'approved@example.test':(550,b'rejected')}])
+def test_smtp_acceptance_is_not_delivery(monkeypatch,refused):
+    settings=SimpleNamespace(smtp_sender='ai@example.test',smtp_host='smtp.example.test',
+                             smtp_port=587,smtp_username='u',smtp_password='test')
+    monkeypatch.setattr(auth_identity,'delivery_ready',lambda:settings)
+    transport=MagicMock()
+    smtp=transport.return_value.__enter__.return_value
+    smtp.send_message.return_value=refused
+    monkeypatch.setattr(auth_identity.smtplib,'SMTP',transport)
+    if refused:
+        with pytest.raises(HTTPException):auth_identity.send_email('approved@example.test','Test','Test')
+    else:
+        result=auth_identity.send_email('approved@example.test','Test','Test')
+        assert result['status']=='provider_accepted'
+        assert result['message_id'] and result['inbox_delivery_confirmed'] is False
