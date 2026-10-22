@@ -16,6 +16,7 @@ get_settings.cache_clear()
 items={}
 objects={}
 jobs={}
+auto_rules=[]
 deleted_items={}
 user=SimpleNamespace(id='browser-user',full_name='Browser User',email='browser@example.test',role='client')
 profile={'legal_name':'Red Taxi','business_nature':'passenger_transport','gstin':'','filing_frequency':'monthly'}
@@ -38,7 +39,7 @@ def selected_profile():
 
 
 class Store:
-    def query(self,*args):return []
+    def query(self,*args):return auto_rules if 'SELECT policy FROM' in args[0] else []
     def table(self,*args):return 'synthetic.table'
     def assert_writable(self,period):pass
     def latest_period(self):return "2026-10"
@@ -104,6 +105,30 @@ class Store:
     def claim_job(self,id,actor):return jobs[id]
 
 
+def seed_auto_review(approved=True):
+    from tests.gst.conftest import invoice as invoice_fixture, profile as profile_fixture
+    selected = profile_fixture.__wrapped__()
+    profiles[selected_client().id].update(selected)
+    invoice = invoice_fixture.__wrapped__(selected)
+    invoice.client_id=selected_client().id
+    invoice.invoice_id='auto-synthetic'
+    invoice.supplier_address='Synthetic supplier address, Tamil Nadu'
+    invoice.recipient_address='Synthetic recipient address, Tamil Nadu'
+    invoice.recipient_legal_name='Synthetic recipient'
+    invoice.extraction.raw_ref=f'gs://test/{invoice.client_id}/bronze/original.csv'
+    objects[invoice.extraction.raw_ref]=b'SYNTHETIC TEST INVOICE - NOT VALID FOR TAX FILING'
+    items[invoice.invoice_id]=invoice
+    auto_rules.clear()
+    if approved:
+        auto_rules.append({'policy':{'policy_id':'synthetic-review-only','approved_by':'synthetic-reviewer',
+            'official_source':'SYNTHETIC_TEST_ONLY','identity_evidence':'synthetic-fixture',
+            'review_status':'approved','supplier_gstin':invoice.supplier_gstin,'recipient_gstin':invoice.recipient_gstin,
+            'hsn_sac':'8703','direction':'purchase','supply_type':'intra','place_of_supply':'33',
+            'invoice_type':'tax_invoice','rate':'18','effective_from':'2026-09-01','effective_to':'2026-09-30',
+            'review_expires_at':'2099-01-01T00:00:00+00:00'}})
+    return {'invoice_id':invoice.invoice_id}
+
+
 gst_bills.BillStore=Store
 gst_bills.reconciliation_reviews.returns.fingerprint=lambda *args:'a'*64
 gst_bills.dashboard_report.read_range=lambda store,months,evidence=True:{month:{'source_hash':'a'*64,
@@ -163,6 +188,7 @@ def health():return {'ok':True}
 
 @app.post('/__test__/reset')
 def reset():
+    auto_rules.clear()
     local_statements.reset()
     local_businesses.reset()
     for cid in list(profiles):
@@ -174,6 +200,11 @@ def reset():
     user.is_platform_admin=False
     user.active_client='browser-client'
     return {'ok':True}
+
+
+@app.post('/__test__/auto-review')
+def auto_review_fixture(approved: bool = True):
+    return seed_auto_review(approved)
 
 
 @app.post('/__test__/sms-configured')

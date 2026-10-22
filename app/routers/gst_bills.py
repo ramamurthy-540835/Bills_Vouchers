@@ -81,7 +81,7 @@ def template(request: Request, repo=Depends(get_db), user=Depends(current_user))
 
 
 @router.post('/upload')
-def upload(request: Request, files: list[UploadFile] = File(...), period: str = '', repo=Depends(get_db), user=Depends(current_user)):
+def upload(request: Request, files: list[UploadFile] = File(...), period: str = '', auto_review: bool = False, repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user, 'bills:write')
     period = selected_period(request, client, store, period)
     store.assert_writable(period)
@@ -105,7 +105,7 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
             raise HTTPException(422, 'Check the file format and size. Use a valid PDF, photo or the provided spreadsheet template.') from None
         content_files.append((filename, content))
     job_id = str(uuid4())
-    job: dict[str, Any] = {'job_id': job_id, 'status': 'queued', 'recovery_version': 1, 'actor_id': str(user.id), 'period': period, 'files': []}
+    job: dict[str, Any] = {'job_id': job_id, 'status': 'queued', 'recovery_version': 1, 'actor_id': str(user.id), 'period': period, 'files': [], 'auto_review_enabled': auto_review}
     for filename, content in content_files:
         doc_id = str(uuid5(NAMESPACE_URL, f'{client.id}/{hashlib.sha256(content).hexdigest()}'))
         raw_ref = store.upload_object(content, doc_id, filename, 'bronze', mimetypes.guess_type(filename)[0] or 'application/octet-stream')
@@ -209,6 +209,10 @@ def restore_bill(invoice_id: str, request: Request, repo=Depends(get_db), user=D
     period = previous.invoice_date.strftime('%Y-%m') if previous.invoice_date else previous.selected_period
     invoice = validate_invoice(previous,profile_for(repo,client.id,period),store.list())
     invoice.status = 'needs_review'
+    invoice.auto_review.status = 'not_started'
+    invoice.auto_review.job_id = ''
+    invoice.auto_review.reasons = []
+    invoice.auto_review.checks = {}
     invoice.version = previous.version+1
     store.save(invoice,user.id,'restore',selected_period=period)
     return invoice.model_dump(mode='json')
@@ -429,7 +433,23 @@ def original(invoice_id: str, request: Request, repo=Depends(get_db), user=Depen
 def get_bill(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
     _, store = scope(request, repo, user)
     invoice = store.get(invoice_id)
-    return {**invoice.model_dump(mode='json'), 'filename': bill_filename(invoice)}
+    locked = ''
+    try:
+        store.assert_writable(invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else invoice.selected_period)
+    except HTTPException as exc:
+        if exc.status_code != 409:
+            raise
+        locked = 'This filing period is locked; Auto Review is unavailable.'
+    result = invoice.model_dump(mode='json')
+    if invoice.auto_review.status == 'running' and invoice.auto_review.job_id:
+        job = store.job(invoice.auto_review.job_id)
+        if job['status'] == 'needs_attention' or public_job(job)['retryable']:
+            result['auto_review']['status'] = 'failed'
+            result['auto_review']['reasons'] = ['Auto Review stopped. Run Auto Review to retry the saved invoice, or turn OFF.']
+        elif job['status'] == 'completed' and job.get('result') == 'cancelled':
+            result['auto_review']['status'] = 'cancelled'
+            result['auto_review']['reasons'] = ['The invoice changed or its period was locked. Refresh before trying again.']
+    return {**result, 'filename': bill_filename(invoice), 'auto_review_locked': locked}
 
 
 @router.delete('/{invoice_id}')
@@ -448,7 +468,7 @@ async def edit(invoice_id: str, request: Request, repo=Depends(get_db), user=Dep
     check_version(request, previous)
     body = await request.json()
     owned = {'client_id', 'invoice_id', 'source_doc_id', 'selected_period', 'extraction', 'itc', 'status', 'review_reasons', 'rejection_reason', 'sample', 'version', 'supply_type',
-             'rejection_code','correction_state','correction_reason','correction_actor','correction_at'}
+             'rejection_code','correction_state','correction_reason','correction_actor','correction_at','auto_review'}
     if owned.intersection(body):
         raise HTTPException(422, 'Only bill details may be edited.')
     if 'reverse_charge_paid_reference' in body and user.role not in {'admin', 'tax_admin'}:
@@ -459,6 +479,13 @@ async def edit(invoice_id: str, request: Request, repo=Depends(get_db), user=Dep
         raise HTTPException(422, 'Check the bill fields and enter amounts as decimal text.') from None
     period = invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else previous.selected_period or date.today().strftime('%Y-%m')
     invoice = validate_invoice(invoice, profile_for(repo, client.id, period), store.list())
+    if invoice.auto_review.enabled:
+        invoice.auto_review.status = 'not_started'
+        invoice.auto_review.job_id = ''
+        invoice.auto_review.checks = {}
+        invoice.auto_review.reasons = []
+        invoice.auto_review.rule_ids = []
+        invoice.auto_review.completed_at = ''
     if 'duplicate_invoice' in invoice.review_reasons:
         raise HTTPException(409, 'This supplier GSTIN and invoice number already exist for the financial year.')
     if previous.status=='rejected':
@@ -484,6 +511,11 @@ def confirm(invoice_id: str, request: Request, repo=Depends(get_db), user=Depend
     invoice.status = 'confirmed'
     if previous.correction_state=='resubmitted':
         invoice.correction_state='approved'
+
+
+    if invoice.auto_review.status == 'running':
+        invoice.auto_review.status = 'cancelled'
+        invoice.auto_review.reasons = ['An authorized user confirmed this bill manually.']
     invoice.version += 1
     store.save(invoice, user.id, 'confirm', previous, period)
     return invoice.model_dump(mode='json')
@@ -507,6 +539,9 @@ async def reject(invoice_id: str, request: Request, repo=Depends(get_db), user=D
         raise HTTPException(422,'Choose a supported rejection reason.')
     invoice = previous.model_copy(deep=True)
     invoice.status = 'rejected'
+    if invoice.auto_review.status == 'running':
+        invoice.auto_review.status = 'cancelled'
+        invoice.auto_review.reasons = ['An authorized user rejected this bill.']
     invoice.rejection_reason = reason.strip()
     invoice.rejection_code=code
     invoice.correction_state='rejected'
@@ -563,3 +598,71 @@ async def correction_action(invoice_id: str, action: str, request: Request, repo
         invoice.review_reasons=validated.review_reasons
     store.save(invoice,user.id,action,previous,period)
     return invoice.model_dump(mode='json')
+
+
+def auto_review_target(invoice_id, request, repo, user):
+    client, store = scope(request, repo, user, 'bills:write')
+    invoice = store.get(invoice_id)
+    if not request.headers.get('if-match'):
+        raise HTTPException(428, 'Reopen the invoice before changing Auto Review.')
+    check_version(request, invoice)
+    if invoice.status == 'rejected' or invoice.sample:
+        raise HTTPException(409, 'Auto Review is unavailable for rejected or illustration invoices.')
+    period = invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else invoice.selected_period
+    store.assert_writable(period)
+    return client, store, invoice, period
+
+
+@router.patch('/{invoice_id}/auto-review')
+async def auto_review_policy(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from app.gst.auto_review import now
+    _, store, previous, period = auto_review_target(invoice_id, request, repo, user)
+    body = await request.json()
+    if not isinstance(body, dict) or set(body) != {'enabled'} or type(body['enabled']) is not bool:
+        raise HTTPException(422, 'Choose Auto Review ON or OFF.')
+    if previous.status == 'confirmed' and body['enabled']:
+        raise HTTPException(409, 'This invoice is already confirmed; use the existing correction workflow.')
+    invoice = previous.model_copy(deep=True)
+    invoice.auto_review.enabled = body['enabled']
+    invoice.auto_review.requested_by = str(user.id)
+    invoice.auto_review.requested_at = now()
+    if previous.status != 'confirmed':
+        invoice.auto_review.status = 'not_started' if body['enabled'] else 'cancelled'
+        invoice.auto_review.reasons = []
+        invoice.auto_review.checks = {}
+        invoice.auto_review.rule_ids = []
+        invoice.auto_review.completed_at = ''
+        invoice.auto_review.job_id = ''
+    invoice.version += 1
+    store.save(invoice, user.id, 'auto_review_policy', previous, period)
+    return invoice.model_dump(mode='json')
+
+
+@router.post('/{invoice_id}/auto-review/run')
+def start_auto_review(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    client, store, previous, period = auto_review_target(invoice_id, request, repo, user)
+    if not previous.auto_review.enabled or previous.status == 'confirmed':
+        raise HTTPException(409, 'Enable Auto Review on an unconfirmed invoice first.')
+    if previous.auto_review.status == 'running':
+        prior_job = store.job(previous.auto_review.job_id)
+        if prior_job['status'] not in {'needs_attention', 'completed'} and not public_job(prior_job)['retryable']:
+            raise HTTPException(409, 'Auto Review is already queued or running. Refresh its status.')
+    invoice = previous.model_copy(deep=True)
+    invoice.version += 1
+    job_id = str(uuid4())
+    invoice.auto_review.status = 'running'
+    invoice.auto_review.job_id = job_id
+    job = {'job_id': job_id, 'kind': 'auto_review', 'status': 'queued', 'recovery_version': 1,
+           'actor_id': str(user.id), 'period': period, 'files': [],
+           'invoice_id': invoice_id, 'invoice_version': invoice.version}
+    store.job(job_id, job)
+    store.save(invoice, user.id, 'auto_review_requested', previous, period)
+    if get_settings().gst_bills_queue:
+        try:
+            enqueue(str(client.id), job_id)
+        except Exception:
+            logger.error('Auto Review dispatch uncertain', extra={'job_id': job_id})
+            raise HTTPException(503, 'Auto Review dispatch is unconfirmed. Refresh; do not submit again. Saved work is retained.') from None
+    else:
+        run_job(store, profile_for(repo, client.id, period), str(user.id), job)
+    return store.get(invoice_id).model_dump(mode='json')

@@ -6,7 +6,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from app.config import get_settings
 from .extract import extract
-from .schemas.invoice import GstInvoice, Extraction
+from .schemas.invoice import GstInvoice, Extraction, AutoReview
 from .validate_invoice import validate_invoice
 from .naming import bill_filename
 from .job_state import retryable
@@ -17,8 +17,8 @@ logger=logging.getLogger(__name__)
 
 def public_job(job):
     return {'job_id':job['job_id'],'status':job['status'],'retryable':retryable(job),
-        'reason':job.get('reason'),'files':[
-        {k:v for k,v in entry.items() if k in {'filename','status','invoice_ids','reason'}} for entry in job['files']]}
+        'reason':job.get('reason'),'result':job.get('result'),'files':[
+        {k:v for k,v in entry.items() if k in {'filename','status','invoice_ids','reason','auto_review_status','auto_review_reasons'}} for entry in job['files']]}
 
 
 def enqueue(client_id,job_id,attempt=None):
@@ -56,6 +56,9 @@ def process_job(store,profile,actor,job):
     if job['status']=='completed':
         return job
     job['status']='reading';store.job(job['job_id'],job)
+    if job.get('kind') == 'auto_review':
+        from .auto_review import process_review_job
+        return process_review_job(store, profile, actor, job)
     existing=store.list()
     existing_ids={i.invoice_id for i in existing}
     for entry in job['files']:
@@ -87,6 +90,13 @@ def process_job(store,profile,actor,job):
                 saved=next(i for i in existing if i.invoice_id==invoice.invoice_id)
             else:
                 saved=validate_invoice(invoice,profile,existing)
+                saved.auto_review = AutoReview()  # Document content cannot opt in.
+                if job.get('auto_review_enabled'):
+                    from .auto_review import now
+                    saved.auto_review.enabled = True
+                    saved.auto_review.requested_by = actor
+                    saved.auto_review.requested_at = now()
+                    saved.auto_review.job_id = job['job_id']
                 if 'duplicate_invoice' in saved.review_reasons:
                     entry['reason']='This bill already exists. No duplicate was added.'
                     needs_attention=True
@@ -100,10 +110,18 @@ def process_job(store,profile,actor,job):
                     needs_attention=True
                     continue
                 existing.append(saved);existing_ids.add(saved.invoice_id)
+            if saved.auto_review.enabled and saved.auto_review.job_id == job['job_id'] and saved.auto_review.status == 'not_started':
+                from .auto_review import review_invoice
+                saved = review_invoice(store, profile, actor, saved.invoice_id, saved.version)
             if len(invoices)==1:
                 entry['filename']=bill_filename(saved)
             if saved.invoice_id not in entry['invoice_ids']:
                 entry['invoice_ids'].append(saved.invoice_id)
+            if saved.auto_review.enabled:
+                entry['auto_review_status'] = saved.auto_review.status
+                entry['auto_review_reasons'] = saved.auto_review.reasons
+                entry['reason'] = ('Auto Confirmed: all required checks passed.' if saved.auto_review.status == 'auto_confirmed'
+                                   else 'Manual Review Required: ' + '; '.join(saved.auto_review.reasons))
             needs_attention=needs_attention or saved.status in {'needs_review','rejected'}
         entry['status']='needs_attention' if needs_attention else 'ready'
         store.job(job['job_id'],job)

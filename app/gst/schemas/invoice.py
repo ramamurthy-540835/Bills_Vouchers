@@ -94,3 +94,20 @@ class GstInvoice(Model):
     correction_at: str = ''
     version: int = 1
     sample: bool = False
+    auto_review: 'AutoReview' = Field(default_factory=lambda: AutoReview())
+
+
+class AutoReview(Model):
+    enabled: bool = False
+    status: Literal['not_started', 'running', 'auto_confirmed', 'manual_required', 'failed', 'cancelled'] = 'not_started'
+    requested_by: str = ''
+    requested_at: str = ''
+    completed_at: str = ''
+    policy_version: str = 'auto-review-v1'
+    job_id: str = ''
+    reasons: list[str] = Field(default_factory=list)
+    checks: dict[str, bool] = Field(default_factory=dict)
+    rule_ids: list[str] = Field(default_factory=list)
+
+
+GstInvoice.model_rebuild()

@@ -191,5 +191,13 @@
 .original-preview-fallback{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;overflow-wrap:anywhere;min-width:0;max-width:100%;font-size:14px}
 .original-preview-expand{position:absolute;right:8px;bottom:8px;display:flex;padding:6px;background:white;border-radius:6px;color:#187653}
 .original-preview-status{min-height:20px;margin:12px 0}
+.auto-review-card{border:1px solid #dce6df;border-radius:12px;background:#f7faf8;padding:18px;margin:16px 0;min-width:0}
+.auto-review-card h3{margin:0}.auto-review-card p{margin:8px 0;line-height:1.5}.auto-review-card ul{padding-left:22px;overflow-wrap:anywhere}
+.auto-review-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.auto-review-switch{flex-shrink:0;min-height:44px;min-width:70px;border:1px solid #60756a;border-radius:24px;background:#e2e8e4;color:#203e30;font-weight:600;cursor:pointer}
+.auto-review-switch[aria-checked=true]{background:#187653;color:white}.auto-review-switch[aria-checked=true]:hover{background:#125c40}
+.auto-review-switch:focus-visible{outline:3px solid #187653;outline-offset:4px}.auto-review-switch:disabled{opacity:.65;cursor:not-allowed}
+.invoice-form[inert]{opacity:.7}
+.auto-review-card input[type=checkbox]{accent-color:#187653;width:18px;height:18px;margin-right:8px}
 @media(max-width:1100px){.invoice-review .original-bill{grid-row:1}.bill-review-drawer .original-bill{position:static}.original-invoice-preview{height:300px}}
 @media(max-width:760px){.bill-review-drawer .invoice-form,.bill-review-drawer .original-bill{padding:16px}.bill-review-drawer .invoice-form .account-form{grid-template-columns:1fr}.original-invoice-preview{height:260px}.bill-review-drawer .filing-actions button{flex:1 1 130px}}

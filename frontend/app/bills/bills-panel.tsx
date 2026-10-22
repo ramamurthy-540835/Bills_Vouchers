@@ -6,6 +6,7 @@ import OriginalInvoicePreview from './original-invoice-preview'
 import ReviewEvidence,{rejectionReasons} from './review-evidence'
 import SourceIntake from './source-intake'
 import CorrectionQueue from './correction-queue'
+import AutoReviewControl from './auto-review-control'
 import {GST} from '../../lib/copy/gst'
 import {money} from '../workspace'
 
@@ -25,6 +26,7 @@ export default function BillsPanel({data}:{data:any}){
  const [dirty,setDirty]=useState(false),[opening,setOpening]=useState(false),[rejectionReason,setRejectionReason]=useState('')
  const [rejectionCode,setRejectionCode]=useState('other')
  const [queueRevision,setQueueRevision]=useState(0)
+ const [batchAuto,setBatchAuto]=useState(false),[pendingFiles,setPendingFiles]=useState<File[]>([]),[excluded,setExcluded]=useState<number[]>([])
  const [history,setHistory]=useState<any[]>([]),[deleted,setDeleted]=useState<any[]>([])
  const dialog=useRef<HTMLDialogElement>(null),openSequence=useRef(0)
  useEffect(()=>{if(selected&&!dialog.current?.open)dialog.current?.showModal()},[selected])
@@ -40,6 +42,10 @@ export default function BillsPanel({data}:{data:any}){
  async function retryUpload(id:string){setBusy(true);try{let job=await api(`/upload/${id}/retry`,'POST');sessionStorage.setItem(jobKey,id);while(!['completed','needs_attention'].includes(job.status)&&!job.retryable){setJobs(job.files);await new Promise(resolve=>setTimeout(resolve,1500));job=await api(`/upload/${id}`)}sessionStorage.removeItem(jobKey);if(job.retryable)setMessage('Processing needs attention. Open upload history to retry the saved upload.');setJobs(job.files);await reload();await loadHistory()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  async function restore(invoice:any){if(!window.confirm('Restore this bill for review? It will require confirmation again.'))return;setBusy(true);try{await api(`/${invoice.invoice_id}/restore`,'POST',undefined,invoice.version);await reload();await loadHistory();setMessage('Bill restored for review.')}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  useEffect(()=>{let active=true;const id=sessionStorage.getItem(jobKey);if(id){setBusy(true);(async()=>{try{while(active){const job=await api(`/upload/${id}`);if(!active)return;setJobs(job.files);await reload();if(job.status==='completed'||job.status==='needs_attention'||job.retryable){sessionStorage.removeItem(jobKey);if(job.retryable)setMessage('Processing needs attention. Open upload history to retry the saved upload.');break}await new Promise(resolve=>setTimeout(resolve,1500))}}catch(e){if(active)setMessage((e as Error).message)}finally{if(active)setBusy(false)}})()}return()=>{active=false}},[jobKey])
+ function chooseFiles(files:FileList|File[]|null){if(loading||busy)return;if(batchAuto&&files?.length){setPendingFiles(Array.from(files));setExcluded([])}else upload(files)}
+ async function autoChange(enabled:boolean){setBusy(true);try{setSelected(await api(`/${selected.invoice_id}/auto-review`,'PATCH',{enabled},selected.version));await reload()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
+ async function autoRun(){setBusy(true);try{setSelected(await api(`/${selected.invoice_id}/auto-review/run`,'POST',undefined,selected.version));await reload()}catch(e){setMessage((e as Error).message);setSelected(await api(`/${selected.invoice_id}`))}finally{setBusy(false)}}
+ const refreshAuto=useCallback(()=>{if(!selected?.invoice_id)return;api(`/${selected.invoice_id}`).then(value=>{setSelected((old:any)=>old?.invoice_id===value.invoice_id?value:old);reload()}).catch(e=>setMessage(e.message))},[selected?.invoice_id,reload])
  async function upload(files:FileList|File[]|null){
   if(!files?.length||busy||loading)return
   const chosen=Array.from(files)
@@ -48,7 +54,7 @@ export default function BillsPanel({data}:{data:any}){
   const completed:any[]=[]
   try{for(const file of chosen){
    const body=new FormData();body.append('files',file)
-   let job=await api(`/upload?period=${period}`,'POST',body)
+   let job=await api(`/upload?period=${period}&auto_review=${batchAuto&&!excluded.includes(chosen.indexOf(file))}`,'POST',body)
    sessionStorage.setItem(jobKey,job.job_id)
    while(job.status!=='completed'&&job.status!=='needs_attention'&&!job.retryable){
     setJobs([...completed,...job.files,...chosen.slice(completed.length+1).map(f=>({filename:f.name,status:'reading'}))])
@@ -56,7 +62,7 @@ export default function BillsPanel({data}:{data:any}){
    }
    sessionStorage.removeItem(jobKey);completed.push(...job.files)
    setJobs([...completed,...chosen.slice(completed.length).map(f=>({filename:f.name,status:'reading'}))]);await reload()
-  }}catch(e){setMessage(e instanceof Error?e.message:GST.failed);setJobs([...completed,...chosen.slice(completed.length).map(f=>({filename:f.name,status:'needs_attention'}))])}finally{setBusy(false)}
+  }}catch(e){setMessage(e instanceof Error?e.message:GST.failed);setJobs([...completed,...chosen.slice(completed.length).map(f=>({filename:f.name,status:'needs_attention'}))])}finally{setBusy(false);setPendingFiles([]);setExcluded([]);setBatchAuto(false)}
  }
  async function open(id:string){if(busy)return;const sequence=++openSequence.current;setOpening(true);try{const result=await api(`/${id}`);if(sequence===openSequence.current){setSelected(result);setDirty(false);setMessage('')}}catch(e){setMessage((e as Error).message)}finally{if(sequence===openSequence.current)setOpening(false)}}
  function save(body:any){if(!write||busy)return;setSelected((current:any)=>({...current,...body}));setDirty(true)}
@@ -85,7 +91,8 @@ export default function BillsPanel({data}:{data:any}){
    {!historyLoading&&!historyError&&historyView==='deleted'&&deleted.map(invoice=><p key={invoice.invoice_id}>{invoice.filename} <button className="button secondary" disabled={busy} onClick={()=>restore(invoice)}>Restore for review</button></p>)}
   </section>
   <>
-   {write?<section className="bill-drop bv-card" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();upload(e.dataTransfer.files)}}><FileUp size={28}/><h2>{GST.drop}</h2><label className="button primary">{GST.upload}<input className="visually-hidden" aria-label={GST.upload} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv" disabled={busy||loading} onChange={e=>{upload(e.target.files);e.target.value=''}}/></label><p><Link href="/api/gst/bills/template.xlsx">{GST.template}</Link></p><small>{GST.maxFiles}</small></section>:<p>{GST.readOnly}</p>}
+   {write&&<section className="auto-review-card"><label><input type="checkbox" role="switch" aria-label="Auto Review All Eligible Bills" checked={batchAuto} disabled={busy||pendingFiles.length>0} onChange={e=>setBatchAuto(e.target.checked)}/> Auto Review All Eligible Bills</label><p>OFF by default. Applies only to this upload. Every required check must pass.</p>{pendingFiles.length>0&&<><ul>{pendingFiles.map((file,index)=><li key={index}><label><input type="checkbox" aria-label={`Auto Review ${file.name}`} checked={!excluded.includes(index)} onChange={e=>setExcluded(old=>e.target.checked?old.filter(i=>i!==index):[...old,index])} disabled={busy}/>{file.name}</label></li>)}</ul><button className="button primary" disabled={busy} onClick={()=>upload(pendingFiles)}>Upload selected bills</button><button className="button secondary" disabled={busy} onClick={()=>setPendingFiles([])}>Cancel selection</button></>}</section>}
+   {write?<section className="bill-drop bv-card" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();chooseFiles(e.dataTransfer.files)}}><FileUp size={28}/><h2>{GST.drop}</h2><label className="button primary">{GST.upload}<input className="visually-hidden" aria-label={GST.upload} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv" disabled={busy||loading} onChange={e=>{chooseFiles(e.target.files);e.target.value=''}}/></label><p><Link href="/api/gst/bills/template.xlsx">{GST.template}</Link></p><small>{GST.maxFiles}</small></section>:<p>{GST.readOnly}</p>}
    {!!jobs.length&&<ul className="upload-progress" aria-live="polite">{jobs.map((j,i)=><li key={i}><strong>{j.filename}</strong><span>{j.status==='reading'?GST.reading:j.status==='ready'?GST.ready:GST.attention}</span>{j.reason&&<p>{j.reason}</p>}{j.invoice_ids?.map((id:string)=><button className="button quiet" key={id} onClick={()=>open(id)}>{GST.review}</button>)}</li>)}</ul>}
    <section className="bv-card bill-register-card"><div className="bill-management-toolbar"><label htmlFor="bill-status">{GST.filter}</label><select id="bill-status" aria-label={GST.filter} value={status} onChange={e=>setStatus(e.target.value)}><option value="">{GST.all}</option>{['extracted','needs_review','confirmed','rejected'].map(s=><option key={s} value={s}>{GST.status[s]}</option>)}</select><Link className="button secondary" href={`/api/gst/bills/export?period=${period}&format=xlsx`}>{GST.export}</Link></div>
    {loading?<div className="skeleton skeleton-table" aria-label={GST.loading}/>:!bills.length?<p className="empty-state">{GST.none}</p>:<div className="table-scroll bills-table"><table><thead><tr>{[GST.supplier,GST.invoiceNo,GST.date,GST.taxable,GST.tax,GST.total,GST.itc,GST.actions].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{bills.map(b=><tr key={b.invoice_id} onClick={()=>open(b.invoice_id)}><td data-label={GST.supplier}>{b.supplier_legal_name||'—'}<small className="gstin-text">{b.supplier_gstin}</small></td><td data-label={GST.invoiceNo}><small>{b.filename}</small><span>{b.invoice_number||'—'}</span></td><td data-label={GST.date}>{b.invoice_date?new Date(`${b.invoice_date}T12:00:00Z`).toLocaleDateString('en-IN'):'—'}</td><td data-label={GST.taxable} className="money">{money(b.totals.taxable_value)}</td><td data-label={GST.tax} className="money">{['cgst','sgst','igst','cess'].map(h=><small key={h}>{GST.fields[h]} {money(b.totals[h])}</small>)}</td><td data-label={GST.total} className="money">{money(b.totals.invoice_total)}</td><td data-label={GST.itc}><span className="chip">{GST.status[b.status]}</span><small>{GST.status[b.itc.eligibility]}</small></td><td><button className="button quiet" onClick={e=>{e.stopPropagation();open(b.invoice_id)}}>{GST.review}</button></td></tr>)}</tbody></table></div>}</section>
@@ -93,7 +100,8 @@ export default function BillsPanel({data}:{data:any}){
   {selected&&<dialog ref={dialog} className="bill-review-drawer" aria-labelledby="bill-review-title" onCancel={event=>{event.preventDefault();close()}}>
    {message&&<p className="notice" role="status">{message}</p>}
    <div className="section-heading"><button className="button quiet" disabled={busy} onClick={close}>{GST.back}</button><span className="chip">{GST.status[selected.status]}</span></div>
-   <h2 id="bill-review-title">{GST.invoice}: {selected.invoice_number||'New bill'}</h2><div className="invoice-review"><section className="bv-card invoice-form"><p className="muted">{GST.inputHint}</p><div className="account-form">{['supplier_gstin','supplier_legal_name','supplier_address','recipient_gstin','recipient_legal_name','recipient_address','invoice_number','invoice_date','place_of_supply_state_code'].map(f=>input(f,selected[f],v=>save({[f]:v}),f==='invoice_date'?'date':'text'))}
+   <AutoReviewControl invoice={selected} write={write} busy={busy} dirty={dirty} change={autoChange} run={autoRun} refresh={refreshAuto}/>
+   <h2 id="bill-review-title">{GST.invoice}: {selected.invoice_number||'New bill'}</h2><div className="invoice-review"><section className="bv-card invoice-form" inert={selected.auto_review?.status==='running'}><p className="muted">{GST.inputHint}</p><div className="account-form">{['supplier_gstin','supplier_legal_name','supplier_address','recipient_gstin','recipient_legal_name','recipient_address','invoice_number','invoice_date','place_of_supply_state_code'].map(f=>input(f,selected[f],v=>save({[f]:v}),f==='invoice_date'?'date':'text'))}
     <label>{GST.direction}<select disabled={!write||busy} value={selected.direction} onChange={e=>save({direction:e.target.value})}><option value="purchase">{GST.purchase}</option><option value="sale">{GST.sale}</option></select></label>
     <label>{GST.type}<select disabled={!write||busy} value={selected.invoice_type} onChange={e=>save({invoice_type:e.target.value})}>{[['tax_invoice',GST.taxInvoice],['bill_of_supply',GST.billOfSupply],['debit_note',GST.debitNote],['credit_note',GST.creditNote]].map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
     <label>{GST.reverseCharge}<input type="checkbox" checked={selected.reverse_charge} disabled={!write||busy} onChange={e=>save({reverse_charge:e.target.checked})}/></label>
