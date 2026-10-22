@@ -10,7 +10,7 @@ from google.api_core.exceptions import BadRequest, Conflict, PreconditionFailed
 
 from app.config import get_settings
 from app.services.gst.medallion import param
-from .schemas.invoice import GstInvoice
+from .schemas.invoice import GstInvoice, AutoReview
 from .validate_invoice import financial_year
 from .naming import bill_filename
 from .job_state import JobState, payload as job_payload
@@ -67,15 +67,41 @@ class BillStore(JobState):
         if status:
             clause += ' AND status=@status'
             params.append(param('status', status))
-        return [GstInvoice.model_validate(json.loads(row['payload']) if isinstance(row['payload'], str) else row['payload'])
-                for row in self.query(f'SELECT payload FROM {self.table("gold", "gst_invoice")} WHERE client_id=@client_id{clause} ORDER BY updated_at DESC', params)]
+        return self.auto_policies([GstInvoice.model_validate(json.loads(row['payload']) if isinstance(row['payload'], str) else row['payload'])
+                for row in self.query(f'SELECT payload FROM {self.table("gold", "gst_invoice")} WHERE client_id=@client_id{clause} ORDER BY updated_at DESC', params)])
 
     def get(self, invoice_id):
         rows = self.query(f'SELECT payload FROM {self.table("gold", "gst_invoice")} WHERE client_id=@client_id AND invoice_id=@id', [param('id', invoice_id)])
         if not rows:
             raise HTTPException(404, 'Bill not found.')
         payload = rows[0]['payload']
-        return GstInvoice.model_validate(json.loads(payload) if isinstance(payload, str) else payload)
+        return self.auto_policies([GstInvoice.model_validate(json.loads(payload) if isinstance(payload, str) else payload)])[0]
+
+    def auto_policies(self, invoices):
+        # Keep new policy metadata out of the strict canonical invoice schema
+        # consumed by older revisions. Policy and invoice writes share one txn.
+        if not invoices:
+            return invoices
+        rows = self.query(f'''SELECT invoice_id,after_payload FROM {self.table('ops','gst_bill_audit')}
+            WHERE client_id=@client_id AND action='auto_review_state'
+            AND invoice_id IN UNNEST(JSON_VALUE_ARRAY(@auto_ids))
+            QUALIFY ROW_NUMBER() OVER(PARTITION BY invoice_id ORDER BY created_at DESC)=1''',
+            [param('auto_ids', json.dumps([i.invoice_id for i in invoices]))])
+        policies = {row['invoice_id']: row['after_payload'] for row in rows if row.get('after_payload') is not None}
+        for invoice in invoices:
+            payload = policies.get(invoice.invoice_id)
+            if payload is None:
+                continue
+            state = json.loads(payload) if isinstance(payload, str) else payload
+            policy = AutoReview.model_validate(state['auto_review'])
+            if state['version'] != invoice.version and policy.enabled:
+                policy.status = 'cancelled'
+                policy.job_id = ''
+                policy.checks = {}
+                policy.rule_ids = []
+                policy.reasons = ['The invoice changed in another revision. Run Auto Review again against the current version.']
+            invoice.auto_review = policy
+        return invoices
 
     def correction_queue(self, period, state='active', offset=0):
         # Legacy rejected invoices have no correction_state. Keep them actionable.
@@ -127,10 +153,14 @@ class BillStore(JobState):
             invoice.selected_period = selected_period
         if invoice.supplier_gstin and invoice.invoice_number and invoice.extraction.raw_ref:
             self.name_original(invoice)
-        payload = invoice.model_dump_json()
+        payload = invoice.model_dump_json(exclude={'auto_review'})
+        policy_state = json.dumps({'version': invoice.version, 'auto_review': invoice.auto_review.model_dump(mode='json')})
+        before_policy = json.dumps({'version': previous.version if previous else 0,
+            'auto_review': previous.auto_review.model_dump(mode='json') if previous else AutoReview().model_dump(mode='json')})
         params = [param('id', invoice.invoice_id), param('payload', payload),
                   param('previous_period', (previous.invoice_date.strftime('%Y-%m') if previous.invoice_date else previous.selected_period) if previous else invoice.selected_period),
-                  param('before', previous.model_dump_json() if previous else 'null'),
+                  param('before', previous.model_dump_json(exclude={'auto_review'}) if previous else 'null'),
+                  param('auto_policy', policy_state), param('before_auto_policy', before_policy),
                   param('expected', previous.version if previous else 0, 'INT64'),
                   param('version', invoice.version, 'INT64'), param('actor', str(actor)), param('action', action),
                   param('period', invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else invoice.selected_period),
@@ -157,6 +187,7 @@ class BillStore(JobState):
         SELECT @client_id,@id,position+1,CAST(JSON_VALUE(@payload,'$.invoice_date') AS DATE),JSON_VALUE(line,'$.description'),JSON_VALUE(line,'$.hsn_sac'),CAST(JSON_VALUE(line,'$.quantity') AS NUMERIC),JSON_VALUE(line,'$.unit'),CAST(JSON_VALUE(line,'$.gst_rate') AS NUMERIC),CAST(JSON_VALUE(line,'$.taxable_value') AS NUMERIC),CAST(JSON_VALUE(line,'$.cgst') AS NUMERIC),CAST(JSON_VALUE(line,'$.sgst') AS NUMERIC),CAST(JSON_VALUE(line,'$.igst') AS NUMERIC),CAST(JSON_VALUE(line,'$.cess') AS NUMERIC)
         FROM UNNEST(JSON_QUERY_ARRAY(@payload,'$.line_items')) line WITH OFFSET position;
         INSERT INTO {self.table('ops', 'gst_bill_audit')} VALUES (@client_id,@id,@actor,@action,PARSE_JSON(@before),PARSE_JSON(@payload),CURRENT_TIMESTAMP());
+        INSERT INTO {self.table('ops', 'gst_bill_audit')} VALUES (@client_id,@id,@actor,'auto_review_state',PARSE_JSON(@before_auto_policy),PARSE_JSON(@auto_policy),CURRENT_TIMESTAMP());
         COMMIT TRANSACTION;'''
         try:
             self.query(sql, params)
@@ -187,7 +218,7 @@ class BillStore(JobState):
         if not rows:
             raise HTTPException(404, 'Deleted bill not found.')
         payload = rows[0]['payload']
-        return GstInvoice.model_validate(json.loads(payload) if isinstance(payload,str) else payload)
+        return self.auto_policies([GstInvoice.model_validate(json.loads(payload) if isinstance(payload,str) else payload)])[0]
 
     def job_history(self, period):
         rows = self.query(f'''SELECT payload,updated_at FROM {self.table('ops', 'gst_bill_job')}
@@ -208,7 +239,7 @@ class BillStore(JobState):
                 DELETE FROM {self.table('silver', 'gst_invoice_line')} WHERE client_id=@client_id AND invoice_id=@id;
                 DELETE FROM {self.table('gold', 'gst_invoice')} WHERE client_id=@client_id AND invoice_id=@id;
                 COMMIT TRANSACTION;''', [param('id', invoice.invoice_id), param('expected', invoice.version, 'INT64'),
-                    param('actor', str(actor)), param('before', invoice.model_dump_json()),
+                    param('actor', str(actor)), param('before', invoice.model_dump_json(exclude={'auto_review'})),
                     param('period',invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else invoice.selected_period),
                     param('previous_period',invoice.selected_period)])
         except (BadRequest, Conflict) as exc:

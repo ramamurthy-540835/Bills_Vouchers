@@ -6,7 +6,11 @@ push to `GST_NEW_V3`. This is a selective merge, not a replacement of V3 files.
 ## Behavior and preserved V3 features
 
 - Invoice Auto Review defaults OFF, with backend policy/version/actor/time and
-  audit persistence. OFF retains extraction and deterministic validation.
+  audit persistence. Policy metadata is kept in versioned `auto_review_state`
+  audit entries, committed in the same transaction as the invoice version.
+  Canonical invoice JSON excludes this new field so older live revisions remain
+  able to read it. An older-revision edit cancels the pending automatic decision
+  without silently removing the user's opt-in. OFF retains extraction and validation.
 - Explicit opt-in plus Run Auto Review creates the existing durable, tenant-bound
   worker job. Stale versions, missing permission, locks, duplicate invoices,
   invalid arithmetic, missing evidence or unapproved GST policies prevent
@@ -23,7 +27,7 @@ push to `GST_NEW_V3`. This is a selective merge, not a replacement of V3 files.
 
 ## Quality gates actually executed
 
-- Backend pytest: **562 passed**, six existing deprecation warnings and one local
+- Backend pytest after compatibility correction: **565 passed**, six existing deprecation warnings and one local
   pytest-cache permission warning. An initial sandbox DLL access failure was
   resolved by running with authorized installed-runtime access.
 - Ruff: passed. mypy: passed, 89 files.

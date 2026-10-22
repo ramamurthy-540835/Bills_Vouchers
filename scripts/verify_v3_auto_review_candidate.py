@@ -102,6 +102,23 @@ def main():
         assert response.status in {401, 403, 307}
         record('anonymous_invoice_access_denied')
         unauthorized.dispose()
+        # Existing live revision must still read the same canonical invoice.
+        live_base = base.replace('auto-review---', '')
+        legacy_context = browser.new_context()
+        legacy_page = legacy_context.new_page()
+        legacy_page.set_default_timeout(180000)
+        legacy_page.goto(live_base + '/login')
+        legacy_page.get_by_label('Email', exact=True).fill('naturelabs1@demo.com')
+        password = cloud('secrets', 'versions', 'access', '1', '--secret=gst-easy-v3-naturelabs1-password', '--project', PROJECT)
+        legacy_page.locator('input[type=password]').fill(password)
+        del password
+        legacy_page.get_by_role('button', name='Sign in', exact=True).click()
+        legacy_page.wait_for_url('**/gst/workspace')
+        legacy_response = legacy_context.request.get(live_base + '/api/gst/bills/' + identifier, timeout=180000)
+        assert legacy_response.status == 200
+        assert legacy_response.json()['status'] == 'needs_review'
+        record('previous_live_revision_still_reads_reviewed_invoice')
+        legacy_context.close()
         browser.close()
 
 

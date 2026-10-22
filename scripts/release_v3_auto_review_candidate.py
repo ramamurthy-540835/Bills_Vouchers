@@ -51,7 +51,7 @@ def build():
     source = git('rev-parse', 'HEAD')
     assert git('ls-remote', 'origin', 'refs/heads/GST_NEW_V3').split()[0] == source
     assert not git('diff', '--name-only') and not git('diff', '--cached', '--name-only'), 'Tracked changes must be committed.'
-    destination = ART / 'build-source'
+    destination = ART / ('build-source-' + source[:12])
     assert not destination.exists(), 'Inspect an existing snapshot; do not overwrite it.'
     archive = subprocess.check_output([*GIT, 'archive', '--format=zip', source], cwd=ROOT)
     with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
@@ -80,9 +80,14 @@ def deploy():
     assert build['status'] == 'SUCCESS' and build['substitutions']['_REVISION'] == metadata['commit']
     current = services()
     previous = baseline()
+    prior_release = json.loads((ART / 'deployment.json').read_text()) if (ART / 'deployment.json').exists() else None
     for name in TARGETS:
-        assert previous[name]['spec'] == current[name]['spec'] and previous[name]['status'] == current[name]['status']
-        assert not any(t.get('tag') == TAG for t in current[name]['status']['traffic'])
+        tagged = [t for t in current[name]['status']['traffic'] if t.get('tag') == TAG]
+        if tagged:
+            assert prior_release and tagged[0] == prior_release['candidates'][name.rsplit('-', 1)[1]], 'Unexpected candidate revision'
+            assert traffic(previous[name]) == traffic(current[name], TAG)
+        else:
+            assert previous[name]['spec'] == current[name]['spec'] and previous[name]['status'] == current[name]['status']
     env = {v['name']: v.get('value') for v in current['gst-easy-v3-api']['spec']['template']['spec']['containers'][0]['env']}
     assert env['GST_DATASET_PREFIX'] == 'gst_easy_v3_' and env['BIGQUERY_DATASET'] == 'gst_easy_v3_finance_analytics'
     assert env['GCS_BUCKET_NAME'] == PROJECT + '-gst-easy-v3-documents'
@@ -99,7 +104,7 @@ def deploy():
     candidate_web = web.replace('https://', 'https://' + TAG + '---')
     values = {
         'api': {'GST_BILLS_WORKER_URL': candidate_api, 'GST_BILLS_WORKER_AUDIENCE': api,
-                'ALLOWED_ORIGINS': env.get('ALLOWED_ORIGINS', web) + ',' + candidate_web,
+                'ALLOWED_ORIGINS': ','.join(dict.fromkeys([*env.get('ALLOWED_ORIGINS', web).split(','), candidate_web])),
                 'AUTH_PUBLIC_URL': candidate_web, 'RELEASE_REVISION': metadata['commit']},
         'web': {'BACKEND_URL': candidate_api, 'BACKEND_ID_TOKEN_AUDIENCE': api, 'RELEASE_REVISION': metadata['commit']},
     }
