@@ -107,17 +107,5 @@ def process(repo, mail_id):
 
 
 def repair(repo):
-    rows = repo.query(f'''SELECT id FROM `{repo.table('auth_outbox')}` WHERE status NOT IN ({TERMINAL})
-        AND created_at>TIMESTAMP_SUB(CURRENT_TIMESTAMP(),INTERVAL 1 DAY)
-        AND (lease_until IS NULL OR lease_until<CURRENT_TIMESTAMP()) ORDER BY created_at LIMIT 50''')
-    for row in rows:
-        # Repair uses a new task name; SMTP retries reuse the same link/token.
-        from google.cloud.tasks_v2 import CloudTasksClient, HttpMethod
-        settings = ready()
-        CloudTasksClient().create_task(request={'parent': settings.auth_mail_queue, 'task': {
-            'http_request': {'http_method': HttpMethod.POST, 'url': settings.auth_worker_url.rstrip('/') + '/internal/auth/mail',
-                'headers': {'Content-Type': 'application/json'},
-                'oidc_token': {'service_account_email': settings.auth_worker_account,
-                              'audience': settings.auth_worker_audience or settings.auth_worker_url},
-                'body': json.dumps({'mail_id': row['id']}).encode()}}})
-    return len(rows)
+    from app.services.auth_mail_repair import repair as bounded_repair
+    return bounded_repair(repo, ready(), TERMINAL)

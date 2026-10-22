@@ -123,6 +123,7 @@ async def retrieve(
         headers["Accept"] = "application/json"
         kwargs["params"] = {"limit": 1000, **({"cursor": cursor} if cursor else {})}
         method = "GET"
+    payload: Any
     try:
         async with httpx.AsyncClient(
             transport=transport, timeout=15, follow_redirects=False, trust_env=False
@@ -134,16 +135,19 @@ async def retrieve(
                     raise ConnectorError("Source request failed. Previous records and cursor are preserved.")
                 body = bytearray()
                 async for chunk in response.aiter_bytes():
-                    body.extend(chunk)
-                    if len(body) > MAX_BYTES:
+                    if len(body) + len(chunk) > MAX_BYTES:
                         raise ConnectorError("Source response exceeds the supported size.")
+                    body.extend(chunk)
                 content_type = response.headers.get("content-type", "").split(";")[0]
                 if content_type == "text/event-stream" and connection.mode == "mcp":
                     messages = []
                     for event in body.decode().replace("\r\n", "\n").split("\n\n"):
                         data = "\n".join(line[5:].lstrip() for line in event.splitlines() if line.startswith("data:"))
                         if data:
-                            messages.append(json.loads(data))
+                            message = json.loads(data)
+                            if not isinstance(message, dict):
+                                raise ConnectorError("Invalid MCP event response.")
+                            messages.append(message)
                     finals = [m for m in messages if m.get("id") == request_id]
                     if len(finals) != 1:
                         raise ConnectorError("Source did not return one complete response.")
@@ -175,6 +179,8 @@ async def retrieve(
     next_cursor = payload.get("next_cursor")
     if next_cursor is not None and (not isinstance(next_cursor, str) or len(next_cursor) > 1000):
         raise ConnectorError("Source returned an invalid cursor.")
+    if next_cursor is not None and (not next_cursor or next_cursor == cursor):
+        raise ConnectorError("Source cursor did not advance. Previous records and cursor are preserved.")
     normalized = preview(connection.source_system, payload["records"])
     return {
         **normalized,

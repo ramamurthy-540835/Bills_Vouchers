@@ -75,3 +75,30 @@ def test_mcp_sse():
                               text=': keepalive\n\ndata: '+json.dumps(body)+'\n\n')
     assert asyncio.run(retrieve(connection, 'tenant-a', credential,
                                 httpx.MockTransport(respond)))['accepted'] == []
+
+
+@pytest.mark.parametrize('event', ['[]', 'null', '42', '"private-provider-text"'])
+def test_malformed_sse_is_safe_error_not_unhandled_exception(event):
+    connection, credential = fixture('mcp')
+    with pytest.raises(ConnectorError, match='Invalid MCP event response') as error:
+        asyncio.run(retrieve(connection, 'tenant-a', credential, httpx.MockTransport(
+            lambda request: httpx.Response(200, headers={'content-type': 'text/event-stream'},
+                                           text='data: '+event+'\n\n'))))
+    assert 'private-provider-text' not in str(error.value)
+
+
+@pytest.mark.parametrize('next_cursor', ['', 'saved-cursor'])
+def test_source_cannot_create_nonadvancing_sync_loop(next_cursor):
+    connection, credential = fixture()
+    with pytest.raises(ConnectorError, match='did not advance'):
+        asyncio.run(retrieve(connection, 'tenant-a', credential, httpx.MockTransport(
+            lambda request: httpx.Response(200, json={'records': [], 'next_cursor': next_cursor})),
+            'saved-cursor'))
+
+
+def test_oversized_source_response_is_rejected(monkeypatch):
+    monkeypatch.setattr('app.gst.connectors.MAX_BYTES', 10)
+    connection, credential = fixture()
+    with pytest.raises(ConnectorError, match='supported size'):
+        asyncio.run(retrieve(connection, 'tenant-a', credential, httpx.MockTransport(
+            lambda request: httpx.Response(200, json={'records': []}))))

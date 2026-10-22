@@ -60,6 +60,7 @@ def build(store, period, scope_name, profile_for):
     line_count = 0
     statement_count = 0
     for month in selected:
+        month_profile = profile if month == period else profile_for(month)
         invoices = evidence[month]['invoices']
         if any(inv.client_id != store.client_id for inv in invoices):
             raise HTTPException(403, 'Dashboard evidence does not belong to this business.')
@@ -71,7 +72,7 @@ def build(store, period, scope_name, profile_for):
         statement_count += len(statements)
         if statement_count > MAX_ROWS:
             raise HTTPException(422, 'This dashboard range is too large. Select a shorter period.')
-        calculation = calculate(invoices, profile, statements)
+        calculation = calculate(invoices, month_profile, statements)
         comparison = compare(invoices, statements)
         counts = comparison['counts']
         confirmed = [inv for inv in invoices if inv.status == 'confirmed' and not inv.sample]

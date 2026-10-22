@@ -1,5 +1,7 @@
 import json
 import re
+import random
+import time
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -31,14 +33,25 @@ class BillStore(JobState):
         return f'`{self.project}.{prefix}{dataset}.{name}`'
 
     def query(self, sql, params=()):
-        try:
-            return self.repo.query(sql, [param('client_id', self.client_id), *params])
-        except BadRequest as exc:
-            if 'worker claim lost' in str(exc).lower():
-                raise RuntimeError('Worker claim lost; stop processing this upload.') from None
-            if 'filing period frozen' in str(exc).lower():
-                raise HTTPException(409, 'This filing period is frozen. An authorized reopen is required.') from None
-            raise
+        parameters = [param('client_id', self.client_id), *params]
+        transaction = sql.lstrip().upper().startswith('BEGIN TRANSACTION;')
+        for attempt in range(3):
+            try:
+                return self.repo.query(sql, parameters)
+            except (BadRequest, Conflict) as exc:
+                message = str(exc).lower()
+                if 'worker claim lost' in message:
+                    raise RuntimeError('Worker claim lost; stop processing this upload.') from None
+                if 'filing period frozen' in message:
+                    raise HTTPException(409, 'This filing period is frozen. An authorized reopen is required.') from None
+                # Replay only a transaction explicitly rolled back by contention.
+                # Timeouts/unknown commit outcomes and business assertions are NOT
+                # retryable. Every replay rechecks versions, tenant and worker fences.
+                aborted = 'transaction is aborted due to concurrent update' in message
+                if not transaction or not aborted or attempt == 2:
+                    raise
+                time.sleep(random.uniform(0.1, 0.2) * (2 ** attempt))
+        raise RuntimeError('Transaction retry exhausted')  # Defensive unreachable guard.
 
     def latest_period(self):
         rows = self.query(f'''SELECT COALESCE(MAX(IF(status='confirmed',period,NULL)),MAX(period)) AS period

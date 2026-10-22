@@ -36,6 +36,20 @@ def test_quarter_does_not_spend_previous_month_credit(source, invoice, profile):
     assert row['confirmed_count'] == 2
 
 
+def test_range_calculations_use_each_months_profile(source, profile, monkeypatch):
+    store, _ = source
+    calculate = dashboard.calculate
+    observed = []
+    def calculate_month(invoices, month_profile, statements):
+        observed.append(month_profile['fixture_month'])
+        return calculate(invoices, month_profile, statements)
+    monkeypatch.setattr(dashboard, 'calculate', calculate_month)
+    loader = Mock(side_effect=lambda month: {**profile, 'fixture_month': month})
+    dashboard.build(store, '2026-09', 'quarter', loader)
+    assert observed == ['2026-07', '2026-08', '2026-09']
+    assert loader.call_count == 3
+
+
 def test_notes_review_rejected_and_synthetic_are_not_confirmed_sales(source, invoice, profile):
     store, data = source
     note = invoice.model_copy(deep=True);note.invoice_type='credit_note';note.invoice_id='note';note.invoice_number='CN-1'
