@@ -15,7 +15,7 @@ Live first candidate: login, default OFF, policy persistence, three existing man
 
 Parallel workspace loading: TypeScript and production build passed; 32 navigation, business-switching, revocation, report and intelligence browser tests passed.
 
-Final complete local production-browser run: 89 passed (1.9 minutes), after correcting the synthetic backend SQL dispatcher to distinguish batch insertion from the embedded policy-version assertion. The preceding 87-pass/2-failure run exposed that test-fixture mismatch; the real cloud batch had already executed successfully. Evidence: intelligence-browser-complete.log.
+Final complete local production-browser run: 90 passed (2.8 minutes), after correcting the synthetic backend SQL dispatcher to distinguish batch insertion from the embedded policy-version assertion and adding the default-manual-upload exclusion regression. The preceding 87-pass/2-failure run exposed that test-fixture mismatch; the real cloud batch had already executed successfully. Evidence: intelligence-browser-release.log.
 
 ## Final live assistant sequence
 
@@ -24,3 +24,7 @@ Final complete local production-browser run: 89 passed (1.9 minutes), after corr
 Final review found and repaired loss of explicit upload-OFF intent during later existing-bill selection. Two backend regressions verify explicit exclusion versus default manual upload. A new browser regression checks that default OFF omits the explicit exclusion parameter.
 
 Release regression after exclusion persistence fix: 654 backend tests passed, 47 scenario skips; Ruff and mypy passed; TypeScript and production build passed; all 90 browser tests passed (2.8 minutes). See intelligence-pytest-final.log, intelligence-build-exclusion.log and intelligence-browser-release.log.
+
+## Final candidate acceptance
+
+Candidate source `7133d767b5af2a5a67d34c1b5ca47f3ab4ccd6c9` was tested at the tagged V3 Intelligence URL. The acceptance script passed all listed assertions: authorization/login, default OFF and persistence, existing-bill batch behavior, explicit per-invoice exclusion retention, responsive presentation, unchanged confirmed financial status, future ON and explicit OFF upload handling with retained original bytes, deterministic assistant evidence, and final policy reset to OFF. The final measured login was 8.840 seconds and Bills navigation was 14.843 seconds in this single acceptance run; these are observations, not performance SLOs. Evidence: `artifacts/auto-review-v3/intelligence-live-acceptance.json`.

@@ -47,7 +47,7 @@ def main():
         assert before['invoices'] and all(i['client_id']==before['client_id'] for i in before['invoices'])
         excluded_ids=[]
         for invoice in before['invoices']:
-            if invoice['invoice_number']=='V3INT-OFF-1023':
+            if invoice['invoice_number'] in {'V3INT-OFF-1023','V3INT-OFF2-1023'}:
                 assert invoice['status']!='confirmed' and invoice['extraction']['method']=='csv'
                 assert invoice['line_items'][0]['description']=='SYNTHETIC TEST INVOICE - NOT VALID FOR TAX FILING'
                 # Repair only this script's prior synthetic exclusion, using the
@@ -92,7 +92,7 @@ def main():
             record('financial_statuses_unchanged')
             from app.gst.template import HEADERS
             supplier=next(i['supplier_gstin'] for i in before['invoices'] if i['direction']=='purchase')
-            for suffix,choice in [('AUTO',''),('OFF','&auto_review=false')]:
+            for suffix,choice in [('AUTO',''),('OFF2','&auto_review=false')]:
                 stream=StringIO();writer=csv.writer(stream);writer.writerow(HEADERS)
                 writer.writerow([supplier,'V3INT-'+suffix+'-1023','23-10-2026','8537',
                     'SYNTHETIC TEST INVOICE - NOT VALID FOR TAX FILING','1000','18','90','90','0','0','1180','33','N'])
