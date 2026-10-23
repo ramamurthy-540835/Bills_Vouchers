@@ -17,6 +17,7 @@ from .job_state import JobState, payload as job_payload
 
 
 class BillStore(JobState):
+    intelligence_version = None
     def __init__(self, repo, client_id):
         self.repo, self.client_id = repo, str(client_id)
         project = repo.settings.gcp_project_id
@@ -57,6 +58,16 @@ class BillStore(JobState):
         rows = self.query(f'''SELECT COALESCE(MAX(IF(status='confirmed',period,NULL)),MAX(period)) AS period
             FROM {self.table('gold', 'gst_invoice')} WHERE client_id=@client_id AND status!='rejected' ''')
         return rows[0]['period'] if rows else None
+
+    def duplicate_candidates(self, invoice):
+        if not invoice.invoice_date or not invoice.invoice_number:
+            return []
+        rows=self.query(f'''SELECT payload FROM {self.table('gold','gst_invoice')}
+            WHERE client_id=@client_id AND supplier_gstin=@supplier AND invoice_number=@number
+            AND financial_year=@fy AND invoice_id!=@id LIMIT 1''',
+            [param('supplier',invoice.supplier_gstin.strip().upper()),param('number',invoice.invoice_number.strip().upper()),
+             param('fy',financial_year(invoice.invoice_date),'INT64'),param('id',invoice.invoice_id)])
+        return [GstInvoice.model_validate(json.loads(r['payload']) if isinstance(r['payload'],str) else r['payload']) for r in rows]
 
     def list(self, period=None, status=None):
         clause = ''
@@ -169,6 +180,16 @@ class BillStore(JobState):
                   param('status', invoice.status)]
         fence, fence_params = self.worker_fence()
         params.extend(fence_params)
+        if self.intelligence_version is not None:
+            from .intelligence import policy_sql
+            fence += f'''ASSERT EXISTS(SELECT 1 FROM ({policy_sql(self)})
+                WHERE JSON_VALUE(after_payload,'$.enabled')='true'
+                AND CAST(JSON_VALUE(after_payload,'$.version') AS INT64)=@intelligence_version) AS 'Bill changed; business policy cancelled';'''
+            params.append(param('intelligence_version',self.intelligence_version,'INT64'))
+        if action == 'auto_review_decision':
+            fence += f'''ASSERT EXISTS(SELECT 1 FROM `{self.repo.table('client_memberships')}`
+                WHERE client_id=@client_id AND user_id=@actor AND is_active=TRUE
+                AND access_role IN ('owner','client','admin','accountant','tax_admin')) AS 'Bill changed; review membership revoked';'''
         sql = f'''BEGIN TRANSACTION;
         ASSERT (SELECT COUNT(*) FROM {lock} WHERE client_id='__guard__')=1 AS 'Storage guard missing';
         UPDATE {lock} SET touched_at=CURRENT_TIMESTAMP() WHERE client_id='__guard__';
@@ -225,6 +246,17 @@ class BillStore(JobState):
             WHERE client_id=@client_id AND JSON_VALUE(payload,'$.period')=@period
             ORDER BY updated_at DESC LIMIT 100''', [param('period',period)])
         return [{**(json.loads(r['payload']) if isinstance(r['payload'],str) else r['payload']), '_updated_at':str(r['updated_at'])} for r in rows]
+
+    def intelligence_job_counts(self, period):
+        rows=self.query(f'''SELECT
+            COALESCE(SUM(IF(JSON_VALUE(payload,'$.status') IN ('queued','reading'),
+                (SELECT COUNT(*) FROM UNNEST(JSON_QUERY_ARRAY(payload,'$.files')) f
+                 WHERE JSON_VALUE(f,'$.status') IN ('queued','reading')),0)),0) AS processing,
+            COUNTIF(JSON_VALUE(payload,'$.status')='needs_attention') AS failed,
+            COALESCE(SUM((SELECT COUNT(*) FROM UNNEST(JSON_QUERY_ARRAY(payload,'$.files')) f
+                WHERE JSON_VALUE(f,'$.reason') LIKE '%No duplicate was added%')),0) AS duplicates
+            FROM {self.table('ops','gst_bill_job')} WHERE client_id=@client_id AND JSON_VALUE(payload,'$.period')=@period''',[param('period',period)])
+        return dict(rows[0]) if rows else {'processing':0,'failed':0,'duplicates':0}
 
     def delete(self, invoice, actor):
         if invoice.client_id != self.client_id:

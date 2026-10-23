@@ -80,9 +80,57 @@ def template(request: Request, repo=Depends(get_db), user=Depends(current_user))
                     headers={'Content-Disposition': "attachment; filename*=UTF-8''Bills%20%26%20Vouchers%20%E2%80%94%20GST%20Purchase%20Bills.xlsx"})
 
 
+@router.get('/intelligence')
+def intelligence_view(request: Request, period: str = '', category: str = 'all', offset: int = Query(0,ge=0,le=100000), repo=Depends(get_db), user=Depends(current_user)):
+    from app.gst.intelligence import overview
+    client,store=scope(request,repo,user)
+    if category not in {'all','gst','total','gstin','rate','unreadable','duplicate','missing','evidence','other'}:
+        raise HTTPException(422,'Choose a supported exception category.')
+    result=overview(store,selected_period(request,client,store,period),category,offset)
+    return JSONResponse(result,headers={'Cache-Control':'private, no-store'})
+
+
+@router.patch('/intelligence/policy')
+async def intelligence_policy(request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from app.gst.intelligence import update_policy
+    _,store=scope(request,repo,user,'bills:write')
+    try:
+        body=await request.json()
+    except ValueError:
+        raise HTTPException(422,'Provide valid JSON for Auto Review settings.') from None
+    if not isinstance(body,dict) or set(body)!={'enabled','scope'} or type(body['enabled']) is not bool or not isinstance(body['scope'],str) or body['scope'] not in {'existing','future','both'}:
+        raise HTTPException(422,'Choose ON/OFF and a valid processing scope.')
+    expected=request.headers.get('if-match','')
+    if not expected.isdigit():
+        raise HTTPException(428,'Refresh Auto Review settings before changing them.')
+    return update_policy(store,body['enabled'],body['scope'],int(expected),user.id).model_dump()
+
+
+@router.post('/intelligence/run')
+def intelligence_run(request: Request, period: str, repo=Depends(get_db), user=Depends(current_user)):
+    from app.gst.intelligence import start_batch
+    client,store=scope(request,repo,user,'bills:write')
+    expected=request.headers.get('if-match','')
+    if not expected.isdigit():
+        raise HTTPException(428,'Refresh Auto Review settings before running a batch.')
+    period=period_value(period)
+    job=start_batch(store,period,user.id,int(expected))
+    if get_settings().gst_bills_queue:
+        try:
+            enqueue(str(client.id),job['job_id'])
+        except Exception:
+            logger.error('Intelligence batch dispatch uncertain',extra={'job_id':job['job_id']})
+            raise HTTPException(503,'Batch saved; dispatch is unconfirmed. Check upload history before retrying.') from None
+    else:
+        job=run_job(store,profile_for(repo,client.id,period),str(user.id),job)
+    return public_job(job)
+
+
 @router.post('/upload')
-def upload(request: Request, files: list[UploadFile] = File(...), period: str = '', auto_review: bool = False, repo=Depends(get_db), user=Depends(current_user)):
+def upload(request: Request, files: list[UploadFile] = File(...), period: str = '', auto_review: bool | None = None, expected_client: str = '', repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user, 'bills:write')
+    if expected_client and expected_client != str(client.id):
+        raise HTTPException(409,'Business changed during upload. Re-select the files in the intended business.')
     period = selected_period(request, client, store, period)
     store.assert_writable(period)
     profile = profile_for(repo, client.id, period)
@@ -104,8 +152,17 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
         except (ValueError, OSError):
             raise HTTPException(422, 'Check the file format and size. Use a valid PDF, photo or the provided spreadsheet template.') from None
         content_files.append((filename, content))
+    inherited = None
+    if auto_review is None:
+        from app.gst.intelligence import policy
+        chosen = policy(store)
+        auto_review = chosen.enabled and chosen.scope in {'future','both'}
+        if auto_review:
+            inherited = chosen.version
     job_id = str(uuid4())
     job: dict[str, Any] = {'job_id': job_id, 'status': 'queued', 'recovery_version': 1, 'actor_id': str(user.id), 'period': period, 'files': [], 'auto_review_enabled': auto_review}
+    if inherited is not None:
+        job['business_policy_version'] = inherited
     for filename, content in content_files:
         doc_id = str(uuid5(NAMESPACE_URL, f'{client.id}/{hashlib.sha256(content).hexdigest()}'))
         raw_ref = store.upload_object(content, doc_id, filename, 'bronze', mimetypes.guess_type(filename)[0] or 'application/octet-stream')

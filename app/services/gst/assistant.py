@@ -29,7 +29,7 @@ def check_rate(user_id):
         stamp = monotonic()
         recent = [x for x in _requests.get(user_id, []) if stamp-x < 60]
         if len(recent) >= 8:
-            raise HTTPException(429, 'Please wait a minute before asking another question.')
+            raise HTTPException(429, 'Question limit reached. Please wait one minute, then retry.', headers={'Retry-After':'60'})
         if len(_requests) > 4096:
             _requests.clear()
         _requests[user_id] = [*recent, stamp]
@@ -94,19 +94,27 @@ def generate_answer(payload, context):
     from google import genai
     from google.genai import types
     settings = get_settings()
-    if not settings.gemini_enabled:
-        raise HTTPException(503, 'The AI assistant is not enabled. Search and financial figures remain available.')
+    from .assistant_reliability import generate, fallback, category
     grounded_status=status_answer(payload.question,context)
     if grounded_status is not None:
         return grounded_status
+    if not settings.gemini_enabled:
+        return fallback(context,'not_configured')
+    # Bound model context independently of the rendered transcript. Never truncate
+    # financial values or claim that a shortened evidence list is exhaustive.
+    context={**context,'canonical_status_records':None}
+    history=[{'role':t.role,'content':t.content[:1500]} for t in payload.history[-6:]]
+    contents=json.dumps({'PROVIDED_FACTS':context,'history':history,'question':payload.question},default=str)
+    if len(contents.encode('utf-8'))>100000:
+        return fallback(context,'context_limit')
     from ..model_access import model_location
     try:
         location = model_location(context.get('client_id'),settings)
     except ValueError:
         raise HTTPException(503,'AI processing is not enabled for this business. Search remains available.') from None
-    client = (genai.Client(api_key=settings.gemini_api_key, http_options=types.HttpOptions(timeout=45000))
+    client = (genai.Client(api_key=settings.gemini_api_key, http_options=types.HttpOptions(timeout=20000))
               if settings.gemini_api_key else genai.Client(vertexai=True, project=settings.gcp_project_id,
-                  location=location, http_options=types.HttpOptions(timeout=45000)))
+                  location=location, http_options=types.HttpOptions(timeout=20000)))
     system = """You are a read-only financial workspace assistant. Answer only from PROVIDED_FACTS for this customer and period.
 Use the provided financial summary for all financial totals. Source invoices may be unreviewed: label that status and never add their totals to validated figures.
 For unmatched invoice questions, use reconciliation.cases only. missing_statement means a books-only purchase; missing_book means a statement-only record. unsupported_document is NOT an unmatched invoice. List each invoice once, never once per line item. Credit-decision matching fields are not reconciliation case classifications. If reconciliation is unavailable or statement_imported is false, say so.
@@ -123,8 +131,8 @@ Do not emit HTML, Markdown links, SQL, credentials or external URLs. Retain exac
               'followups': {'type': 'ARRAY', 'items': {'type': 'STRING'}}}, 'required': ['answer', 'source_ids', 'followups']}
     try:
         with client:
-            result = client.models.generate_content(model=settings.gemini_model,
-                contents=json.dumps({'PROVIDED_FACTS': context, 'history': [t.model_dump() for t in payload.history], 'question': payload.question}, default=str),
+            result = generate(client,model=settings.gemini_model,
+                contents=contents,
                 config=types.GenerateContentConfig(system_instruction=system, response_mime_type='application/json',
                     response_schema=schema, temperature=0, max_output_tokens=2200))
         response = json.loads(result.text or '{}')
@@ -142,5 +150,5 @@ Do not emit HTML, Markdown links, SQL, credentials or external URLs. Retain exac
                 'followups': [x[:200] for x in response.get('followups', []) if isinstance(x, str)][:3]}
     except HTTPException:
         raise
-    except Exception:
-        raise HTTPException(503, 'The assistant could not answer right now. Please retry; your records have not changed.')
+    except Exception as exc:
+        return fallback(context,category(exc))

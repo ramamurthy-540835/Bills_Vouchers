@@ -7,6 +7,7 @@ import ReviewEvidence,{rejectionReasons} from './review-evidence'
 import SourceIntake from './source-intake'
 import CorrectionQueue from './correction-queue'
 import AutoReviewControl from './auto-review-control'
+import InvoiceIntelligence from './invoice-intelligence'
 import {GST} from '../../lib/copy/gst'
 import {money} from '../workspace'
 
@@ -27,8 +28,11 @@ export default function BillsPanel({data}:{data:any}){
  const [rejectionCode,setRejectionCode]=useState('other')
  const [queueRevision,setQueueRevision]=useState(0)
  const [batchAuto,setBatchAuto]=useState(false),[pendingFiles,setPendingFiles]=useState<File[]>([]),[excluded,setExcluded]=useState<number[]>([])
+ const [futureAuto,setFutureAuto]=useState(false),[policyReady,setPolicyReady]=useState(false)
  const [history,setHistory]=useState<any[]>([]),[deleted,setDeleted]=useState<any[]>([])
  const dialog=useRef<HTMLDialogElement>(null),openSequence=useRef(0)
+ const mounted=useRef(true)
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false}},[])
  useEffect(()=>{if(selected&&!dialog.current?.open)dialog.current?.showModal()},[selected])
  function close(){if(busy)return;if(dirty&&!window.confirm('Discard unsaved bill changes?'))return;setSelected(null);setDirty(false)}
  const [historyView,setHistoryView]=useState<'uploads'|'deleted'|null>(null),[historyLoading,setHistoryLoading]=useState(false),[historyError,setHistoryError]=useState('')
@@ -41,29 +45,40 @@ export default function BillsPanel({data}:{data:any}){
  async function loadHistory(view?:'uploads'|'deleted'){if(view)setHistoryView(view);setHistoryLoading(true);setHistoryError('');try{setHistory((await api(`/history?period=${period}`)).jobs);if(write)setDeleted((await api(`/deleted?period=${period}`)).invoices)}catch(e){setHistoryError((e as Error).message)}finally{setHistoryLoading(false)}}
  async function retryUpload(id:string){setBusy(true);try{let job=await api(`/upload/${id}/retry`,'POST');sessionStorage.setItem(jobKey,id);while(!['completed','needs_attention'].includes(job.status)&&!job.retryable){setJobs(job.files);await new Promise(resolve=>setTimeout(resolve,1500));job=await api(`/upload/${id}`)}sessionStorage.removeItem(jobKey);if(job.retryable)setMessage('Processing needs attention. Open upload history to retry the saved upload.');setJobs(job.files);await reload();await loadHistory()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  async function restore(invoice:any){if(!window.confirm('Restore this bill for review? It will require confirmation again.'))return;setBusy(true);try{await api(`/${invoice.invoice_id}/restore`,'POST',undefined,invoice.version);await reload();await loadHistory();setMessage('Bill restored for review.')}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
- useEffect(()=>{let active=true;const id=sessionStorage.getItem(jobKey);if(id){setBusy(true);(async()=>{try{while(active){const job=await api(`/upload/${id}`);if(!active)return;setJobs(job.files);await reload();if(job.status==='completed'||job.status==='needs_attention'||job.retryable){sessionStorage.removeItem(jobKey);if(job.retryable)setMessage('Processing needs attention. Open upload history to retry the saved upload.');break}await new Promise(resolve=>setTimeout(resolve,1500))}}catch(e){if(active)setMessage((e as Error).message)}finally{if(active)setBusy(false)}})()}return()=>{active=false}},[jobKey])
- function chooseFiles(files:FileList|File[]|null){if(loading||busy)return;if(batchAuto&&files?.length){setPendingFiles(Array.from(files));setExcluded([])}else upload(files)}
+ useEffect(()=>{let active=true;const stored=sessionStorage.getItem(jobKey);if(stored){setBusy(true);(async()=>{try{const ids:string[]=stored.startsWith('[')?JSON.parse(stored):[stored];let delay=2000;while(active){const recovered=[];for(const id of ids)recovered.push(await api(`/upload/${id}`));if(!active)return;setJobs(recovered.flatMap(j=>j.files));if(recovered.every(j=>['completed','needs_attention'].includes(j.status)||j.retryable)){sessionStorage.removeItem(jobKey);await reload();break}await new Promise(resolve=>setTimeout(resolve,delay));delay=Math.min(8000,delay+1000)}}catch(e){if(active)setMessage((e as Error).message)}finally{if(active)setBusy(false)}})()}return()=>{active=false}},[jobKey])
+ function chooseFiles(files:FileList|File[]|null){if(loading||!policyReady||busy)return;if((batchAuto||futureAuto)&&files?.length){setPendingFiles(Array.from(files));setExcluded([])}else upload(files)}
  async function autoChange(enabled:boolean){setBusy(true);try{setSelected(await api(`/${selected.invoice_id}/auto-review`,'PATCH',{enabled},selected.version));await reload()}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  async function autoRun(){setBusy(true);try{setSelected(await api(`/${selected.invoice_id}/auto-review/run`,'POST',undefined,selected.version));await reload()}catch(e){setMessage((e as Error).message);setSelected(await api(`/${selected.invoice_id}`))}finally{setBusy(false)}}
  const refreshAuto=useCallback(()=>{if(!selected?.invoice_id)return;api(`/${selected.invoice_id}`).then(value=>{setSelected((old:any)=>old?.invoice_id===value.invoice_id?value:old);reload()}).catch(e=>setMessage(e.message))},[selected?.invoice_id,reload])
  async function upload(files:FileList|File[]|null){
-  if(!files?.length||busy||loading)return
+  if(!files?.length||busy||loading||!policyReady)return
   const chosen=Array.from(files)
   if(chosen.length>20||chosen.some(f=>f.size>15*1024*1024)){setMessage(GST.maxFiles);return}
   setBusy(true);setMessage('');setJobs(chosen.map(f=>({filename:f.name,status:'reading'})))
-  const completed:any[]=[]
-  try{for(const file of chosen){
-   const body=new FormData();body.append('files',file)
-   let job=await api(`/upload?period=${period}&auto_review=${batchAuto&&!excluded.includes(chosen.indexOf(file))}`,'POST',body)
-   sessionStorage.setItem(jobKey,job.job_id)
-   while(job.status!=='completed'&&job.status!=='needs_attention'&&!job.retryable){
-    setJobs([...completed,...job.files,...chosen.slice(completed.length+1).map(f=>({filename:f.name,status:'reading'}))])
-    await new Promise(resolve=>setTimeout(resolve,1500));job=await api(`/upload/${job.job_id}`)
+  const submitted:any[]=[],failed:any[]=[]
+  try{
+   // Dispatch every file before waiting for OCR; one invalid file does not stop others.
+   for(const [index,file] of chosen.entries()){
+    if(!mounted.current)return
+    try{
+     const body=new FormData();body.append('files',file)
+     const autoQuery=excluded.includes(index)?'&auto_review=false':batchAuto?'&auto_review=true':futureAuto?'':'&auto_review=false'
+     submitted.push(await api(`/upload?period=${period}&expected_client=${encodeURIComponent(data.client_id)}${autoQuery}`,'POST',body))
+     sessionStorage.setItem(jobKey,JSON.stringify(submitted.map(j=>j.job_id)))
+    }catch(e){failed.push({filename:file.name,status:'needs_attention',reason:(e as Error).message})}
+    setJobs([...submitted.flatMap(j=>j.files),...failed])
    }
-   sessionStorage.removeItem(jobKey);completed.push(...job.files)
-   setJobs([...completed,...chosen.slice(completed.length).map(f=>({filename:f.name,status:'reading'}))]);await reload()
-  }}catch(e){setMessage(e instanceof Error?e.message:GST.failed);setJobs([...completed,...chosen.slice(completed.length).map(f=>({filename:f.name,status:'needs_attention'}))])}finally{setBusy(false);setPendingFiles([]);setExcluded([]);setBatchAuto(false)}
+   let delay=2000
+   while(submitted.some(j=>!['completed','needs_attention'].includes(j.status)&&!j.retryable)){
+    if(!mounted.current)return
+    await new Promise(resolve=>setTimeout(resolve,delay));delay=Math.min(8000,delay+1000)
+    for(let i=0;i<submitted.length;i++)if(!['completed','needs_attention'].includes(submitted[i].status)&&!submitted[i].retryable)submitted[i]=await api(`/upload/${submitted[i].job_id}`)
+    setJobs([...submitted.flatMap(j=>j.files),...failed])
+   }
+   sessionStorage.removeItem(jobKey);await reload()
+  }catch(e){setMessage((e as Error).message)}finally{setBusy(false);setPendingFiles([]);setExcluded([]);setBatchAuto(false)}
  }
+
  async function open(id:string){if(busy)return;const sequence=++openSequence.current;setOpening(true);try{const result=await api(`/${id}`);if(sequence===openSequence.current){setSelected(result);setDirty(false);setMessage('')}}catch(e){setMessage((e as Error).message)}finally{if(sequence===openSequence.current)setOpening(false)}}
  function save(body:any){if(!write||busy)return;setSelected((current:any)=>({...current,...body}));setDirty(true)}
  async function persist(){
@@ -79,7 +94,7 @@ export default function BillsPanel({data}:{data:any}){
  async function remove(){if(!window.confirm('Delete this bill from your workspace?'))return;setBusy(true);setMessage('');try{await api(`/${selected.invoice_id}`,'DELETE',undefined,selected.version);setJobs(current=>current.map(job=>({...job,invoice_ids:job.invoice_ids?.filter((id:string)=>id!==selected.invoice_id)})));setSelected(null);setDirty(false);await reload();setMessage('Bill deleted.')}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
  const labels=GST.fields
  const input=(field:string,value:any,onSave:(value:string)=>void,type='text')=><label key={field}>{labels[field]}<input aria-label={labels[field]} value={value??''} type={type} disabled={!write||busy} onChange={e=>onSave(e.target.value)}/></label>
- return <>{write&&<SourceIntake key={`${data.client_id}:${period}`} api={api} period={period}/>}
+ return <><InvoiceIntelligence key={`intelligence:${data.client_id}:${period}`} api={api} period={period} write={write} revision={queueRevision} onReview={open} onCompleted={reload} onPolicy={future=>{setFutureAuto(future);setPolicyReady(true)}}/>{write&&<SourceIntake key={`${data.client_id}:${period}`} api={api} period={period}/>}
   {!selected&&message&&<p className="notice" role="status">{message}</p>}
   {opening&&<p role="status">Opening bill...</p>}
   <CorrectionQueue key={`corrections:${data.client_id}:${period}`} api={api} period={period} revision={queueRevision} busy={busy||opening} onReview={open}/>
@@ -91,8 +106,8 @@ export default function BillsPanel({data}:{data:any}){
    {!historyLoading&&!historyError&&historyView==='deleted'&&deleted.map(invoice=><p key={invoice.invoice_id}>{invoice.filename} <button className="button secondary" disabled={busy} onClick={()=>restore(invoice)}>Restore for review</button></p>)}
   </section>
   <>
-   {write&&<section className="auto-review-card"><label><input type="checkbox" role="switch" aria-label="Auto Review All Eligible Bills" checked={batchAuto} disabled={busy||pendingFiles.length>0} onChange={e=>setBatchAuto(e.target.checked)}/> Auto Review All Eligible Bills</label><p>OFF by default. Applies only to this upload. Every required check must pass.</p>{pendingFiles.length>0&&<><ul>{pendingFiles.map((file,index)=><li key={index}><label><input type="checkbox" aria-label={`Auto Review ${file.name}`} checked={!excluded.includes(index)} onChange={e=>setExcluded(old=>e.target.checked?old.filter(i=>i!==index):[...old,index])} disabled={busy}/>{file.name}</label></li>)}</ul><button className="button primary" disabled={busy} onClick={()=>upload(pendingFiles)}>Upload selected bills</button><button className="button secondary" disabled={busy} onClick={()=>setPendingFiles([])}>Cancel selection</button></>}</section>}
-   {write?<section className="bill-drop bv-card" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();chooseFiles(e.dataTransfer.files)}}><FileUp size={28}/><h2>{GST.drop}</h2><label className="button primary">{GST.upload}<input className="visually-hidden" aria-label={GST.upload} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv" disabled={busy||loading} onChange={e=>{chooseFiles(e.target.files);e.target.value=''}}/></label><p><Link href="/api/gst/bills/template.xlsx">{GST.template}</Link></p><small>{GST.maxFiles}</small></section>:<p>{GST.readOnly}</p>}
+   {write&&<section className="auto-review-card"><label><input type="checkbox" role="switch" aria-label="Auto Review All Eligible Bills" checked={batchAuto} disabled={loading||!policyReady||busy||pendingFiles.length>0} onChange={e=>setBatchAuto(e.target.checked)}/> Auto Review All Eligible Bills</label><p>OFF by default. Applies only to this upload. Every required check must pass.</p>{pendingFiles.length>0&&<><ul>{pendingFiles.map((file,index)=><li key={index}><label><input type="checkbox" aria-label={`Auto Review ${file.name}`} checked={!excluded.includes(index)} onChange={e=>setExcluded(old=>e.target.checked?old.filter(i=>i!==index):[...old,index])} disabled={busy}/>{file.name}</label></li>)}</ul><button className="button primary" disabled={busy} onClick={()=>upload(pendingFiles)}>Upload selected bills</button><button className="button secondary" disabled={busy} onClick={()=>setPendingFiles([])}>Cancel selection</button></>}</section>}
+   {write?<section className="bill-drop bv-card" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();chooseFiles(e.dataTransfer.files)}}><FileUp size={28}/><h2>{GST.drop}</h2><label className="button primary">{GST.upload}<input className="visually-hidden" aria-label={GST.upload} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv" disabled={busy||loading||!policyReady} onChange={e=>{chooseFiles(e.target.files);e.target.value=''}}/></label><p><Link href="/api/gst/bills/template.xlsx">{GST.template}</Link></p><small>{GST.maxFiles}</small></section>:<p>{GST.readOnly}</p>}
    {!!jobs.length&&<ul className="upload-progress" aria-live="polite">{jobs.map((j,i)=><li key={i}><strong>{j.filename}</strong><span>{j.status==='reading'?GST.reading:j.status==='ready'?GST.ready:GST.attention}</span>{j.reason&&<p>{j.reason}</p>}{j.invoice_ids?.map((id:string)=><button className="button quiet" key={id} onClick={()=>open(id)}>{GST.review}</button>)}</li>)}</ul>}
    <section className="bv-card bill-register-card"><div className="bill-management-toolbar"><label htmlFor="bill-status">{GST.filter}</label><select id="bill-status" aria-label={GST.filter} value={status} onChange={e=>setStatus(e.target.value)}><option value="">{GST.all}</option>{['extracted','needs_review','confirmed','rejected'].map(s=><option key={s} value={s}>{GST.status[s]}</option>)}</select><Link className="button secondary" href={`/api/gst/bills/export?period=${period}&format=xlsx`}>{GST.export}</Link></div>
    {loading?<div className="skeleton skeleton-table" aria-label={GST.loading}/>:!bills.length?<p className="empty-state">{GST.none}</p>:<div className="table-scroll bills-table"><table><thead><tr>{[GST.supplier,GST.invoiceNo,GST.date,GST.taxable,GST.tax,GST.total,GST.itc,GST.actions].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{bills.map(b=><tr key={b.invoice_id} onClick={()=>open(b.invoice_id)}><td data-label={GST.supplier}>{b.supplier_legal_name||'—'}<small className="gstin-text">{b.supplier_gstin}</small></td><td data-label={GST.invoiceNo}><small>{b.filename}</small><span>{b.invoice_number||'—'}</span></td><td data-label={GST.date}>{b.invoice_date?new Date(`${b.invoice_date}T12:00:00Z`).toLocaleDateString('en-IN'):'—'}</td><td data-label={GST.taxable} className="money">{money(b.totals.taxable_value)}</td><td data-label={GST.tax} className="money">{['cgst','sgst','igst','cess'].map(h=><small key={h}>{GST.fields[h]} {money(b.totals[h])}</small>)}</td><td data-label={GST.total} className="money">{money(b.totals.invoice_total)}</td><td data-label={GST.itc}><span className="chip">{GST.status[b.status]}</span><small>{GST.status[b.itc.eligibility]}</small></td><td><button className="button quiet" onClick={e=>{e.stopPropagation();open(b.invoice_id)}}>{GST.review}</button></td></tr>)}</tbody></table></div>}</section>

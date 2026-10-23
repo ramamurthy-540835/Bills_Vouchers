@@ -34,7 +34,7 @@ test('unavailable approved GST policy produces manual exception, not false succe
  await page.getByRole('switch',{name:'Auto Review',exact:true}).click()
  await page.getByRole('button',{name:'Run Auto Review',exact:true}).click()
  await expect(page.getByText('Manual Review Required',{exact:true})).toBeVisible()
- await expect(page.getByText(/no unique current approved rate/)).toBeVisible()
+ await expect(page.getByRole('region',{name:'Auto Review controls'}).getByText(/no unique current approved rate/)).toBeVisible()
 })
 
 test('viewer cannot enable Auto Review',async({page,request})=>{

@@ -17,6 +17,7 @@ items={}
 objects={}
 jobs={}
 auto_rules=[]
+intelligence_policies={}
 deleted_items={}
 user=SimpleNamespace(id='browser-user',full_name='Browser User',email='browser@example.test',role='client')
 profile={'legal_name':'Red Taxi','business_nature':'passenger_transport','gstin':'','filing_frequency':'monthly'}
@@ -39,7 +40,21 @@ def selected_profile():
 
 
 class Store:
-    def query(self,*args):return auto_rules if 'SELECT policy FROM' in args[0] else []
+    def query(self,sql,params=()):
+        import json
+        values={p.name:p.value for p in params}
+        if 'intelligence_policy' in sql:
+            if 'BEGIN TRANSACTION' in sql:
+                previous=intelligence_policies.get(self.client_id,{'version':0})
+                if previous['version']!=int(values['expected']):raise HTTPException(409,'Policy changed')
+                intelligence_policies[self.client_id]=json.loads(values['after'])
+                return []
+            return [{'after_payload':intelligence_policies[self.client_id]}] if self.client_id in intelligence_policies else []
+        if 'intelligence_batch_requested' in sql:
+            jobs[values['id']]=json.loads(values['payload'])
+            return []
+        return auto_rules if 'SELECT policy FROM' in sql else []
+    def writable_sql(self):return ''
     def table(self,*args):return 'synthetic.table'
     def assert_writable(self,period):pass
     def latest_period(self):return "2026-10"
@@ -195,7 +210,7 @@ def reset():
         if cid not in {'browser-client','browser-readonly','browser-sample'}:
             del profiles[cid]
     persisted['enabled']=False
-    items.clear();deleted_items.clear();objects.clear();jobs.clear();user.role='client';profile['gstin']=''
+    items.clear();deleted_items.clear();objects.clear();jobs.clear();intelligence_policies.clear();user.role='client';profile['gstin']=''
     mobile_service['available']=False
     user.is_platform_admin=False
     user.active_client='browser-client'

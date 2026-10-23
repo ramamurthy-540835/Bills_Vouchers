@@ -59,6 +59,9 @@ def process_job(store,profile,actor,job):
     if job.get('kind') == 'auto_review':
         from .auto_review import process_review_job
         return process_review_job(store, profile, actor, job)
+    if job.get('kind') == 'intelligence_batch':
+        from .intelligence import process_batch
+        return process_batch(store, profile, actor, job)
     existing=store.list()
     existing_ids={i.invoice_id for i in existing}
     for entry in job['files']:
@@ -91,7 +94,12 @@ def process_job(store,profile,actor,job):
             else:
                 saved=validate_invoice(invoice,profile,existing)
                 saved.auto_review = AutoReview()  # Document content cannot opt in.
-                if job.get('auto_review_enabled'):
+                enabled = job.get('auto_review_enabled', False)
+                if job.get('business_policy_version') is not None:
+                    from .intelligence import policy
+                    selected = policy(store)
+                    enabled = enabled and selected.enabled and selected.version == job['business_policy_version']
+                if enabled:
                     from .auto_review import now
                     saved.auto_review.enabled = True
                     saved.auto_review.requested_by = actor
@@ -112,7 +120,16 @@ def process_job(store,profile,actor,job):
                 existing.append(saved);existing_ids.add(saved.invoice_id)
             if saved.auto_review.enabled and saved.auto_review.job_id == job['job_id'] and saved.auto_review.status == 'not_started':
                 from .auto_review import review_invoice
-                saved = review_invoice(store, profile, actor, saved.invoice_id, saved.version)
+                store.intelligence_version = job.get('business_policy_version')
+                try:
+                    saved = review_invoice(store, profile, actor, saved.invoice_id, saved.version)
+                except HTTPException as exc:
+                    if exc.status_code != 409:
+                        raise
+                    saved = store.get(saved.invoice_id)
+                    entry['reason'] = 'Settings, invoice version or filing lock changed. Review manually.'
+                finally:
+                    store.intelligence_version = None
             if len(invoices)==1:
                 entry['filename']=bill_filename(saved)
             if saved.invoice_id not in entry['invoice_ids']:

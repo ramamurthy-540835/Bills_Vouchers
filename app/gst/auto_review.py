@@ -21,8 +21,11 @@ def approved_rules(store, invoice):
 
 
 def evaluate(store, previous, profile):
-    invoice = validate_invoice(previous, profile, store.list())
+    candidates = store.duplicate_candidates(previous) if hasattr(type(store),'duplicate_candidates') else store.list()
+    invoice = validate_invoice(previous, profile, candidates)
     reasons = list(invoice.review_reasons)
+    if invoice.invoice_date and invoice.selected_period and invoice.invoice_date.strftime('%Y-%m') != invoice.selected_period:
+        reasons.append('Invoice date is outside the selected reporting period. Verify the period before confirming.')
     if previous.correction_state != 'none':
         reasons.append('Corrected or resubmitted bills require authorized manual approval through the correction workflow.')
     if not all((invoice.supplier_address.strip(), invoice.recipient_address.strip(), invoice.recipient_legal_name.strip())):

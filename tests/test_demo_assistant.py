@@ -144,6 +144,6 @@ def test_model_sources_are_allowlisted_and_failures_are_safe(monkeypatch):
     assert context == before
     assert 'PROVIDED_FACTS' in captured['contents']
     answer['source_ids'] = ['another-tenant-doc']
-    with pytest.raises(HTTPException) as exc:
-        assistant.generate_answer(ChatRequest(question='What is cash?'), context)
-    assert exc.value.status_code == 503
+    result=assistant.generate_answer(ChatRequest(question='What is cash?'), context)
+    assert result['degraded'] and result['failure_category']=='invalid_provider_response'
+    assert all(source['id']!='another-tenant-doc' for source in result['sources'])

@@ -201,3 +201,13 @@
 .auto-review-card input[type=checkbox]{accent-color:#187653;width:18px;height:18px;margin-right:8px}
 @media(max-width:1100px){.invoice-review .original-bill{grid-row:1}.bill-review-drawer .original-bill{position:static}.original-invoice-preview{height:300px}}
 @media(max-width:760px){.bill-review-drawer .invoice-form,.bill-review-drawer .original-bill{padding:16px}.bill-review-drawer .invoice-form .account-form{grid-template-columns:1fr}.original-invoice-preview{height:260px}.bill-review-drawer .filing-actions button{flex:1 1 130px}}
+.invoice-intelligence,.intelligence-exceptions{margin-block:24px;padding:24px;min-width:0}
+.intelligence-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.intelligence-heading h2{margin:0 0 12px}.intelligence-heading p{margin:0;line-height:1.5}
+.intelligence-toggle{border:1px solid #9daea5;background:#e5ebe8;color:#20382c;border-radius:24px;min-height:44px;padding:10px 20px;font-weight:600;cursor:pointer}
+.intelligence-toggle.enabled{background:#187653;color:white}.intelligence-toggle:focus-visible{outline:3px solid #55aa86;outline-offset:3px}.intelligence-toggle:disabled{opacity:.65;cursor:not-allowed}
+.intelligence-counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:24px 0}
+.intelligence-counts>div{padding:16px;background:#f5f8f6;border-radius:10px}.intelligence-counts dt{font-size:14px}.intelligence-counts dd{margin:8px 0 0;font-size:26px;font-weight:600}
+.intelligence-scope{display:grid;gap:16px;justify-items:start}.intelligence-scope label,.intelligence-exceptions>label{display:grid;gap:12px;max-width:460px;width:100%;margin-block:16px}
+.intelligence-scope select,.intelligence-exceptions select{max-width:100%;width:100%;min-height:44px}.intelligence-exception{display:flex;justify-content:space-between;align-items:center;gap:20px;padding-block:20px;border-bottom:1px solid #e2eae5}.intelligence-exception>div{min-width:0}.intelligence-exception h3,.intelligence-exception code{overflow-wrap:anywhere}.intelligence-exception h3{font-size:17px}.intelligence-exception p{color:#52675a}.intelligence-exception details{margin-top:12px}.intelligence-exception code{display:block;font-size:12px}.intelligence-exception button{flex-shrink:0}
+@media(max-width:700px){.invoice-intelligence,.intelligence-exceptions{padding:18px}.intelligence-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.intelligence-exception{align-items:stretch;flex-direction:column}.intelligence-heading{gap:16px}}
