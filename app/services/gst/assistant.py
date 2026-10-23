@@ -90,6 +90,36 @@ def status_answer(question, context):
             'followups':[]}
 
 
+def canonical_summary_answer(question, context):
+    """Answer a small, exact set of common dashboard questions without an AI call.
+
+    Values are read only from the selected tenant and period's canonical summary;
+    this is intentionally narrower than natural-language financial advice.
+    """
+    query=' '.join(re.findall(r'\w+', question.casefold()))
+    summary=(context['sources'][0].get('facts') or {}).get('summary') or {}
+    totals=(context['sources'][0].get('facts') or {}).get('totals') or {}
+    metric=None
+    label=None
+    if 'usable' in query and ('itc' in query or 'input tax credit' in query):
+        metric=totals.get('eligible_credit'); label='usable input tax credit'
+    elif 'cash requirement' in query or ('estimated' in query and 'cash' in query):
+        metric=totals.get('cash_required', summary.get('cash_required')); label='estimated GST cash requirement'
+    elif ('gst liability' in query or 'liability on sales' in query) and ('sales' in query or 'outward' in query):
+        metric=totals.get('output_tax'); label='GST liability on sales'
+    elif 'blocked' in query and ('itc' in query or 'input tax' in query):
+        metric=totals.get('blocked'); label='blocked input tax'
+    if metric is None:
+        return None
+    prefix='Synthetic demo examples, not real customer data.\n\n' if context['sample'] else ''
+    period=context.get('period','the selected period')
+    source=context['sources'][0]
+    return {'answer':f'{prefix}The {label} for {period} is ₹{metric}. This is a read-only canonical summary value.',
+            'sample':context['sample'],
+            'sources':[{k:source[k] for k in ('id','label','href','layer')}],
+            'followups':[]}
+
+
 def generate_answer(payload, context):
     from google import genai
     from google.genai import types
@@ -98,6 +128,9 @@ def generate_answer(payload, context):
     grounded_status=status_answer(payload.question,context)
     if grounded_status is not None:
         return grounded_status
+    summary_response=canonical_summary_answer(payload.question,context)
+    if summary_response is not None:
+        return summary_response
     if not settings.gemini_enabled:
         return fallback(context,'not_configured')
     # Bound model context independently of the rendered transcript. Never truncate

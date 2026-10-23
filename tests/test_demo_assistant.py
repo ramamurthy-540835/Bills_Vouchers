@@ -147,3 +147,18 @@ def test_model_sources_are_allowlisted_and_failures_are_safe(monkeypatch):
     result=assistant.generate_answer(ChatRequest(question='What is cash?'), context)
     assert result['degraded'] and result['failure_category']=='invalid_provider_response'
     assert all(source['id']!='another-tenant-doc' for source in result['sources'])
+
+
+@pytest.mark.parametrize('question,expected',[
+    ('What is our usable ITC?', 'usable input tax credit'),
+    ('What is the estimated GST cash requirement?', 'estimated GST cash requirement'),
+    ('What is our GST liability on sales?', 'GST liability on sales'),
+    ('What blocked ITC do we have?', 'blocked input tax'),
+])
+def test_common_canonical_questions_do_not_call_model(question, expected, monkeypatch):
+    from google import genai
+    monkeypatch.setattr(genai,'Client',lambda **kwargs: (_ for _ in ()).throw(AssertionError('model must not be called')))
+    data=generate_mock_data('mixed')
+    context=grounded_context(data['dashboard'],data['documents'],question,'mixed',data['ledger'])
+    result=assistant.generate_answer(ChatRequest(question=question),context)
+    assert expected in result['answer'] and result['sources'][0]['id']=='gold-summary'

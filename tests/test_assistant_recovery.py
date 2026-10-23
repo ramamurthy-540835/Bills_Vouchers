@@ -23,11 +23,28 @@ def test_25_questions_are_bounded_and_rate_limit_recovers(monkeypatch):
 @pytest.mark.parametrize('status,expected',[(429,'provider_rate_limit'),(403,'provider_access'),(404,'model_unavailable'),(503,'provider_unavailable')])
 def test_provider_failure_categories_and_retry_bounds(monkeypatch,status,expected):
     monkeypatch.setattr(recovery.time,'sleep',lambda _:None)
+    monkeypatch.setattr(recovery,'_circuits',{})
     error=RuntimeError('sensitive provider message');error.code=status
     assert recovery.category(error)==expected
     model=Mock();model.generate_content.side_effect=error
     with pytest.raises(RuntimeError):recovery.generate(SimpleNamespace(models=model),model='test')
     assert model.generate_content.call_count==(2 if status in {429,503} else 1)
+
+
+def test_provider_circuit_returns_immediate_safe_failure(monkeypatch):
+    clock=[100.0]
+    monkeypatch.setattr(recovery.time,'monotonic',lambda:clock[0])
+    monkeypatch.setattr(recovery.time,'sleep',lambda _:None)
+    monkeypatch.setattr(recovery,'_circuits',{})
+    error=RuntimeError('temporarily unavailable');error.code=503
+    model=Mock();model.generate_content.side_effect=error
+    with pytest.raises(RuntimeError):recovery.generate(SimpleNamespace(models=model),model='synthetic')
+    assert model.generate_content.call_count==2
+    with pytest.raises(recovery.ProviderCircuitOpen):recovery.generate(SimpleNamespace(models=model),model='synthetic')
+    assert model.generate_content.call_count==2
+    assert recovery.category(recovery.ProviderCircuitOpen())=='provider_circuit_open'
+    clock[0]+=31
+    assert not recovery.circuit_state('synthetic')['open']
 
 
 def test_fallback_has_only_authorized_sources_and_no_sensitive_error(caplog):

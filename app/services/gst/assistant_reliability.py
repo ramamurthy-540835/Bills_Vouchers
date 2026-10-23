@@ -1,9 +1,35 @@
 """Bounded provider work and evidence-only fallback; never invented answers."""
 import logging
 import time
+from threading import Lock
 from uuid import uuid4
 
 logger=logging.getLogger(__name__)
+_circuits: dict[str, float] = {}
+_circuit_lock = Lock()
+
+
+class ProviderCircuitOpen(RuntimeError):
+    """Avoid repeatedly waiting on a provider known to be unavailable."""
+
+
+def circuit_state(model: str) -> dict[str, float | bool]:
+    """Small process-local circuit state; no tenant data is retained."""
+    with _circuit_lock:
+        until = _circuits.get(model, 0.0)
+    return {'open': until > time.monotonic(), 'retry_after_seconds': max(0.0, until-time.monotonic())}
+
+
+def _open_circuit(model: str, reason: str) -> None:
+    # A rate-limit response normally asks callers to slow down for longer.
+    cooldown = 60.0 if reason == 'provider_rate_limit' else 30.0
+    with _circuit_lock:
+        _circuits[model] = time.monotonic() + cooldown
+
+
+def _close_circuit(model: str) -> None:
+    with _circuit_lock:
+        _circuits.pop(model, None)
 
 
 def throttle(repo, user_id, client_id):
@@ -28,6 +54,8 @@ def throttle(repo, user_id, client_id):
 
 
 def category(exc):
+    if isinstance(exc, ProviderCircuitOpen):
+        return 'provider_circuit_open'
     code=getattr(exc,'code',None) or getattr(exc,'status_code',None)
     if code==429:
         return 'provider_rate_limit'
@@ -43,11 +71,19 @@ def category(exc):
 
 
 def generate(client, **kwargs):
+    model = str(kwargs.get('model') or 'default')
+    if circuit_state(model)['open']:
+        raise ProviderCircuitOpen('Provider circuit is temporarily open')
     for attempt in range(2):
         try:
-            return client.models.generate_content(**kwargs)
+            response = client.models.generate_content(**kwargs)
+            _close_circuit(model)
+            return response
         except Exception as exc:
-            if attempt or category(exc) not in {'provider_rate_limit','provider_timeout','provider_unavailable'}:
+            reason = category(exc)
+            if attempt or reason not in {'provider_rate_limit','provider_timeout','provider_unavailable'}:
+                if reason in {'provider_rate_limit','provider_timeout','provider_unavailable'}:
+                    _open_circuit(model, reason)
                 raise
             time.sleep(0.5)
     raise RuntimeError('Provider retry exhausted')

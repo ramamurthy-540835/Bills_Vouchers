@@ -27,7 +27,9 @@ def store(invoice):
     result.download_object.return_value = b'synthetic original'
     result.query.return_value = [{'policy':{
         'policy_id':'synthetic-reviewed-fixture', 'approved_by':'fixture-reviewer',
-        'official_source':'synthetic-test-only', 'identity_evidence':'synthetic-identities',
+        'official_source':'https://cbic-gst.gov.in/gst-invoice-rules.html',
+        'legal_basis':'CGST Rules, 2017, rule 46', 'source_version':'synthetic-fixture-v1',
+        'source_checked_at':'2026-10-23', 'identity_evidence':'synthetic-identities',
         'review_status':'approved','supplier_gstin':invoice.supplier_gstin,
         'recipient_gstin':invoice.recipient_gstin, 'hsn_sac':'8703','direction':'purchase',
         'supply_type':'intra','place_of_supply':'33','invoice_type':'tax_invoice','rate':'18',
@@ -72,7 +74,7 @@ def test_v3_resubmitted_invoice_still_requires_manual_approval(store, profile):
     assert any('correction workflow' in reason for reason in result.auto_review.reasons)
 
 
-@pytest.mark.parametrize('fault', ['tax','total','gstin','confidence','original','policy','expired','note','duplicate','head','address'])
+@pytest.mark.parametrize('fault', ['tax','total','gstin','confidence','original','policy','expired','note','duplicate','head','address','untrusted_source','missing_legal_basis'])
 def test_hard_gate_failure_never_confirms(store, profile, fault):
     invoice = store.state.current
     if fault == 'tax': invoice.line_items[0].cgst = Decimal('89.99')
@@ -83,6 +85,8 @@ def test_hard_gate_failure_never_confirms(store, profile, fault):
     if fault == 'original': store.download_object.side_effect = HTTPException(404)
     if fault == 'policy': store.query.return_value = []
     if fault == 'expired': store.query.return_value[0]['policy']['review_expires_at'] = '2000-01-01'
+    if fault == 'untrusted_source': store.query.return_value[0]['policy']['official_source'] = 'https://example.test/rule'
+    if fault == 'missing_legal_basis': store.query.return_value[0]['policy']['legal_basis'] = ''
     if fault == 'note': invoice.invoice_type = 'credit_note'
     if fault == 'head': invoice.line_items[0].igst = Decimal('180')
     if fault == 'duplicate':

@@ -1,11 +1,17 @@
 """Opt-in confirmation. A known rate slab is NOT proof of rate applicability."""
 from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
+from urllib.parse import urlparse
 
 from fastapi import HTTPException
 from google.api_core.exceptions import NotFound
 
 from .validate_invoice import validate_invoice
+
+OFFICIAL_GST_SOURCE_HOSTS = frozenset({
+    'cbic-gst.gov.in', 'www.cbic-gst.gov.in', 'gst.gov.in',
+    'tutorial.gst.gov.in', 'indiacode.nic.in', 'www.indiacode.nic.in',
+})
 
 
 def now():
@@ -18,6 +24,28 @@ def approved_rules(store, invoice):
             WHERE client_id=@client_id AND enabled=TRUE''')
     except NotFound:
         return []  # Missing migration/approved rules must never authorize confirmation.
+
+
+def approved_policy_evidence(policy):
+    """Reject a review rule unless its legal evidence is identifiable and reviewable.
+
+    This verifies governance metadata, not the substantive legal interpretation.
+    A qualified reviewer still has to approve the rule for the relevant period.
+    """
+    try:
+        source=urlparse(str(policy.get('official_source') or ''))
+    except ValueError:
+        return False
+    return bool(
+        source.scheme == 'https' and source.hostname in OFFICIAL_GST_SOURCE_HOSTS
+        and source.path and str(policy.get('legal_basis') or '').strip()
+        and str(policy.get('source_version') or '').strip()
+        and str(policy.get('source_checked_at') or '').strip()
+        and str(policy.get('identity_evidence') or '').strip()
+        and str(policy.get('policy_id') or '').strip()
+        and str(policy.get('approved_by') or '').strip()
+        and policy.get('review_status') == 'approved'
+    )
 
 
 def evaluate(store, previous, profile):
@@ -66,8 +94,7 @@ def evaluate(store, previous, profile):
     day = invoice.invoice_date.isoformat() if invoice.invoice_date else ''
     for line in invoice.line_items:
         matching = [p for p in policies if
-            p.get('review_status') == 'approved' and p.get('approved_by') and p.get('official_source')
-            and p.get('identity_evidence') and p.get('policy_id')
+            approved_policy_evidence(p)
             and p.get('supplier_gstin') == invoice.supplier_gstin and p.get('recipient_gstin') == invoice.recipient_gstin
             and p.get('hsn_sac') == line.hsn_sac and p.get('direction') == invoice.direction
             and p.get('supply_type') == invoice.supply_type and p.get('place_of_supply') == invoice.place_of_supply_state_code

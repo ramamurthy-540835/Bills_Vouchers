@@ -12,3 +12,9 @@ First live sequence stopped after 12 requests: four HTTP 200 responses (one prov
 ## Final live assistant sequence
 
 25 requests completed; HTTP statuses: {200: 25}. Only 7 were generated answers. Evidence-only fallbacks: {'provider_unavailable': 12, 'provider_rate_limit': 6}. Median response time 40.877 seconds. No application 429 lockout occurred after the dedicated budget repair. Generated answers returned after fallback responses, demonstrating recovery, but provider availability is NOT accepted as reliable. A separate minimal synthetic Vertex request with a 45-second timeout also failed with ServerError 504 after 43.008 seconds. Do not attribute every failure to chat history or claim 25 successful AI answers. Evidence: artifacts/intelligence-v3/assistant-sequence.json and provider-diagnostic.json.
+
+## Local follow-up: deterministic summaries and provider circuit breaker
+
+The assistant now answers four narrow, common dashboard questions directly from the already-authorized canonical summary: usable ITC, estimated GST cash requirement, GST liability on sales and blocked input tax. These answers do not invoke a model and retain the selected business/period source citation.
+
+For other questions, two retry-bounded provider failures now open a short process-local circuit (30 seconds for timeout/unavailable; 60 seconds for provider rate-limit). During that interval, the user receives the existing safe evidence-only fallback immediately instead of repeatedly waiting for a long provider timeout. The circuit stores no tenant facts and closes after a successful provider answer. This is resilience behavior, not proof that Vertex availability is fixed.

@@ -138,7 +138,9 @@ def seed_auto_review(approved=True):
     auto_rules.clear()
     if approved:
         auto_rules.append({'policy':{'policy_id':'synthetic-review-only','approved_by':'synthetic-reviewer',
-            'official_source':'SYNTHETIC_TEST_ONLY','identity_evidence':'synthetic-fixture',
+            'official_source':'https://cbic-gst.gov.in/gst-invoice-rules.html',
+            'legal_basis':'CGST Rules, 2017, rule 46','source_version':'synthetic-fixture-v1',
+            'source_checked_at':'2026-10-23','identity_evidence':'synthetic-fixture',
             'review_status':'approved','supplier_gstin':invoice.supplier_gstin,'recipient_gstin':invoice.recipient_gstin,
             'hsn_sac':'8703','direction':'purchase','supply_type':'intra','place_of_supply':'33',
             'invoice_type':'tax_invoice','rate':'18','effective_from':'2026-09-01','effective_to':'2026-09-30',

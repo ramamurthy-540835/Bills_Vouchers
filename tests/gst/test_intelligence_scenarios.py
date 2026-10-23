@@ -9,7 +9,9 @@ import pytest
 from app.gst.auto_review import evaluate, review_invoice
 from app.gst.comparison import price_breakdown
 from app.gst.extract import parse_response
+from app.gst.schemas.invoice import GstInvoice, LineItem, Totals
 from app.gst.validate_invoice import duplicate_key
+from app.services.gst.validation import BASE36
 from tests.gst.test_auto_review import store as store_fixture
 
 CASES=json.loads((Path(__file__).parents[1]/'fixtures/auto_review/scenario_manifest.json').read_text())
@@ -17,6 +19,32 @@ EXECUTABLE={'B01','B02','B03','B04','B05','B07','B08','B09','C01','C02','C03','C
             'D01','E01','E02','E03','E04','E10','F02','F03','F04','F05','F07','F08','G01','G03',
             'H02','H03','H04','H05','H06','H08','I07','J07','K01','K03','K04','K08','L03','L04','L05','L06','L07','L09'}
 EXECUTABLE |= {'F01','G06','I01','I02','I03','I04','I05','J01','J02','J03','J04','J05','J06','J08'}
+
+
+def _gstin(prefix):
+    total, factor = 0, 2
+    for char in reversed(prefix):
+        product = BASE36.index(char) * factor
+        total += product // 36 + product % 36
+        factor = 1 if factor == 2 else 2
+    return prefix + BASE36[(36 - total % 36) % 36]
+
+
+@pytest.fixture
+def profile():
+    return {'gstin': _gstin('33ABCDE1234F1Z'), 'business_nature': 'passenger_transport'}
+
+
+@pytest.fixture
+def invoice(profile):
+    return GstInvoice(
+        client_id='a', source_doc_id='doc', supplier_gstin=_gstin('33BCDEF2345G1Z'),
+        supplier_legal_name='Supplier', recipient_gstin=profile['gstin'], invoice_number='INV-1',
+        invoice_date=date(2026, 9, 1), place_of_supply_state_code='33',
+        line_items=[LineItem(description='Vehicle', hsn_sac='8703', taxable_value='1000.00',
+                             gst_rate='18', cgst='90.00', sgst='90.00')],
+        totals=Totals(taxable_value='1000.00', cgst='90.00', sgst='90.00', invoice_total='1180.00'),
+    )
 
 
 @pytest.fixture

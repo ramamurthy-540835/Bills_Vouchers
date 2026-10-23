@@ -1,5 +1,5 @@
 # Test results ? 23 October 2026
-Latest backend suite: 654 passed, 47 skipped, 7 warnings. Earlier run: 637 passed, 61 skipped. Final policy transaction change: targeted 15 passed. Ruff app/tests passed. Mypy app passed (91 files). TypeScript and the final Next production build passed.
+Latest backend suite: 661 passed, 47 skipped, 7 warnings. The latest targeted Auto Review/assistant/scenario run: 126 passed, 47 skipped. Earlier run: 637 passed, 61 skipped. Ruff app/tests passed. Mypy app passed (91 files). TypeScript and the final Next production build passed.
 
 Production browser suite: 88 passed, one ambiguous test selector failed. Corrected selector rerun: all four Auto Review tests passed. The earlier development-server run had seven failures and is not counted as a clean production result. Final UI refresh/upload regression rerun: 14 passed.
 
@@ -28,3 +28,7 @@ Release regression after exclusion persistence fix: 654 backend tests passed, 47
 ## Final candidate acceptance
 
 Candidate source `7133d767b5af2a5a67d34c1b5ca47f3ab4ccd6c9` was tested at the tagged V3 Intelligence URL. The acceptance script passed all listed assertions: authorization/login, default OFF and persistence, existing-bill batch behavior, explicit per-invoice exclusion retention, responsive presentation, unchanged confirmed financial status, future ON and explicit OFF upload handling with retained original bytes, deterministic assistant evidence, and final policy reset to OFF. The final measured login was 8.840 seconds and Bills navigation was 14.843 seconds in this single acceptance run; these are observations, not performance SLOs. Evidence: `artifacts/auto-review-v3/intelligence-live-acceptance.json`.
+
+## Local follow-up after candidate deployment
+
+The scenario test module is now self-contained, so its fixtures no longer depend on pytest collection order. Auto Review rules also reject untraceable policy sources: a rule must identify a reviewable official HTTPS source, legal basis, source version and source-check date before it can authorize confirmation. This is a governance/evidence gate only; effective-period CA/legal review remains required. The assistant now answers four exact canonical-summary intents without a model and uses a bounded process-local provider circuit breaker for repeated unavailable/rate-limited calls. No Cloud Run candidate was rebuilt or promoted for this local follow-up.

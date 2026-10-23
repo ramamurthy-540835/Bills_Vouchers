@@ -9,7 +9,7 @@
 | Assistant five/15-minute authentication-limit defect | Reproduced live and repaired with a separate tenant/user eight/minute budget |
 | Provider availability | Unreliable during live test; rate-limit/availability fallback is not a generated answer |
 | Complete financial valuation | NOT IMPLEMENTED: unit-price, discount/charges and pricing-basis persistence/reconciliation |
-| All scenario acceptance | INCOMPLETE: 61 partial deterministic contracts, 47 skipped; visual/end-to-end/legal coverage incomplete |
+| All scenario acceptance | INCOMPLETE: 61 partial deterministic contracts, 47 skipped; visual/end-to-end/legal coverage incomplete. Fixture isolation is now collection-order independent. |
 | Combined scenarios | Five combinations tested; full requested set incomplete |
 | ZIP / extra image formats / logical multi-invoice PDFs | NOT IMPLEMENTED; unsupported formats remain rejected |
 | Model evaluation / statutory acceptance | Representative extraction corpus, false-confirmation metrics and specialist review pending |
