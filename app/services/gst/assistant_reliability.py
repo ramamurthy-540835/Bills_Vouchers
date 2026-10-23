@@ -6,6 +6,27 @@ from uuid import uuid4
 logger=logging.getLogger(__name__)
 
 
+def throttle(repo, user_id, client_id):
+    """Persistent assistant budget, separate from five-per-15-minute auth limits."""
+    from hashlib import sha256
+    from fastapi import HTTPException
+    from google.api_core.exceptions import BadRequest, Conflict
+    from .medallion import param
+    key=sha256(f'assistant-minute:{client_id}:{user_id}'.encode()).hexdigest()
+    try:
+        repo.query(f'''BEGIN TRANSACTION;
+            ASSERT (SELECT COUNT(*) FROM `{repo.table('auth_guard')}` WHERE id='identity')=1 AS 'Storage guard missing';
+            UPDATE `{repo.table('auth_guard')}` SET touched_at=CURRENT_TIMESTAMP() WHERE id='identity';
+            ASSERT (SELECT COUNT(*) FROM `{repo.table('auth_attempts')}`
+                WHERE key_hash=@key AND created_at>TIMESTAMP_SUB(CURRENT_TIMESTAMP(),INTERVAL 60 SECOND))<8 AS 'Assistant rate limit';
+            INSERT INTO `{repo.table('auth_attempts')}` (key_hash,created_at) VALUES (@key,CURRENT_TIMESTAMP());
+            COMMIT TRANSACTION;''',[param('key',key)])
+    except (BadRequest,Conflict) as exc:
+        if any(word in str(exc).lower() for word in ('assistant rate limit','concurrent','aborted')):
+            raise HTTPException(429,'Question limit reached. Please wait one minute, then retry.',headers={'Retry-After':'60'}) from None
+        raise
+
+
 def category(exc):
     code=getattr(exc,'code',None) or getattr(exc,'status_code',None)
     if code==429:

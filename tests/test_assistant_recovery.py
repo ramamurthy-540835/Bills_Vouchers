@@ -44,3 +44,18 @@ def test_extraction_cannot_set_auto_review():
     result=parse_response(json.dumps({'auto_review':{'enabled':True,'status':'auto_confirmed'},'confidence':'1'}),'a','doc','original')
     assert not result.auto_review.enabled and result.status=='extracted'
     assert 'auto_review' not in extraction_schema()['properties']
+
+
+def test_persistent_assistant_budget_is_tenant_bound_and_not_auth_budget():
+    from google.api_core.exceptions import BadRequest
+    repo=Mock();repo.table.side_effect=lambda name:'project.v3.'+name
+    recovery.throttle(repo,'user','business-a')
+    sql,params=repo.query.call_args.args
+    assert 'INTERVAL 60 SECOND' in sql and "<8 AS 'Assistant rate limit'" in sql
+    assert 'BEGIN TRANSACTION' in sql and 'auth_guard' in sql
+    key=params[0].value
+    recovery.throttle(repo,'user','business-b')
+    assert repo.query.call_args.args[1][0].value!=key
+    repo.query.side_effect=BadRequest('Assistant rate limit')
+    with pytest.raises(HTTPException) as error:recovery.throttle(repo,'user','business-a')
+    assert error.value.status_code==429 and error.value.headers['Retry-After']=='60'

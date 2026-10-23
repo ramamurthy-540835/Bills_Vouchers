@@ -1,6 +1,6 @@
 # Scenario coverage: 108 specified IDs
 
-47 partial deterministic contracts passed; 61 explicitly skipped. No row claims complete end-to-end or legal acceptance. Machine-readable fields and test references are in tests/fixtures/auto_review/scenario_manifest.json.
+61 partial deterministic contracts passed; 47 explicitly skipped. No row claims complete end-to-end or legal acceptance. Machine-readable fields and test references are in tests/fixtures/auto_review/scenario_manifest.json.
 
 | ID | Scenario | Actual test coverage |
 |---|---|---|
@@ -52,7 +52,7 @@
 | E08 | Zero rated classification | NOT_IMPLEMENTED_SKIPPED |
 | E09 | Composition charges GST | NOT_IMPLEMENTED_SKIPPED |
 | E10 | Conditional rate missing evidence | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| F01 | Interstate IGST | NOT_IMPLEMENTED_SKIPPED |
+| F01 | Interstate IGST | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | F02 | Intrastate CGST SGST | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | F03 | Interstate uses CGST SGST | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | F04 | Intrastate uses IGST | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
@@ -67,7 +67,7 @@
 | G03 | Incorrect debit note adjustment | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | G04 | Credit original missing | NOT_IMPLEMENTED_SKIPPED |
 | G05 | Credit exceeds adjustment | NOT_IMPLEMENTED_SKIPPED |
-| G06 | Cancelled invoice dashboard | NOT_IMPLEMENTED_SKIPPED |
+| G06 | Cancelled invoice dashboard | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | G07 | Edit after period lock | NOT_IMPLEMENTED_SKIPPED |
 | G08 | Previous financial year | NOT_IMPLEMENTED_SKIPPED |
 | H01 | Exact duplicate file | NOT_IMPLEMENTED_SKIPPED |
@@ -78,22 +78,22 @@
 | H06 | Different supplier same number | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | H07 | Three source duplicate | NOT_IMPLEMENTED_SKIPPED |
 | H08 | Rejected corrected resubmission | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| I01 | XLSX grouping | NOT_IMPLEMENTED_SKIPPED |
-| I02 | Inconsistent spreadsheet totals | NOT_IMPLEMENTED_SKIPPED |
-| I03 | Unsafe formulas | NOT_IMPLEMENTED_SKIPPED |
-| I04 | Unsafe ZIP | NOT_IMPLEMENTED_SKIPPED |
-| I05 | Corrupt protected original | NOT_IMPLEMENTED_SKIPPED |
+| I01 | XLSX grouping | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
+| I02 | Inconsistent spreadsheet totals | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
+| I03 | Unsafe formulas | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
+| I04 | Unsafe ZIP | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
+| I05 | Corrupt protected original | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | I06 | Structured evidence conflict | NOT_IMPLEMENTED_SKIPPED |
 | I07 | Missing original evidence | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | I08 | Retry duplicate insert | NOT_IMPLEMENTED_SKIPPED |
-| J01 | Matched invoice | NOT_IMPLEMENTED_SKIPPED |
-| J02 | Books only | NOT_IMPLEMENTED_SKIPPED |
-| J03 | Statement only | NOT_IMPLEMENTED_SKIPPED |
-| J04 | Amount mismatch | NOT_IMPLEMENTED_SKIPPED |
-| J05 | Credit note mismatch | NOT_IMPLEMENTED_SKIPPED |
-| J06 | Wrong statement period | NOT_IMPLEMENTED_SKIPPED |
+| J01 | Matched invoice | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
+| J02 | Books only | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
+| J03 | Statement only | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
+| J04 | Amount mismatch | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
+| J05 | Credit note mismatch | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
+| J06 | Wrong statement period | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | J07 | Arithmetic correct blocked ITC | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| J08 | Punctuation probable match | NOT_IMPLEMENTED_SKIPPED |
+| J08 | Punctuation probable match | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | K01 | Malformed AI JSON | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | K02 | Invented supplier | NOT_IMPLEMENTED_SKIPPED |
 | K03 | Taxable total swapped | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |

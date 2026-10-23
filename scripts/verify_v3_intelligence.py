@@ -2,6 +2,8 @@
 import json
 import sys
 import time
+import csv
+from io import StringIO
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -70,8 +72,35 @@ def main():
                 page.screenshot(path=str(ART/f'intelligence-live-{width}.png'),full_page=True)
             record('responsive_intelligence')
             after=req('GET','/api/gst/bills?period=2026-10').json()
-            assert {i['invoice_id']:i['status'] for i in before['invoices']}=={i['invoice_id']:i['status'] for i in after['invoices']}
+            def financial_records(values):
+                return {i['invoice_id']:i['totals'] for i in values if i['status']=='confirmed'}
+            assert financial_records(before['invoices'])==financial_records(after['invoices'])
             record('financial_statuses_unchanged')
+            from app.gst.template import HEADERS
+            supplier=next(i['supplier_gstin'] for i in before['invoices'] if i['direction']=='purchase')
+            for suffix,choice in [('AUTO',''),('OFF','&auto_review=false')]:
+                stream=StringIO();writer=csv.writer(stream);writer.writerow(HEADERS)
+                writer.writerow([supplier,'V3INT-'+suffix+'-1023','23-10-2026','8537',
+                    'SYNTHETIC TEST INVOICE - NOT VALID FOR TAX FILING','1000','18','90','90','0','0','1180','33','N'])
+                content=stream.getvalue().encode()
+                response=req('POST','/api/gst/bills/upload?period=2026-10&expected_client='+before['client_id']+choice,
+                    multipart={'files':{'name':'synthetic-intelligence-'+suffix+'.csv','mimeType':'text/csv','buffer':content}})
+                assert response.status==200,response.status
+                job=response.json();deadline=time.monotonic()+600
+                while job['status'] not in {'completed','needs_attention'} and time.monotonic()<deadline:
+                    page.wait_for_timeout(5000);job=req('GET','/api/gst/bills/upload/'+job['job_id']).json()
+                assert job['status']=='completed',job['status']
+                ids=[identity for entry in job['files'] for identity in entry['invoice_ids']]
+                assert len(ids)==1
+                invoice=req('GET','/api/gst/bills/'+ids[0]).json()
+                assert invoice['status']!='confirmed'
+                assert invoice['auto_review']['enabled']==(suffix=='AUTO')
+                original=req('GET','/api/gst/bills/'+ids[0]+'/original')
+                assert original.status==200 and original.body()==content
+                record('future_policy_and_original_'+suffix)
+            current_bills=req('GET','/api/gst/bills?period=2026-10').json()['invoices']
+            assert financial_records(before['invoices'])==financial_records(current_bills)
+            record('future_uploads_do_not_bypass_missing_policy')
             response=req('POST','/api/assistant/chat?period=2026-10',data={'question':'Which invoices need review?','history':[]})
             assert response.status==200,response.status
             assert response.json()['sources']

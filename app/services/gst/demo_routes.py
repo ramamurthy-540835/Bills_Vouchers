@@ -56,9 +56,9 @@ def live_chat(payload: ChatRequest, request: Request, repo=Depends(get_db), user
         from app.gst.store import BillStore
         from app.gst.evidence import documents, confirmed_summary, reconciliation_context
         from app.gst.report import calculate
-        from app.services.auth_identity import throttle
+        from .assistant_reliability import throttle
         from app.routes import active_client
-        throttle(repo,'assistant:'+str(user.id))
+        throttle(repo,str(user.id),store.client_id)
         bills=BillStore(repo,store.client_id)
         invoices=bills.list(store.period)
         profile=store.profile() or {}

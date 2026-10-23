@@ -18,3 +18,5 @@ GST rules are not configured in the candidate; automatic confirmation remains
 fail-closed. No model/rate/legal approval is inferred from historical handoffs.
 
 Cloud baseline saved privately under artifacts/auto-review-v3/intelligence-services-before.json.
+
+Live follow-up found the canonical route also calls the persistent authentication throttle (five/15 minutes). See ASSISTANT_RELIABILITY.md for the reproduced cause and dedicated budget repair.
