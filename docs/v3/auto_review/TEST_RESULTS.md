@@ -12,3 +12,5 @@ Live candidate, provider extraction evaluation, all advanced valuations, load te
 Status: implementation candidate; not a complete Auto Review 2.0 release. Local tests are not legal acceptance or live provider acceptance. V2 is excluded.
 
 Live first candidate: login, default OFF, policy persistence, three existing manual exceptions, responsive views, two future CSV uploads (inherited ON and explicit OFF), exact original bytes, unchanged confirmed financial records, deterministic assistant and reset OFF passed. Repeated model questions exposed the persistent auth-throttle defect; that sequence failed and triggered a repair. Repaired sequence pending.
+
+Parallel workspace loading: TypeScript and production build passed; 32 navigation, business-switching, revocation, report and intelligence browser tests passed.

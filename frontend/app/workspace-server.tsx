@@ -13,9 +13,18 @@ export async function WorkspacePage({view,searchParams,reportKind}: {view:string
   const params=new URLSearchParams({...query?.period?{period:query.period}:{},...view==='demo'&&query?.scenario?{scenario:query.scenario}:{},...view==='gstworkspace'&&query?.scope?{scope:query.scope}:{}})
   if(view==='gstworkspace'&&query?.range)params.set('scope_name',query.range)
   let response:Response|undefined, data:any=null
+  let identity:Response|undefined
   try {
-    response=await backendFetch(`${process.env.BACKEND_URL||'http://localhost:8000'}/api/${endpoint}?${params}`,{headers:{cookie},cache:'no-store',signal:AbortSignal.timeout(25000)})
-    if(response.ok) data=await response.json()
+    const base=process.env.BACKEND_URL||'http://localhost:8000'
+    // Independent authenticated snapshots may load together. The client identity
+    // equality and permission checks below still gate rendering of financial data.
+    const results=await Promise.allSettled([
+      backendFetch(`${base}/api/${endpoint}?${params}`,{headers:{cookie},cache:'no-store',signal:AbortSignal.timeout(25000)}),
+      backendFetch(`${base}/api/settings/account`,{headers:{cookie},cache:'no-store',signal:AbortSignal.timeout(25000)}),
+    ])
+    response=results[0].status==='fulfilled'?results[0].value:undefined
+    identity=results[1].status==='fulfilled'?results[1].value:undefined
+    if(response?.ok) data=await response.json()
   } catch {}
   if(response?.status===401) redirect('/login')
   if(response?.status===403){const err=await response.json().catch(()=>({}));if(err.error?.code==='password_change_required')redirect('/settings');if(err.error?.code==='mobile_verification_required')redirect('/settings/account')}
@@ -23,8 +32,7 @@ export async function WorkspacePage({view,searchParams,reportKind}: {view:string
   if(data){
     let access:any=null
     try{
-      const identity=await backendFetch(`${process.env.BACKEND_URL||'http://localhost:8000'}/api/settings/account`,{headers:{cookie},cache:'no-store'})
-      if(identity.ok)access=await identity.json()
+      if(identity?.ok)access=await identity.json()
     }catch{}
     const item=navigation.find(item=>item.id===view)
     if(access&&item&&!canAccessMenuItem(access,item))redirect('/gst/workspace')

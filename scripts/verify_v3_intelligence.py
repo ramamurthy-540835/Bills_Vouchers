@@ -16,8 +16,8 @@ BASE='https://auto-review---gst-easy-v3-web-foovqasysa-el.a.run.app'
 def main():
     global BASE
     mode=sys.argv[1]
-    assert mode in {'baseline','acceptance'}
-    if mode=='acceptance':
+    assert mode in {'baseline','acceptance','performance'}
+    if mode!='baseline':
         BASE=json.loads(Path('artifacts/intelligence-v3/deployment.json').read_text())['candidates']['web']['url']
         assert BASE.startswith('https://intelligence---gst-easy-v3-web-')
     report={'mode':mode,'url':BASE,'login_seconds':[],'bills_navigation_seconds':[],'checks':{}}
@@ -35,11 +35,11 @@ def main():
             report['login_seconds'].append(round(time.perf_counter()-started,3))
             started=time.perf_counter();page.goto(BASE+'/bills?period=2026-10');page.get_by_label('Bill status',exact=True).wait_for()
             report['bills_navigation_seconds'].append(round(time.perf_counter()-started,3))
-            if mode=='baseline':context.close()
+            if mode!='acceptance':context.close()
             else:break
         del password
         record('authorized_login_navigation')
-        if mode=='baseline':browser.close();return
+        if mode!='acceptance':browser.close();return
         csrf=context.request.get(BASE+'/api/auth/csrf').json()['token']
         def req(method,path,**kwargs):
             return context.request.fetch(BASE+path,method=method,headers={'x-csrf-token':csrf,'origin':BASE,**kwargs.pop('headers',{})},timeout=180000,**kwargs)
