@@ -7,4 +7,8 @@ Local tests cover 25 questions across rate windows, provider categories/retries 
 
 Status: implementation candidate; not a complete Auto Review 2.0 release. Local tests are not legal acceptance or live provider acceptance. V2 is excluded.
 
-First live sequence stopped after 12 requests: four HTTP 200 responses (one provider_rate_limit evidence fallback), followed by eight HTTP 429 responses. Provider failure recovered on the next request; application throttle required the code repair. Retest pending on the repaired candidate.
+First live sequence stopped after 12 requests: four HTTP 200 responses (one provider_rate_limit evidence fallback), followed by eight HTTP 429 responses. Provider failure recovered on the next request; application throttle required the code repair. Final results follow below.
+
+## Final live assistant sequence
+
+25 requests completed; HTTP statuses: {200: 25}. Only 7 were generated answers. Evidence-only fallbacks: {'provider_unavailable': 12, 'provider_rate_limit': 6}. Median response time 40.877 seconds. No application 429 lockout occurred after the dedicated budget repair. Generated answers returned after fallback responses, demonstrating recovery, but provider availability is NOT accepted as reliable. A separate minimal synthetic Vertex request with a 45-second timeout also failed with ServerError 504 after 43.008 seconds. Do not attribute every failure to chat history or claim 25 successful AI answers. Evidence: artifacts/intelligence-v3/assistant-sequence.json and provider-diagnostic.json.

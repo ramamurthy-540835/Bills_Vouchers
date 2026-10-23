@@ -12,6 +12,16 @@ test('empty attention card is absent and default business policy is OFF',async({
  await expect(page.getByRole('region',{name:'Requires Attention',exact:true})).toHaveCount(0)
 })
 
+test('default manual upload does not create a permanent individual exclusion',async({page})=>{
+ await page.goto('/bills?period=2026-09')
+ await expect(page.getByRole('switch',{name:'Business Auto Review'})).toHaveAttribute('aria-checked','false')
+ await expect(page.getByLabel('Upload bills',{exact:true})).toBeEnabled()
+ let choice:string|null|undefined
+ await page.route('**/api/gst/bills/upload?*',route=>{choice=new URL(route.request().url()).searchParams.get('auto_review');return route.fulfill({json:{job_id:'default-off',status:'completed',files:[]}})})
+ await page.getByLabel('Upload bills',{exact:true}).setInputFiles({name:'manual.csv',mimeType:'text/csv',buffer:Buffer.from('synthetic')})
+ await expect.poll(()=>choice).toBeNull()
+})
+
 test('business scope persists and existing durable batch confirms synthetic eligible bill',async({page,request})=>{
  await request.post('http://127.0.0.1:8103/__test__/auto-review')
  await page.goto('/bills?period=2026-09')

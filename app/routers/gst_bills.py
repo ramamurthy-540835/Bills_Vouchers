@@ -153,6 +153,7 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
             raise HTTPException(422, 'Check the file format and size. Use a valid PDF, photo or the provided spreadsheet template.') from None
         content_files.append((filename, content))
     inherited = None
+    explicit_auto_review = auto_review is not None
     if auto_review is None:
         from app.gst.intelligence import policy
         chosen = policy(store)
@@ -160,7 +161,7 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
         if auto_review:
             inherited = chosen.version
     job_id = str(uuid4())
-    job: dict[str, Any] = {'job_id': job_id, 'status': 'queued', 'recovery_version': 1, 'actor_id': str(user.id), 'period': period, 'files': [], 'auto_review_enabled': auto_review}
+    job: dict[str, Any] = {'job_id': job_id, 'status': 'queued', 'recovery_version': 1, 'actor_id': str(user.id), 'period': period, 'files': [], 'auto_review_enabled': auto_review, 'auto_review_explicit': explicit_auto_review}
     if inherited is not None:
         job['business_policy_version'] = inherited
     for filename, content in content_files:

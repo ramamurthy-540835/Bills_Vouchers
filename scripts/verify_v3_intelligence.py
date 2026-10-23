@@ -45,6 +45,18 @@ def main():
             return context.request.fetch(BASE+path,method=method,headers={'x-csrf-token':csrf,'origin':BASE,**kwargs.pop('headers',{})},timeout=180000,**kwargs)
         before=req('GET','/api/gst/bills?period=2026-10').json()
         assert before['invoices'] and all(i['client_id']==before['client_id'] for i in before['invoices'])
+        excluded_ids=[]
+        for invoice in before['invoices']:
+            if invoice['invoice_number']=='V3INT-OFF-1023':
+                assert invoice['status']!='confirmed' and invoice['extraction']['method']=='csv'
+                assert invoice['line_items'][0]['description']=='SYNTHETIC TEST INVOICE - NOT VALID FOR TAX FILING'
+                # Repair only this script's prior synthetic exclusion, using the
+                # authorized invoice toggle; no direct database modification.
+                if not invoice['auto_review']['requested_at']:
+                    response=req('PATCH','/api/gst/bills/'+invoice['invoice_id']+'/auto-review',
+                        data={'enabled':False},headers={'if-match':str(invoice['version'])})
+                    assert response.status==200
+                excluded_ids.append(invoice['invoice_id'])
         overview=req('GET','/api/gst/bills/intelligence?period=2026-10').json()
         assert not overview['policy']['enabled'], 'Do not overwrite an existing opt-in during acceptance'
         record('default_off_and_scoped_counts')
@@ -64,7 +76,9 @@ def main():
                     page.wait_for_timeout(5000);job=req('GET','/api/gst/bills/upload/'+job['job_id']).json()
                 assert job['status']=='completed',job['status']
                 assert all(e['status'] in {'needs_attention','cancelled'} for e in job['files']), 'No approved live GST policies were seeded'
+                assert not set(excluded_ids)&{identity for entry in job['files'] for identity in entry['invoice_ids']}
                 record('durable_existing_batch_manual_exceptions',len(job['files']))
+                record('individual_exclusions_survive_later_batch')
             page.reload();page.get_by_role('region',name='Invoice Intelligence',exact=True).wait_for()
             for width in [1440,768,390]:
                 page.set_viewport_size({'width':width,'height':1000})
@@ -95,6 +109,7 @@ def main():
                 invoice=req('GET','/api/gst/bills/'+ids[0]).json()
                 assert invoice['status']!='confirmed'
                 assert invoice['auto_review']['enabled']==(suffix=='AUTO')
+                assert invoice['auto_review']['requested_at']
                 original=req('GET','/api/gst/bills/'+ids[0]+'/original')
                 assert original.status==200 and original.body()==content
                 record('future_policy_and_original_'+suffix)

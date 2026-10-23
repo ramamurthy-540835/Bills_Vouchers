@@ -6,3 +6,5 @@ Business policy resides outside canonical invoice JSON so older revisions can st
 BigQuery SQL unit tests inspect transaction guards; only a live candidate test can verify actual database execution. Live cross-tenant and concurrent load verification for this release remains pending.
 
 Status: implementation candidate; not a complete Auto Review 2.0 release. Local tests are not legal acceptance or live provider acceptance. V2 is excluded.
+
+Live candidate evidence: business policy transactions and durable batch execution succeeded against V3 BigQuery/Cloud Tasks. V2/older Bills & Vouchers configurations and existing V3 traffic passed the final comparison. The all-project comparison retains an unrelated prism-frontend drift failure; see V3_DEPLOYMENT_REPORT.md.

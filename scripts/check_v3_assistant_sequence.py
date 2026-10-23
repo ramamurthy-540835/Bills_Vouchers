@@ -31,13 +31,13 @@ def main():
             body=response.json()
             observation={'question_number':number+1,'status':response.status,'seconds':round(time.perf_counter()-started,3),
                 'degraded':body.get('degraded',False),'failure_category':body.get('failure_category'),
-                'source_count':len(body.get('sources',[]))}
+                'source_count':len(body.get('sources',[])),'retry_after':response.headers.get('retry-after')}
             observations.append(observation);output.write_text(json.dumps({'url':base,'observations':observations},indent=2))
             print(json.dumps(observation),flush=True)
             if response.status==200:
                 history.extend([{'role':'user','content':question},{'role':'assistant','content':body.get('answer','')[:1500]}])
             if response.status in {401,403}:break
-            time.sleep(8)
+            time.sleep(max(0,8-(time.perf_counter()-started)))
         browser.close()
 
 

@@ -137,3 +137,20 @@ def test_combined_critical_failures_do_not_cancel_each_other(store,profile):
             if fault=='correction':invoice.correction_state='resubmitted'
         _,reasons,_,_=evaluate(store,invoice,profile)
         assert len(reasons)>=2
+
+
+@pytest.mark.parametrize('explicit',[False,True])
+def test_uploaded_off_exclusion_is_distinct_from_default_off(store,profile,monkeypatch,explicit):
+    from app.gst.jobs import process_job
+    invoice=store.state.current.model_copy(deep=True)
+    store.list.side_effect=lambda:[]
+    monkeypatch.setattr('app.gst.jobs.extract',lambda *args:[invoice])
+    store.upload_object.return_value='silver'
+    job={'job_id':'batch','status':'queued','period':'2026-09','auto_review_enabled':False,
+         'auto_review_explicit':explicit,
+         'files':[{'filename':'bill.pdf','doc_id':'doc','raw_ref':'original','status':'reading','invoice_ids':[]}]}
+    process_job(store,profile,'owner',job)
+    saved=store.state.current
+    assert not saved.auto_review.enabled and saved.status!='confirmed'
+    assert bool(saved.auto_review.requested_at)==explicit
+    assert intelligence.eligible(saved) is not explicit

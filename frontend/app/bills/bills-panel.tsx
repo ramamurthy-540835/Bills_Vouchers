@@ -62,7 +62,7 @@ export default function BillsPanel({data}:{data:any}){
     if(!mounted.current)return
     try{
      const body=new FormData();body.append('files',file)
-     const autoQuery=excluded.includes(index)?'&auto_review=false':batchAuto?'&auto_review=true':futureAuto?'':'&auto_review=false'
+     const autoQuery=excluded.includes(index)?'&auto_review=false':batchAuto?'&auto_review=true':''
      submitted.push(await api(`/upload?period=${period}&expected_client=${encodeURIComponent(data.client_id)}${autoQuery}`,'POST',body))
      sessionStorage.setItem(jobKey,JSON.stringify(submitted.map(j=>j.job_id)))
     }catch(e){failed.push({filename:file.name,status:'needs_attention',reason:(e as Error).message})}

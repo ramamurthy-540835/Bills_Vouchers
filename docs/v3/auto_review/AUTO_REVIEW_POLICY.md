@@ -6,3 +6,5 @@ Auto-confirmation requires canonical required fields and identity, exact-cent ta
 A missing approved rule never becomes a successful check. GSTR-2B import is not a prerequisite for basic invoice confirmation, but confirmation does not grant ITC claim readiness. No government filing or automatic ITC approval is added.
 
 Status: implementation candidate; not a complete Auto Review 2.0 release. Local tests are not legal acceptance or live provider acceptance. V2 is excluded.
+
+Upload requests without an auto_review parameter inherit current business policy. An explicit false is stored as an individual exclusion with actor, timestamp and job reference, so later existing-bill batches skip it. A default manual upload has no explicit exclusion timestamp and remains eligible for a later authorized batch. Older upload records without an explicit-choice marker cannot reliably distinguish default OFF from file exclusion; do not infer historical intent from false alone. The known synthetic test exclusion is re-applied through the authorized invoice toggle during acceptance.

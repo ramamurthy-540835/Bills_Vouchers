@@ -43,6 +43,11 @@ class Store:
     def query(self,sql,params=()):
         import json
         values={p.name:p.value for p in params}
+        if 'intelligence_batch_requested' in sql:
+            if intelligence_policies.get(self.client_id,{'version':0})['version']!=values['policy_version']:
+                raise HTTPException(409,'Policy changed')
+            jobs[values['id']]=json.loads(values['payload'])
+            return []
         if 'intelligence_policy' in sql:
             if 'BEGIN TRANSACTION' in sql:
                 previous=intelligence_policies.get(self.client_id,{'version':0})
@@ -50,9 +55,6 @@ class Store:
                 intelligence_policies[self.client_id]=json.loads(values['after'])
                 return []
             return [{'after_payload':intelligence_policies[self.client_id]}] if self.client_id in intelligence_policies else []
-        if 'intelligence_batch_requested' in sql:
-            jobs[values['id']]=json.loads(values['payload'])
-            return []
         return auto_rules if 'SELECT policy FROM' in sql else []
     def writable_sql(self):return ''
     def table(self,*args):return 'synthetic.table'

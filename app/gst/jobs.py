@@ -99,9 +99,9 @@ def process_job(store,profile,actor,job):
                     from .intelligence import policy
                     selected = policy(store)
                     enabled = enabled and selected.enabled and selected.version == job['business_policy_version']
-                if enabled:
+                if enabled or (job.get('auto_review_explicit') and job.get('auto_review_enabled') is False):
                     from .auto_review import now
-                    saved.auto_review.enabled = True
+                    saved.auto_review.enabled = bool(enabled)
                     saved.auto_review.requested_by = actor
                     saved.auto_review.requested_at = now()
                     saved.auto_review.job_id = job['job_id']

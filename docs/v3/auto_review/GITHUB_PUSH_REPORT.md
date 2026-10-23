@@ -1,6 +1,11 @@
-# Source publication
-Target GST_NEW_V3, baseline 82f7035d1bfd982b110b8195c7e7aa8530d55af8. Source changes are local at this report revision. No new push is claimed. Unrelated user-guide PDF/script remain untouched and excluded. V2 branch and build configurations are not changed.
+# GitHub publication
 
-A reviewed commit and remote SHA must be recorded after publication. Never substitute the prior baseline SHA for the new release.
+Repository: https://github.com/ramamurthy-540835/Bills_Vouchers
+Branch: GST_NEW_V3
 
-Status: implementation candidate; not a complete Auto Review 2.0 release. Local tests are not legal acceptance or live provider acceptance. V2 is excluded.
+Reviewed implementation commits pushed and remote-verified during release:
+- 55412bea336fb40f747c3f99b6ca9d8605911ab3: business scopes, batches, UI, assistant recovery, audit and tests.
+- f25f508df3217ed376baacbb46be9b16fec6a0cf: live-discovered assistant throttle repair and expanded deterministic cases.
+- b7bed23c7903735c009245893b97e7894683bf2f: parallel authenticated workspace loading; deployed source.
+
+No force push or merge into V2/main. Unrelated user-guide files were preserved and excluded. No plaintext demo credentials, customer invoices or local cloud configuration snapshots were staged. Final evidence-only commit will follow acceptance and is not a different runtime image unless explicitly rebuilt.
