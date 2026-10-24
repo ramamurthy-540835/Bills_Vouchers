@@ -1,4 +1,4 @@
-# Release decision: candidate only, incomplete acceptance
+# Release decision: V3 code live, incomplete statutory acceptance
 
 | Area | Actual status |
 |---|---|
@@ -14,8 +14,8 @@
 | ZIP / extra image formats / logical multi-invoice PDFs | NOT IMPLEMENTED; unsupported formats remain rejected |
 | Model evaluation / statutory acceptance | Representative extraction corpus, false-confirmation metrics and specialist review pending |
 | Performance | Small live samples improved; production p95/p99/load/cost targets not established |
-| GitHub and deployment | Reviewed code pushed; V3 intelligence candidate deployed without promotion |
+| GitHub and deployment | Reviewed runtime commit 2dc46b9 pushed; V3 API/web deployed at 100% on main URLs. Live synthetic smoke passed. |
 | V2 and older Bills & Vouchers | Final service/configuration/traffic comparison passed |
 | All-project preservation | Strict assertion failed on unrelated prism-frontend drift; no commands targeted that service |
 
-Do not enable live automatic-confirmation policies or promote this candidate as complete Auto Review 2.0 until unsupported valuation and evidence gates, representative scenario testing and legal approval are completed. No reviewed legal policy was seeded during this work. Candidate scope controls can be tested safely with manual exceptions.
+Do not enable live automatic-confirmation policies or describe Auto Review 2.0 as fully compliant until unsupported valuation and evidence gates, representative scenario testing and legal approval are completed. No reviewed legal policy was seeded during this work. The V3 UI and guarded workflows are live; Auto Review defaults OFF.

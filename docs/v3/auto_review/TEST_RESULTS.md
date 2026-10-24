@@ -7,9 +7,9 @@ The supplied scenario list contains 108 IDs. 61 have partial deterministic contr
 
 Logs: artifacts/auto-review-v3/intelligence-pytest.log, intelligence-tests.xml, intelligence-browser-production.log, intelligence-build-final.log. A sandbox-only attempt failed collection due native dependency access; rerunning with approved dependency access produced the backend result above.
 
-Live candidate, provider extraction evaluation, all advanced valuations, load tests and complete acceptance remain pending. No skipped test is counted as passed.
+Provider extraction evaluation, advanced valuations, load tests and complete statutory acceptance remain pending. No skipped test is counted as passed.
 
-Status: implementation candidate; not a complete Auto Review 2.0 release. Local tests are not legal acceptance or live provider acceptance. V2 is excluded.
+Status: V3 code live; not a complete Auto Review 2.0 statutory release. Local tests are not legal acceptance or live provider acceptance. V2 is excluded.
 
 Live first candidate: login, default OFF, policy persistence, three existing manual exceptions, responsive views, two future CSV uploads (inherited ON and explicit OFF), exact original bytes, unchanged confirmed financial records, deterministic assistant and reset OFF passed. Repeated model questions exposed the persistent auth-throttle defect; that sequence failed and triggered a repair. Final results follow below.
 
@@ -31,4 +31,10 @@ Candidate source `7133d767b5af2a5a67d34c1b5ca47f3ab4ccd6c9` was tested at the ta
 
 ## Local follow-up after candidate deployment
 
-The scenario test module is now self-contained, so its fixtures no longer depend on pytest collection order. Auto Review rules also reject untraceable policy sources: a rule must identify a reviewable official HTTPS source, legal basis, source version and source-check date before it can authorize confirmation. This is a governance/evidence gate only; effective-period CA/legal review remains required. The assistant now answers four exact canonical-summary intents without a model and uses a bounded process-local provider circuit breaker for repeated unavailable/rate-limited calls. No Cloud Run candidate was rebuilt or promoted for this local follow-up.
+The scenario test module is now self-contained, so its fixtures no longer depend on pytest collection order. Auto Review rules also reject untraceable policy sources: a rule must identify a reviewable official HTTPS source, legal basis, source version and source-check date before it can authorize confirmation. This is a governance/evidence gate only; effective-period CA/legal review remains required. The assistant now answers four exact canonical-summary intents without a model and uses a bounded process-local provider circuit breaker for repeated unavailable/rate-limited calls.
+
+## 24 October V3 live rollout
+
+Build 529145b8-a4f8-4831-96c4-83f08b496a0a succeeded for runtime commit `2dc46b9ab09a4ac1e74e17220e47887d536ebfc1`. The tagged candidate passed three synthetic browser login/Bills-navigation samples and a separate authenticated check of Invoice Intelligence, business policy OFF and all four canonical assistant questions. Login samples: 9.614, 8.276 and 8.347 seconds; Bills navigation: 16.079, 7.212 and 6.627 seconds. These do not establish p95 performance.
+
+The same immutable API and web images were configured for the main V3 URLs and routed to 100% V3 traffic. The main URL then passed synthetic login, Invoice Intelligence UI, business policy OFF and four canonical assistant answers with authorized source citations. Evidence: `artifacts/intelligence-v3/smoke-current.json` and `smoke-live.json`. V2 and older Bills & Vouchers live traffic mappings were checked afterward and were unchanged. Live auto-confirmation under a professionally approved GST rule and a reliable 25-question Vertex sequence were not tested or claimed in this rollout.
