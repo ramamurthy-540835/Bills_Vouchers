@@ -4,7 +4,7 @@
 
 **Development branch:** `GST_NEW_V3`
 
-**Latest pushed commit:** `f675d096ef7124a52f198f7373c12f8e9aa10ccb`
+**Latest application commit:** `f675d096ef7124a52f198f7373c12f8e9aa10ccb`
 
 **Status:** Development progressing; Auto Review 2.0 is not fully accepted.
 
