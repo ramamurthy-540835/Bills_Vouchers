@@ -1,5 +1,6 @@
 """Deterministic spreadsheet parsing before structured Vertex extraction."""
 import json
+import re
 from io import BytesIO
 from pathlib import Path
 from datetime import datetime
@@ -55,6 +56,9 @@ def parse_response(text, client_id, doc_id, raw_ref):
                 pass
     incomplete = False
     for line in payload.get('line_items', []):
+        for key in ('unit_price', 'discount_amount', 'price_basis'):
+            if line.get(key) == '':
+                line[key] = None
         for key in ('quantity', 'taxable_value', 'gst_rate', 'cgst', 'sgst', 'igst', 'cess'):
             if line.get(key) in (None, ''):
                 line[key] = '0'
@@ -80,11 +84,25 @@ def extract(content, filename, client_id, doc_id, profile, raw_ref, log_usage):
         raise ValueError('Automatic reading is unavailable. Please use the Excel template.')
     mime = {'.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}[extension]
     part = types.Part.from_bytes(data=content, mime_type=mime)
+    page_count = 1
+    document_flags = []
     if extension == '.pdf':
         import pdfplumber
         with pdfplumber.open(BytesIO(content)) as pdf:
-            if len(pdf.pages) > 50:
+            page_count = len(pdf.pages)
+            if page_count > 50:
                 raise ValueError('Upload PDF bills with at most 50 pages.')
+            page_text = [re.sub(r'\s+', ' ', page.extract_text() or '').strip() for page in pdf.pages]
+            readable = [text for text in page_text if len(text) >= 20]
+            if len(readable) != len(set(readable)):
+                document_flags.append('duplicate_pdf_page')
+            invoice_numbers = set()
+            for text in page_text:
+                invoice_numbers.update(re.findall(
+                    r'\b(?:tax\s+)?invoice\s*(?:no\.?|number|#)\s*[:#-]?\s*([A-Z0-9][A-Z0-9/-]{0,15})',
+                    text, flags=re.IGNORECASE))
+            if len({number.upper() for number in invoice_numbers}) > 1:
+                document_flags.append('multiple_invoice_numbers')
             # Preserve the visual pages; embedded text can disagree with visible evidence.
             # The original PDF part is passed to the document-capable model.
     from app.services.model_access import model_location
@@ -96,10 +114,13 @@ def extract(content, filename, client_id, doc_id, profile, raw_ref, log_usage):
         'and purchase when it is the recipient. Do not assume all invoices are purchases. '
         f'Selected business GSTIN (context, not evidence of verification): {profile.get("gstin", "")}. '
         'Return only the invoice JSON. All amounts, rates and confidence must be decimal strings. '
-        'Do not invent missing GSTIN, dates, amounts or supplier names. Dates must be YYYY-MM-DD. Missing text is empty; missing date is null. Missing numeric values are the string 0, never empty. '
+        'Do not invent missing GSTIN, dates, amounts or supplier names. Unit price, discount and price basis must come from visible source evidence; use null if absent or ambiguous. Price basis is tax_exclusive or tax_inclusive only when clearly shown. Dates must be YYYY-MM-DD. Missing text is empty; missing date is null. Missing required numeric values are the string 0, never empty. '
         'One file represents one invoice. Use low confidence for incomplete or multiple invoices.'), part])
     response = client.models.generate_content(model=settings.gemini_model, contents=contents,
         config=types.GenerateContentConfig(temperature=0, response_mime_type='application/json', response_schema=extraction_schema()))
     usage = response.usage_metadata
     log_usage(int(getattr(usage, 'prompt_token_count', 0) or 0), int(getattr(usage, 'candidates_token_count', 0) or 0))
-    return [parse_response(response.text, client_id, doc_id, raw_ref)]
+    invoice = parse_response(response.text, client_id, doc_id, raw_ref)
+    invoice.extraction.page_count = page_count
+    invoice.extraction.document_flags = document_flags
+    return [invoice]

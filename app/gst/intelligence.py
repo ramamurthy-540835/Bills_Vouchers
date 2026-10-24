@@ -135,6 +135,9 @@ LABELS = {
     'supplier_gstin_invalid': ('gstin','Supplier GSTIN is invalid or missing'),
     'recipient_gstin_invalid': ('gstin','Recipient GSTIN is invalid or missing'),
     'tax_arithmetic': ('gst','GST amounts do not match the declared rate'),
+    'line_price_incomplete': ('total','Unit price and price basis are incomplete'),
+    'line_price_invalid': ('total','Unit price or discount needs correction'),
+    'line_valuation_mismatch': ('total','Taxable value does not match the supplied unit price'),
     'tax_head_mismatch': ('gst','CGST, SGST or IGST allocation needs correction'),
     'totals_mismatch': ('total','Line amounts do not match the invoice subtotal'),
     'invoice_total_mismatch': ('total','Invoice total does not match taxable value and tax'),
@@ -145,6 +148,8 @@ LABELS = {
     'hsn_invalid': ('rate','Verify the HSN or SAC code'),
     'rate_invalid': ('rate','GST rate requires verification'),
     'low_confidence': ('unreadable','Invoice could not be read reliably'),
+    'duplicate_pdf_page': ('evidence','A PDF page appears more than once; verify the original'),
+    'multiple_invoice_numbers': ('evidence','This PDF appears to contain multiple invoices; upload each separately'),
     'duplicate_invoice': ('duplicate','This invoice may already exist'),
 }
 

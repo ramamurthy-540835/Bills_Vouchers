@@ -31,6 +31,9 @@ class LineItem(Model):
     hsn_sac: str = ''
     quantity: Number = Decimal('1')
     unit: str = 'NOS'
+    unit_price: Number | None = None
+    discount_amount: Money | None = None
+    price_basis: Literal['tax_exclusive', 'tax_inclusive'] | None = None
     taxable_value: Money = Decimal('0')
     gst_rate: Number = Decimal('0')
     cgst: Money = Decimal('0')
@@ -57,6 +60,8 @@ class Extraction(Model):
     method: Literal['gemini', 'xlsx_template', 'csv', 'manual'] = 'manual'
     confidence: Annotated[Number, Field(ge=0, le=1)] = Decimal('1')
     raw_ref: str = ''
+    page_count: int | None = None
+    document_flags: list[str] = Field(default_factory=list)
 
 
 class GstInvoice(Model):

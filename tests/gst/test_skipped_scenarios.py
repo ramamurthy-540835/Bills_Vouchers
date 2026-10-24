@@ -46,6 +46,33 @@ def test_scenario_G08_previous_year_invoice_requires_period_review(store, profil
     store.save.assert_not_called()
 
 
+def test_scenario_G02_confirmed_credit_note_reduces_sales_tax(store, profile):
+    from app.gst.report import calculate
+
+    sale = store.state.current.model_copy(deep=True)
+    sale.direction = 'sale'
+    sale.status = 'confirmed'
+    note = sale.model_copy(deep=True)
+    note.invoice_id = 'credit-note'
+    note.invoice_number = 'CN-1'
+    note.invoice_type = 'credit_note'
+    result = calculate([sale, note], profile, [])
+    assert result['confirmed_count'] == 2
+    assert result['totals']['output_tax'] == Decimal('0')
+    assert all(value == Decimal('0') for value in result['heads']['output'].values())
+
+
+def test_scenario_H07_three_external_feeds_do_not_create_three_invoices():
+    from app.gst.intake import preview
+
+    reference = {'source_record_id': 'shared-invoice', 'event_type': 'invoice',
+                 'invoice_number': 'INV-1', 'invoice_total': '1180.00'}
+    results = [preview(source, [{**reference, 'source_record_id': f'{source}-record'}])
+               for source in ('vendor', 'customer', 'driver')]
+    assert all(len(result['accepted']) == 1 for result in results)
+    assert sum(result['financial_records_created'] for result in results) == 0
+
+
 def test_scenario_H01_exact_duplicate_original_creates_one_invoice(store, profile, monkeypatch):
     original = store.state.current.model_copy(deep=True)
     saved = {}

@@ -15,7 +15,7 @@ from app.services.gst.validation import BASE36
 from tests.gst.test_auto_review import store as store_fixture
 
 CASES=json.loads((Path(__file__).parents[1]/'fixtures/auto_review/scenario_manifest.json').read_text())
-SPECIALIZED={'G07','G08','H01','I08','K05','K06','L01','L02','L08','L10'}
+SPECIALIZED={'A06','A07','A08','C05','C07','C08','D06','D07','G02','G07','G08','H01','H07','I08','K05','K06','L01','L02','L08','L10'}
 CASES=[case for case in CASES if case['scenario_id'] not in SPECIALIZED]
 EXECUTABLE={'B01','B02','B03','B04','B05','B07','B08','B09','C01','C02','C03','C04','C06','C09','C10',
             'D01','E01','E02','E03','E04','E10','F02','F03','F04','F05','F07','F08','G01','G03',

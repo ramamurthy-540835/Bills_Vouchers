@@ -81,13 +81,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "Two-page single invoice preserved with page count; model extraction accuracy unverified",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[A06]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Text-visible synthetic PDF preflight only; image-only PDFs and live OCR quality unverified",
+    "test_reference": "tests/gst/test_pdf_evidence_scenarios.py::test_scenario_A06"
   },
   {
     "scenario_id": "A07",
@@ -96,13 +96,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "Distinct visible invoice numbers require separate source uploads",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[A07]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Text-visible synthetic PDF preflight only; image-only PDFs and live OCR quality unverified",
+    "test_reference": "tests/gst/test_pdf_evidence_scenarios.py::test_scenario_A07"
   },
   {
     "scenario_id": "A08",
@@ -111,13 +111,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "Repeated text-visible page requires manual evidence review",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[A08]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Text-visible synthetic PDF preflight only; image-only PDFs and live OCR quality unverified",
+    "test_reference": "tests/gst/test_pdf_evidence_scenarios.py::test_scenario_A08"
   },
   {
     "scenario_id": "A09",
@@ -366,13 +366,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "NEEDS_MANUAL_REVIEW when supplied source-price arithmetic or tax rounding conflicts",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[C05]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Declared-rate Decimal arithmetic only; source-price extraction, legal valuation and live evidence review are unverified",
+    "test_reference": "tests/gst/test_line_valuation_scenarios.py::test_scenario_C05"
   },
   {
     "scenario_id": "C06",
@@ -396,13 +396,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "NEEDS_MANUAL_REVIEW when supplied source-price arithmetic or tax rounding conflicts",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[C07]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Declared-rate Decimal arithmetic only; source-price extraction, legal valuation and live evidence review are unverified",
+    "test_reference": "tests/gst/test_line_valuation_scenarios.py::test_scenario_C07"
   },
   {
     "scenario_id": "C08",
@@ -411,13 +411,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "NEEDS_MANUAL_REVIEW when supplied source-price arithmetic or tax rounding conflicts",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[C08]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Declared-rate Decimal arithmetic only; source-price extraction, legal valuation and live evidence review are unverified",
+    "test_reference": "tests/gst/test_line_valuation_scenarios.py::test_scenario_C08"
   },
   {
     "scenario_id": "C09",
@@ -531,13 +531,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "NEEDS_MANUAL_REVIEW when supplied source-price arithmetic or tax rounding conflicts",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[D06]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Declared-rate Decimal arithmetic only; source-price extraction, legal valuation and live evidence review are unverified",
+    "test_reference": "tests/gst/test_line_valuation_scenarios.py::test_scenario_D06"
   },
   {
     "scenario_id": "D07",
@@ -546,13 +546,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "MATCHED declared-price arithmetic for both bases; mismatch requires manual review",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[D07]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Synthetic declared-rate evidence only; actual extraction and legal rate applicability unverified",
+    "test_reference": "tests/gst/test_line_valuation_scenarios.py::test_scenario_D07"
   },
   {
     "scenario_id": "D08",
@@ -891,13 +891,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "Confirmed credit note reduces output tax",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[G02]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Signed report calculation only; original-note linkage and legal treatment unverified",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_G02"
   },
   {
     "scenario_id": "G03",
@@ -1086,13 +1086,13 @@
     "expected_extraction": "Preserve source facts; missing evidence must not be invented",
     "expected_calculation": "Decimal; base fixture taxable 1000.00, CGST 90.00, SGST 90.00, total 1180.00",
     "expected_validation": "All independent hard gates must pass; uncertainty requires manual review",
-    "expected_status": "NOT_DEFINED: specialized fixture and expected outcome pending",
+    "expected_status": "External records stage without creating canonical invoices",
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[H07]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Source preview only; multi-app persisted reconciliation remains unverified",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_H07"
   },
   {
     "scenario_id": "H08",

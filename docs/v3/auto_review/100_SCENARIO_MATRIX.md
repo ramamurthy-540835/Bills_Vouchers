@@ -1,6 +1,6 @@
 # Scenario coverage: 108 specified IDs
 
-71 partial deterministic or workflow contracts passed; 37 explicitly skipped. Ten previously skipped safety cases now have focused tests for locks, periods, duplicate uploads, retries, provider failure, server-owned policy, business switching and revoked membership. No row claims complete end-to-end or legal acceptance. Machine-readable fields and test references are in tests/fixtures/auto_review/scenario_manifest.json.
+81 partial deterministic or workflow contracts passed; 27 explicitly skipped. Source-price, rounding, mixed-price, credit-note, external-feed and text-visible PDF safety cases now have bounded tests. No row claims complete end-to-end or legal acceptance. Machine-readable fields and test references are in tests/fixtures/auto_review/scenario_manifest.json.
 
 | ID | Scenario | Actual test coverage |
 |---|---|---|
@@ -9,9 +9,9 @@
 | A03 | Rotated invoice | NOT_IMPLEMENTED_SKIPPED |
 | A04 | Low-light obscured totals | NOT_IMPLEMENTED_SKIPPED |
 | A05 | Cropped totals | NOT_IMPLEMENTED_SKIPPED |
-| A06 | Multi-page invoice | NOT_IMPLEMENTED_SKIPPED |
-| A07 | Multiple invoices in one PDF | NOT_IMPLEMENTED_SKIPPED |
-| A08 | Duplicate pages | NOT_IMPLEMENTED_SKIPPED |
+| A06 | Multi-page invoice | PASSED_PARTIAL_WORKFLOW_CONTRACT |
+| A07 | Multiple invoices in one PDF | PASSED_PARTIAL_WORKFLOW_CONTRACT |
+| A08 | Duplicate pages | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | A09 | Handwritten alterations | NOT_IMPLEMENTED_SKIPPED |
 | A10 | Visible PDF conflicts with extracted text | NOT_IMPLEMENTED_SKIPPED |
 | B01 | Missing invoice number | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
@@ -28,10 +28,10 @@
 | C02 | Wrong GST percentage | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | C03 | Correct rate wrong GST amount | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | C04 | Taxable plus GST differs from total | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| C05 | Quantity times unit price mismatch | NOT_IMPLEMENTED_SKIPPED |
+| C05 | Quantity times unit price mismatch | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | C06 | Line totals differ from subtotal | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| C07 | Inclusive treated as exclusive | NOT_IMPLEMENTED_SKIPPED |
-| C08 | Exclusive treated as inclusive | NOT_IMPLEMENTED_SKIPPED |
+| C07 | Inclusive treated as exclusive | PASSED_PARTIAL_WORKFLOW_CONTRACT |
+| C08 | Exclusive treated as inclusive | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | C09 | Incorrect tax rounding | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | C10 | Unexplained total adjustment | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | D01 | Discount before tax | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
@@ -39,8 +39,8 @@
 | D03 | Freight valuation mismatch | NOT_IMPLEMENTED_SKIPPED |
 | D04 | Insurance handling mismatch | NOT_IMPLEMENTED_SKIPPED |
 | D05 | Line and invoice discount conflict | NOT_IMPLEMENTED_SKIPPED |
-| D06 | Double rounding | NOT_IMPLEMENTED_SKIPPED |
-| D07 | Mixed inclusive exclusive lines | NOT_IMPLEMENTED_SKIPPED |
+| D06 | Double rounding | PASSED_PARTIAL_WORKFLOW_CONTRACT |
+| D07 | Mixed inclusive exclusive lines | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | D08 | Incorrect advance adjustment | NOT_IMPLEMENTED_SKIPPED |
 | E01 | Approved HSN and rate | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | E02 | Invalid HSN | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
@@ -63,7 +63,7 @@
 | F09 | Export SEZ treatment | NOT_IMPLEMENTED_SKIPPED |
 | F10 | Transport GTA ambiguity | NOT_IMPLEMENTED_SKIPPED |
 | G01 | Correct credit note | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| G02 | Credit note positive invoice | NOT_IMPLEMENTED_SKIPPED |
+| G02 | Credit note positive invoice | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | G03 | Incorrect debit note adjustment | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | G04 | Credit original missing | NOT_IMPLEMENTED_SKIPPED |
 | G05 | Credit exceeds adjustment | NOT_IMPLEMENTED_SKIPPED |
@@ -76,7 +76,7 @@
 | H04 | XLSX PDF duplicate | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | H05 | Same supplier number different FY | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | H06 | Different supplier same number | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| H07 | Three source duplicate | NOT_IMPLEMENTED_SKIPPED |
+| H07 | Three source duplicate | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | H08 | Rejected corrected resubmission | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | I01 | XLSX grouping | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | I02 | Inconsistent spreadsheet totals | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |

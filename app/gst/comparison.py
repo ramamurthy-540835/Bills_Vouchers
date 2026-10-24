@@ -34,6 +34,31 @@ def price_breakdown(price, rate, inclusive=False, discount="0"):
     }
 
 
+def line_price_check(line):
+    """Compare supplied unit-price evidence with recorded taxable value.
+
+    This checks declared-rate arithmetic only. It cannot decide whether a
+    discount is legally deductible or whether a rate applies to the supply.
+    """
+    if line.unit_price is None and line.discount_amount is None and line.price_basis is None:
+        return None
+    if line.unit_price is None or line.price_basis is None:
+        return 'line_price_incomplete'
+    if line.quantity <= 0 or line.unit_price < 0 or (line.discount_amount or Decimal(0)) < 0:
+        return 'line_price_invalid'
+    gross = line.quantity * line.unit_price
+    discount = line.discount_amount or Decimal(0)
+    if discount > gross:
+        return 'line_price_invalid'
+    try:
+        result = price_breakdown(gross, line.gst_rate, line.price_basis == 'tax_inclusive', discount)
+    except ValueError:
+        return 'line_price_invalid'
+    if abs(Decimal(result['taxable_value']) - line.taxable_value) > CENT:
+        return 'line_valuation_mismatch'
+    return None
+
+
 def compare_invoice(invoice, source=None):
     rows = []
     own_state = invoice.supplier_gstin[:2] or invoice.supplier_state_code

@@ -14,23 +14,28 @@ results. Global AI is restricted to authorized synthetic tenants. Unsupported
 archives/image formats remain rejected; ZIP support is not claimed.
 
 All 108 listed scenario IDs (the supplied heading says 100) have explicit
-coverage status: 71 partial contracts and 37 skips after the 24 October safety
-follow-up. Ten focused tests now exercise period locks, previous-year review,
+coverage status: 81 partial contracts and 27 skips after the 24 October safety
+and valuation follow-up. Focused tests now exercise period locks, previous-year review,
 duplicate originals, completed-job replay, extraction timeout fallback,
 server-owned review policy, stale business context, revoked membership,
-database-write recovery and active-worker fencing. These are safety contracts,
+database-write recovery, active-worker fencing, supplied unit-price arithmetic,
+inclusive/exclusive price treatment, mixed-price lines and double rounding.
+Credit-note sign, external-feed staging and text-visible PDF page checks have
+bounded tests. These are safety contracts,
 not OCR accuracy or legal acceptance.
 
-The remaining 37 skips require distinct work:
+The remaining 27 skips require distinct work:
 
-- A01–A10: independently labeled PDF/image corpus, page-boundary handling and
-  actual provider extraction evaluation.
-- B06, B10, E05–E09, F06, F09–F10, G02, G04–G05: verified identity,
+- A01–A05, A09–A10: independently labeled PDF/image corpus and actual provider
+  extraction evaluation. The new page checks do not inspect image-only PDFs or
+  resolve visible-versus-hidden text conflicts.
+- B06, B10, E05–E09, F06, F09–F10, G04–G05: verified identity,
   taxpayer/document rules and professionally reviewed expected outcomes.
-- C05, C07–C08, D02–D08: persisted quantity, unit-price, discount, charge,
-  inclusive-price and advance fields plus reviewed valuation rules. Standalone
-  price arithmetic is insufficient evidence for these invoice cases.
-- H07, I06, K02, K07: source-system lineage, cross-source conflict evidence
+- D02–D05, D08: source-backed freight, insurance, mixed discount,
+  inclusive-price and advance evidence plus reviewed valuation rules. The new
+  optional unit-price fields do not establish source extraction accuracy or
+  legal treatment of these charges.
+- I06, K02, K07: source-system lineage, cross-source conflict evidence
   and independent model-output grounding.
 
 Unsupported cases must remain manual or blocked. A policy rejection test is

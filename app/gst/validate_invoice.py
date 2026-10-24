@@ -6,6 +6,7 @@ from app.services.gst.profiles import validate_gstin
 from app.services.gst.validation import VALID_STATE_CODES
 from .schemas.invoice import GstInvoice, Itc
 from .report import line_eligibility
+from .comparison import line_price_check
 
 RATES = {Decimal(s) for s in ('0', '0.1', '0.25', '1', '1.5', '3', '5', '6', '7.5', '12', '18', '28')}
 HEADS = ('cgst', 'sgst', 'igst', 'cess')
@@ -47,6 +48,9 @@ def validate_invoice(invoice: GstInvoice, profile: dict, existing=(), human_revi
     if not inv.supplier_legal_name.strip() or not inv.line_items:
         reasons.append('invoice_details_missing')
     for line in inv.line_items:
+        price_issue = line_price_check(line)
+        if price_issue:
+            reasons.append(price_issue)
         if not re.fullmatch(r'(?:\d{4}|\d{6}|\d{8})', line.hsn_sac) or (line.hsn_sac.startswith('99') and len(line.hsn_sac) != 6):
             reasons.append('hsn_invalid')
         if line.gst_rate not in RATES:
@@ -73,6 +77,9 @@ def validate_invoice(invoice: GstInvoice, profile: dict, existing=(), human_revi
         reasons.append('invoice_total_mismatch')
     if inv.extraction.confidence < Decimal('0.85') and not human_review:
         reasons.append('low_confidence')
+    for flag in inv.extraction.document_flags:
+        if flag == 'multiple_invoice_numbers' or (flag == 'duplicate_pdf_page' and not human_review):
+            reasons.append(flag)
     buckets = [line_eligibility(line, profile) for line in inv.line_items]
     blocked = next((ref for bucket, ref in buckets if bucket == 'blocked'), '')
     inv.itc = Itc(eligibility='blocked_17_5' if blocked else 'ineligible_non_gst' if buckets and all(b == 'non_gst' for b, _ in buckets) else 'eligible', blocked_reason=blocked)
