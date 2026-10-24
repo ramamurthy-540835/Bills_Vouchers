@@ -1,6 +1,6 @@
 # Scenario coverage: 108 specified IDs
 
-61 partial deterministic contracts passed; 47 explicitly skipped. No row claims complete end-to-end or legal acceptance. Machine-readable fields and test references are in tests/fixtures/auto_review/scenario_manifest.json.
+71 partial deterministic or workflow contracts passed; 37 explicitly skipped. Ten previously skipped safety cases now have focused tests for locks, periods, duplicate uploads, retries, provider failure, server-owned policy, business switching and revoked membership. No row claims complete end-to-end or legal acceptance. Machine-readable fields and test references are in tests/fixtures/auto_review/scenario_manifest.json.
 
 | ID | Scenario | Actual test coverage |
 |---|---|---|
@@ -68,9 +68,9 @@
 | G04 | Credit original missing | NOT_IMPLEMENTED_SKIPPED |
 | G05 | Credit exceeds adjustment | NOT_IMPLEMENTED_SKIPPED |
 | G06 | Cancelled invoice dashboard | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| G07 | Edit after period lock | NOT_IMPLEMENTED_SKIPPED |
-| G08 | Previous financial year | NOT_IMPLEMENTED_SKIPPED |
-| H01 | Exact duplicate file | NOT_IMPLEMENTED_SKIPPED |
+| G07 | Edit after period lock | PASSED_PARTIAL_WORKFLOW_CONTRACT |
+| G08 | Previous financial year | PASSED_PARTIAL_WORKFLOW_CONTRACT |
+| H01 | Exact duplicate file | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | H02 | Rescanned duplicate | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | H03 | Changed filename | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | H04 | XLSX PDF duplicate | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
@@ -85,7 +85,7 @@
 | I05 | Corrupt protected original | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | I06 | Structured evidence conflict | NOT_IMPLEMENTED_SKIPPED |
 | I07 | Missing original evidence | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| I08 | Retry duplicate insert | NOT_IMPLEMENTED_SKIPPED |
+| I08 | Retry duplicate insert | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | J01 | Matched invoice | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | J02 | Books only | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | J03 | Statement only | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
@@ -98,17 +98,17 @@
 | K02 | Invented supplier | NOT_IMPLEMENTED_SKIPPED |
 | K03 | Taxable total swapped | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | K04 | OCR decimal confusion | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| K05 | Model unavailable | NOT_IMPLEMENTED_SKIPPED |
-| K06 | Prompt injection | NOT_IMPLEMENTED_SKIPPED |
+| K05 | Model unavailable | PASSED_PARTIAL_WORKFLOW_CONTRACT |
+| K06 | Prompt injection | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | K07 | Models disagree | NOT_IMPLEMENTED_SKIPPED |
 | K08 | Missing mandatory extraction | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| L01 | Business switched during upload | NOT_IMPLEMENTED_SKIPPED |
-| L02 | Membership revoked while queued | NOT_IMPLEMENTED_SKIPPED |
+| L01 | Business switched during upload | PASSED_PARTIAL_WORKFLOW_CONTRACT |
+| L02 | Membership revoked while queued | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | L03 | Retry after confirmation | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | L04 | Existing pending auto review | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | L05 | Confirmed read-only revalidation | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | L06 | Locked period | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
 | L07 | OFF while processing | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| L08 | Storage success DB failure | NOT_IMPLEMENTED_SKIPPED |
+| L08 | Storage success DB failure | PASSED_PARTIAL_WORKFLOW_CONTRACT |
 | L09 | Concurrent human auto confirmation | PASSED_PARTIAL_DETERMINISTIC_CONTRACT |
-| L10 | Stalled external service | NOT_IMPLEMENTED_SKIPPED |
+| L10 | Stalled external service | PASSED_PARTIAL_WORKFLOW_CONTRACT |

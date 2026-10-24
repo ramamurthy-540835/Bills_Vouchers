@@ -970,9 +970,9 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[G07]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_G07"
   },
   {
     "scenario_id": "G08",
@@ -985,9 +985,9 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[G08]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_G08"
   },
   {
     "scenario_id": "H01",
@@ -1000,9 +1000,9 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[H01]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_H01"
   },
   {
     "scenario_id": "H02",
@@ -1225,9 +1225,9 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[I08]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_I08"
   },
   {
     "scenario_id": "J01",
@@ -1420,9 +1420,9 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[K05]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_K05"
   },
   {
     "scenario_id": "K06",
@@ -1435,9 +1435,9 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[K06]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_K06"
   },
   {
     "scenario_id": "K07",
@@ -1480,9 +1480,9 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[L01]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_L01"
   },
   {
     "scenario_id": "L02",
@@ -1495,9 +1495,9 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[L02]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_L02"
   },
   {
     "scenario_id": "L03",
@@ -1585,9 +1585,9 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[L08]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_L08"
   },
   {
     "scenario_id": "L09",
@@ -1615,8 +1615,8 @@
     "expected_user_message": "Readable reasons and authorized evidence access",
     "expected_review_action": "Correct evidence and rerun validation; retain locks and authorization",
     "expected_audit": "Actor, version, policy, original evidence retained",
-    "test_result": "NOT_IMPLEMENTED_SKIPPED",
-    "coverage_limit": "Implementation/fixture missing; not an external-only blocker",
-    "test_reference": "tests/gst/test_intelligence_scenarios.py::test_scenario[L10]"
+    "test_result": "PASSED_PARTIAL_WORKFLOW_CONTRACT",
+    "coverage_limit": "Executable safety contract only; full visual, external-provider, legal and live acceptance remain separate",
+    "test_reference": "tests/gst/test_skipped_scenarios.py::test_scenario_L10"
   }
 ]
