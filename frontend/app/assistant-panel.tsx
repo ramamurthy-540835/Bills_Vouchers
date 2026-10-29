@@ -9,6 +9,9 @@ function safeSource(href:string){
  try{const u=new URL(href);return u.protocol==='https:'&&['gst.gov.in','www.gst.gov.in','tutorial.gst.gov.in','taxinformation.cbic.gov.in','cbic-gst.gov.in'].includes(u.hostname)}catch{return false}
 }
 export default function AssistantPanel({period,scenario}:{period:string;scenario?:string}){
+ return <AssistantConversation key={`${period}:${scenario||'live'}`} period={period} scenario={scenario}/>
+}
+function AssistantConversation({period,scenario}:{period:string;scenario?:string}){
  const [messages,setMessages]=useState<Message[]>([]),[question,setQuestion]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('')
  const [recent,setRecent]=useState<Saved[]>([]),[historyError,setHistoryError]=useState(''),[historyLoading,setHistoryLoading]=useState(false)
  const [historyNext,setHistoryNext]=useState<number|null>(null)
@@ -24,12 +27,15 @@ export default function AssistantPanel({period,scenario}:{period:string;scenario
   finally{if(active.current&&!signal?.aborted)setHistoryLoading(false)}
  }
  useEffect(()=>{
-  active.current=true;conversation.current=crypto.randomUUID();setMessages([]);setRecent([]);setHistoryNext(null);setError('');setQuestion('');lastQuestion.current=''
+  // Scope changes remount this component. Do not clear input in a mount effect:
+  // hydration may replay the user's first keystrokes before this effect runs.
+  active.current=true;if(!conversation.current)conversation.current=crypto.randomUUID()
   const abort=new AbortController();void loadRecent(abort.signal)
   return()=>{active.current=false;abort.abort();requestAbort.current?.abort()}
  },[period,scenario])
  async function ask(text=question){
   text=text.trim();if(!text||pending.current)return
+  if(!conversation.current)conversation.current=crypto.randomUUID()
   pending.current=true;lastQuestion.current=text;setBusy(true);setError('');setQuestion('')
   const previous=messages;setMessages([...previous,{role:'user',content:text}])
   const abort=new AbortController();requestAbort.current=abort;const timer=setTimeout(()=>abort.abort(),60000)

@@ -61,3 +61,13 @@ test('history errors are recoverable and unsafe source links are suppressed',asy
  await expect(page.getByRole('link',{name:'Unsafe'})).toHaveCount(0)
  await expect(page.getByRole('link',{name:'Other',exact:false})).toHaveCount(0)
 })
+
+test('long saved questions wrap on mobile without horizontal overflow',async({page})=>{
+ const question='Long private question '+ 'reference'.repeat(35)
+ await page.route('**/api/assistant/history?*',route=>route.fulfill({json:{items:[{question,response:{answer:'Historical answer',sources:[],followups:[]},conversation_id:'00000000-0000-4000-8000-000000000001',created_at:'2026-10-29T12:00:00+00:00'}],next_offset:null}}))
+ await page.setViewportSize({width:390,height:900})
+ await page.goto('/assistant?period=2026-10')
+ await page.getByText('Recently asked (1)',{exact:true}).click()
+ await expect(page.getByRole('button',{name:question,exact:true})).toBeVisible()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy()
+})
