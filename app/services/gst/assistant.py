@@ -7,6 +7,7 @@ from time import monotonic
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from typing import Literal
+from uuid import UUID, uuid4
 
 from ...config import get_settings
 
@@ -22,13 +23,14 @@ class Turn(BaseModel):
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1200)
     history: list[Turn] = Field(default_factory=list, max_length=8)
+    conversation_id: UUID = Field(default_factory=uuid4)
 
 
 def check_rate(user_id):
     with _lock:
         stamp = monotonic()
         recent = [x for x in _requests.get(user_id, []) if stamp-x < 60]
-        if len(recent) >= 8:
+        if len(recent) >= 30:
             raise HTTPException(429, 'Question limit reached. Please wait one minute, then retry.', headers={'Retry-After':'60'})
         if len(_requests) > 4096:
             _requests.clear()
@@ -38,9 +40,14 @@ def check_rate(user_id):
 def grounded_context(dashboard, documents, question, demo_scenario=None, ledger=None):
     period = dashboard['period']
     suffix = f'/demo?scenario={demo_scenario}&period={period}' if demo_scenario else f'/gst/filing?period={period}'
+    # Explicit facts prevent a growing report/decision array from exhausting the
+    # model context or disclosing unrelated invoice details on every question.
+    raw_summary = dashboard.get('summary')
+    summary = {k: raw_summary[k] for k in ('cash_required','confirmed_sales','confirmed_purchases','pending_review_count','eligible_by_head','output_by_head','cash_by_head') if k in raw_summary} if raw_summary else None
     sources = [{'id': 'gold-summary', 'label': 'Canonical financial summary' if dashboard.get('source')=='canonical' else 'Validated financial summary', 'href': suffix,
-                'layer': 'Checked figures', 'facts': {'period': period, 'summary': dashboard.get('summary'),
+                'layer': 'Checked figures', 'facts': {'period': period, 'summary': summary,
                                          'totals': dashboard.get('totals'), 'validated_invoices': dashboard.get('validated_invoices'),
+                                         'heads': dashboard.get('heads'),
                                          'reconciliation': dashboard.get('reconciliation'),
                                          'credit_decisions': [{k: row.get(k) for k in ('invoice_no', 'description', 'reason_code', 'rule_ref')}
                                                               for row in (ledger or [])[:30]]}}]
@@ -97,10 +104,15 @@ def canonical_summary_answer(question, context):
     this is intentionally narrower than natural-language financial advice.
     """
     query=' '.join(re.findall(r'\w+', question.casefold()))
+    if not context.get('sources'):
+        return None
     summary=(context['sources'][0].get('facts') or {}).get('summary') or {}
     totals=(context['sources'][0].get('facts') or {}).get('totals') or {}
     metric=None
     label=None
+    # A scalar answer must never intercept comparisons, guidance or record lists.
+    if any(word in query.split() for word in ('why', 'which', 'compare', 'difference', 'changed', 'change', 'since', 'previous', 'split', 'head', 'heads')) or ('how' in query.split() and not query.startswith('how much')):
+        return None
     if 'usable' in query and ('itc' in query or 'input tax credit' in query):
         metric=totals.get('eligible_credit'); label='usable input tax credit'
     elif 'cash requirement' in query or ('estimated' in query and 'cash' in query):
@@ -109,6 +121,10 @@ def canonical_summary_answer(question, context):
         metric=totals.get('output_tax'); label='GST liability on sales'
     elif 'blocked' in query and ('itc' in query or 'input tax' in query):
         metric=totals.get('blocked'); label='blocked input tax'
+    elif ('confirmed' in query or 'total' in query) and 'sales' in query:
+        metric=summary.get('confirmed_sales'); label='confirmed sales invoice value (including tax and signed notes)'
+    elif ('confirmed' in query or 'total' in query) and 'purchases' in query:
+        metric=summary.get('confirmed_purchases'); label='confirmed purchase invoice value (including tax and signed notes)'
     if metric is None:
         return None
     prefix='Synthetic demo examples, not real customer data.\n\n' if context['sample'] else ''
@@ -120,34 +136,59 @@ def canonical_summary_answer(question, context):
             'followups':[]}
 
 
-def generate_answer(payload, context):
-    from google import genai
-    from google.genai import types
-    settings = get_settings()
+def generate_answer(payload, context, before_model=None):
+    from .assistant_catalog import guidance
+    from .assistant_portal import portal_answer
     from .assistant_reliability import generate, fallback, category
+    previous = context.get('previous_response')
+    portal = portal_answer(payload.question, previous, context['sample'])
+    if portal is not None:
+        return portal
+    query = ' '.join(re.findall(r'\w+', payload.question.casefold()))
+    if query in {'what is my itc','show my itc','what is our itc','how much itc do i have'}:
+        return {'answer':'Do you mean usable ITC, recorded input tax, blocked credit or credit pending reconciliation? Choose one so I do not confuse the amounts.',
+                'sources':[], 'followups':['What is my usable ITC?','What blocked ITC do we have?'], 'sample':context['sample'], 'answer_mode':'clarification'}
+    asked_periods=re.findall(r'20\d{2}-(?:0[1-9]|1[0-2])',payload.question)
+    if asked_periods and any(value != context.get('period') for value in asked_periods):
+        return {'answer':f'The selected period is {context.get("period")}. Select the requested period first. I will not substitute current figures for another period.',
+                'sources':[], 'followups':[], 'sample':context['sample'], 'answer_mode':'clarification'}
+    settings = get_settings()
     grounded_status=status_answer(payload.question,context)
     if grounded_status is not None:
         return grounded_status
     summary_response=canonical_summary_answer(payload.question,context)
     if summary_response is not None:
         return summary_response
+    template = guidance(payload.question, context['sample'])
+    if template is not None:
+        return template
+    finance_terms={'gst','gstr','itc','tax','invoice','invoices','bill','bills','credit','cash','sales','purchase','purchases','supplier','customer','liability','reconciliation','refund','ledger','amount','filing','return','returns','turnover','hsn','sac','rcm','payment','payments','registration','audit','igst','cgst','sgst','cess'}
+    if not (set(query.split()) & finance_terms) and not (payload.history and query in {'explain more','why','give details','tell me more'}):
+        return {'answer':'I can help with GST, invoices, business figures and GST Easy workflows. Please ask a question in that scope; no business facts were sent to the AI provider for this response.',
+                'sources':[], 'followups':[], 'sample':context['sample'], 'answer_mode':'scope_guidance'}
     if not settings.gemini_enabled:
         return fallback(context,'not_configured')
     # Bound model context independently of the rendered transcript. Never truncate
     # financial values or claim that a shortened evidence list is exhaustive.
-    context={**context,'canonical_status_records':None}
+    previous_client_id = context.get('client_id')
+    context={k:v for k,v in context.items() if k not in {'previous_response','client_id','customer','canonical_status_records'}}
+    # Keep exhaustive data for deterministic handlers; bound only the LLM copy.
+    context = {**context, 'sources': [{**s, 'facts': dict(s.get('facts') or {})} for s in context['sources']]}
+    if context['sources']:
+        facts=context['sources'][0]['facts']
+        reconciliation=facts.get('reconciliation')
+        if reconciliation:
+            cases=reconciliation.get('cases') or []
+            facts['reconciliation']={**reconciliation,'cases':cases[:30], 'case_scope':f'Showing up to 30 of {len(cases)} cases; not exhaustive.'}
     history=[{'role':t.role,'content':t.content[:1500]} for t in payload.history[-6:]]
     contents=json.dumps({'PROVIDED_FACTS':context,'history':history,'question':payload.question},default=str)
     if len(contents.encode('utf-8'))>100000:
         return fallback(context,'context_limit')
     from ..model_access import model_location
     try:
-        location = model_location(context.get('client_id'),settings)
+        location = model_location(previous_client_id,settings)
     except ValueError:
         raise HTTPException(503,'AI processing is not enabled for this business. Search remains available.') from None
-    client = (genai.Client(api_key=settings.gemini_api_key, http_options=types.HttpOptions(timeout=20000))
-              if settings.gemini_api_key else genai.Client(vertexai=True, project=settings.gcp_project_id,
-                  location=location, http_options=types.HttpOptions(timeout=20000)))
     system = """You are a read-only financial workspace assistant. Answer only from PROVIDED_FACTS for this customer and period.
 Use the provided financial summary for all financial totals. Source invoices may be unreviewed: label that status and never add their totals to validated figures.
 For unmatched invoice questions, use reconciliation.cases only. missing_statement means a books-only purchase; missing_book means a statement-only record. unsupported_document is NOT an unmatched invoice. List each invoice once, never once per line item. Credit-decision matching fields are not reconciliation case classifications. If reconciliation is unavailable or statement_imported is false, say so.
@@ -163,6 +204,13 @@ Do not emit HTML, Markdown links, SQL, credentials or external URLs. Retain exac
               'source_ids': {'type': 'ARRAY', 'items': {'type': 'STRING'}},
               'followups': {'type': 'ARRAY', 'items': {'type': 'STRING'}}}, 'required': ['answer', 'source_ids', 'followups']}
     try:
+        if before_model is not None:
+            before_model()
+        from google import genai
+        from google.genai import types
+        client = (genai.Client(api_key=settings.gemini_api_key, http_options=types.HttpOptions(timeout=12000))
+                  if settings.gemini_api_key else genai.Client(vertexai=True, project=settings.gcp_project_id,
+                      location=location, http_options=types.HttpOptions(timeout=12000)))
         with client:
             result = generate(client,model=settings.gemini_model,
                 contents=contents,

@@ -11,13 +11,13 @@ def test_25_questions_are_bounded_and_rate_limit_recovers(monkeypatch):
     clock=[0.0]
     monkeypatch.setattr(assistant,'monotonic',lambda:clock[0])
     monkeypatch.setattr(assistant,'_requests',{})
-    for question in range(25):
-        if question and question%8==0:
-            with pytest.raises(HTTPException) as exc:assistant.check_rate('tenant:user')
-            assert exc.value.status_code==429 and exc.value.headers['Retry-After']=='60'
-            clock[0]+=61
+    for question in range(30):
         assistant.check_rate('tenant:user')
-    assert len(assistant._requests['tenant:user'])<=8
+    with pytest.raises(HTTPException) as exc:assistant.check_rate('tenant:user')
+    assert exc.value.status_code==429 and exc.value.headers['Retry-After']=='60'
+    clock[0]+=61
+    assistant.check_rate('tenant:user')
+    assert len(assistant._requests['tenant:user'])==1
 
 
 @pytest.mark.parametrize('status,expected',[(429,'provider_rate_limit'),(403,'provider_access'),(404,'model_unavailable'),(503,'provider_unavailable')])

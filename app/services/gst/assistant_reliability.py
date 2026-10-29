@@ -1,5 +1,6 @@
 """Bounded provider work and evidence-only fallback; never invented answers."""
 import logging
+import json
 import time
 from threading import Lock
 from uuid import uuid4
@@ -39,7 +40,8 @@ def throttle(repo, user_id, client_id):
     from google.api_core.exceptions import BadRequest, Conflict
     from .medallion import param
     key=sha256(f'assistant-minute:{client_id}:{user_id}'.encode()).hexdigest()
-    try:
+    for attempt in range(3):
+      try:
         repo.query(f'''BEGIN TRANSACTION;
             ASSERT (SELECT COUNT(*) FROM `{repo.table('auth_guard')}` WHERE id='identity')=1 AS 'Storage guard missing';
             UPDATE `{repo.table('auth_guard')}` SET touched_at=CURRENT_TIMESTAMP() WHERE id='identity';
@@ -47,9 +49,15 @@ def throttle(repo, user_id, client_id):
                 WHERE key_hash=@key AND created_at>TIMESTAMP_SUB(CURRENT_TIMESTAMP(),INTERVAL 60 SECOND))<8 AS 'Assistant rate limit';
             INSERT INTO `{repo.table('auth_attempts')}` (key_hash,created_at) VALUES (@key,CURRENT_TIMESTAMP());
             COMMIT TRANSACTION;''',[param('key',key)])
-    except (BadRequest,Conflict) as exc:
-        if any(word in str(exc).lower() for word in ('assistant rate limit','concurrent','aborted')):
+        return
+      except (BadRequest,Conflict) as exc:
+        if 'assistant rate limit' in str(exc).lower():
             raise HTTPException(429,'Question limit reached. Please wait one minute, then retry.',headers={'Retry-After':'60'}) from None
+        if isinstance(exc, Conflict) or any(word in str(exc).lower() for word in ('concurrent','aborted')):
+            if attempt < 2:
+                time.sleep(.1 * (attempt + 1))
+                continue
+            raise HTTPException(503,'Assistant is busy. Please retry shortly.',headers={'Retry-After':'2'}) from None
         raise
 
 
@@ -91,7 +99,7 @@ def generate(client, **kwargs):
 
 def fallback(context, reason):
     reference=uuid4().hex
-    logger.warning('assistant_fallback',extra={'request_id':reference,'failure_category':reason})
+    logger.warning(json.dumps({'event':'assistant_fallback','request_id':reference,'failure_category':reason}))
     return {'answer':'AI interpretation is temporarily unavailable. Your records have not changed. Open the authorized financial summary or source evidence below, or retry your question.',
             'sources':[{k:s[k] for k in ('id','label','href','layer')} for s in context['sources'][:9]],
             'sample':context['sample'],'followups':[],'degraded':True,'failure_category':reason,'request_id':reference}

@@ -1,0 +1,880 @@
+{
+  "version": "2026-10-29.1",
+  "count": 120,
+  "aliases": 29,
+  "portal_topics": [
+    "gstr1",
+    "gstr1a",
+    "gstr2b",
+    "gstr3b",
+    "gstr2a",
+    "cmp08",
+    "gstr4",
+    "gstr5",
+    "gstr5a",
+    "gstr6",
+    "gstr7",
+    "gstr7a",
+    "gstr8",
+    "gstr9",
+    "gstr9c",
+    "gstr10",
+    "gstr11",
+    "iff",
+    "challan",
+    "refund",
+    "ims",
+    "ledgers",
+    "registration",
+    "amendment",
+    "cancellation",
+    "revocation",
+    "notices",
+    "lut",
+    "qrmp",
+    "einvoice",
+    "eway"
+  ],
+  "scenarios": [
+    {
+      "id": "A01",
+      "category": "GST basics",
+      "question": "What is GST and how does it apply to my business?",
+      "template": "GST concerns supplies of goods/services. Determine registration, supply classification and the transaction period before assessing obligations.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "A02",
+      "category": "GST basics",
+      "question": "What is the difference between CGST SGST UTGST and IGST?",
+      "template": "These are different GST tax heads. Ordinary domestic treatment depends on supplier location and legally determined place of supply; special rules can change the outcome.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "A03",
+      "category": "GST basics",
+      "question": "What is the difference between inward and outward supplies?",
+      "template": "Inward supplies are received by the business; outward supplies are made by it. The same invoice may be outward for the supplier and inward for the recipient.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "A04",
+      "category": "GST basics",
+      "question": "What is taxable value?",
+      "template": "Taxable value is the base used for tax calculation after applicable valuation adjustments. It is different from a tax-inclusive invoice total.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "A05",
+      "category": "GST basics",
+      "question": "What is the difference between input tax and output tax?",
+      "template": "Input tax relates to inward supplies; output tax relates to outward supplies. Recording input tax does not alone establish eligible credit.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "A06",
+      "category": "GST basics",
+      "question": "What is input tax credit?",
+      "template": "ITC is eligible input tax available under applicable conditions and restrictions. It is different from the full purchase invoice value. Ask for usable ITC to inspect your application figure.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "A07",
+      "category": "GST basics",
+      "question": "How do taxable nil rated exempt zero rated and non GST supplies differ?",
+      "template": "These classifications have different tax and credit consequences. Provide the supply description, transaction date and relevant evidence before choosing a classification; zero-rated does not mean every exempt supply.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "A08",
+      "category": "GST basics",
+      "question": "What are HSN and SAC codes?",
+      "template": "HSN classifies goods and SAC classifies services. A description or code alone is insufficient to guarantee a statutory rate; date, conditions and notifications matter.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "A09",
+      "category": "GST basics",
+      "question": "What is the difference between a tax invoice and a bill of supply?",
+      "template": "The appropriate document depends on the supplier and supply treatment. Do not use a bill of supply as proof that GST was charged and is creditable.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "A10",
+      "category": "GST basics",
+      "question": "How are invoice confirmation ITC eligibility and return filing different?",
+      "template": "Confirmation records an application review decision. ITC needs separate eligibility/reconciliation checks. Filing requires an authorized government process and acknowledgement.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B01",
+      "category": "Registration",
+      "question": "Does my business need GST registration?",
+      "template": "Provide state, activities, turnover period, supply types and any compulsory-registration facts. Registration cannot be decided from turnover alone without the applicable rules.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B02",
+      "category": "Registration",
+      "question": "Which GST registration category applies to my business?",
+      "template": "Share the business activity and whether it involves composition, ISD, TDS/TCS, SEZ, non-resident, OIDAR or UIN treatment. Eligibility needs period-specific review.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B03",
+      "category": "Registration",
+      "question": "What information is saved in my GST business profile?",
+      "template": "Open the account menu, Business Profile and inspect the selected business identity, registration, address, contacts, website and preferences. Missing optional fields are not fabricated.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B04",
+      "category": "Registration",
+      "question": "Is my saved GSTIN structurally valid?",
+      "template": "Use the GST registration/checks panel in Business Profile. Format/checksum checks are different from a live registration or ownership verification.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B05",
+      "category": "Registration",
+      "question": "Has my GST registration been verified against an authorized provider?",
+      "template": "Inspect Business Profile verification source, time and outcome. If automatic verification is unconfigured, no provider verification can be claimed; opening the portal is not verification.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B06",
+      "category": "Registration",
+      "question": "Do I need separate registration for operations in another state?",
+      "template": "Provide states, establishments and activities. Additional-state registration is a legal applicability question, not an automatic consequence of any interstate sale.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B07",
+      "category": "Registration",
+      "question": "Can one business have multiple GST registrations?",
+      "template": "Separate registrations can require separate books/obligations. The current selected-business context must be preserved; do not merge records solely because a PAN or name matches.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B08",
+      "category": "Registration",
+      "question": "How do regular and composition taxpayers differ?",
+      "template": "Their eligibility, documents, credit and returns differ. Verify current scheme eligibility before changing a profile; do not apply regular-taxpayer ITC assumptions to composition.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B09",
+      "category": "Registration",
+      "question": "What happens when registration is cancelled?",
+      "template": "Check the effective date, pending obligations, final-return applicability and cancellation order. Cancellation does not establish that all past compliance is complete.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "B10",
+      "category": "Registration",
+      "question": "How do I update business details safely?",
+      "template": "Select the intended business, open Business Profile, edit permitted fields and save. Check success and refresh. GSTIN edits may require separate permission.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C01",
+      "category": "Invoice checks",
+      "question": "Is the GST arithmetic on this invoice correct?",
+      "template": "Open the identified invoice, compare the original and run the review validation. Supply the invoice reference; a statement of arithmetic accuracy is not legal rate approval.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C02",
+      "category": "Invoice checks",
+      "question": "Does the invoice total match taxable value tax and adjustments?",
+      "template": "Use invoice review to compare line totals, tax heads, charges and documented round-off against the original. Identify the invoice; do not insert an unexplained adjustment to force a match.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C03",
+      "category": "Invoice checks",
+      "question": "How do I calculate GST when the price excludes tax?",
+      "template": "For a simple single-rate example, tax equals taxable value multiplied by the applicable rate divided by 100. Supply values and the approved rate; do not assume 18% for every supply.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C04",
+      "category": "Invoice checks",
+      "question": "How do I extract GST from a tax inclusive amount?",
+      "template": "For a simple single-rate inclusive price, base equals total divided by (1 + rate/100); tax is the difference. Mixed rates, cess and extra charges require separate treatment.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C05",
+      "category": "Invoice checks",
+      "question": "How should a discount affect taxable value?",
+      "template": "Provide when the discount was agreed, invoice treatment, linkage and any credit-note facts. Not every post-sale discount automatically reduces GST value.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C06",
+      "category": "Invoice checks",
+      "question": "How should freight insurance and handling charges be treated?",
+      "template": "Provide who charges them, contractual terms, invoice presentation and supply classification. Charges cannot be classified for GST solely by their label.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C07",
+      "category": "Invoice checks",
+      "question": "How do I check an invoice containing multiple tax rates?",
+      "template": "Review each line with its own taxable value, approved rate and tax heads, then aggregate. Do not apply an average rate to the invoice total.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C08",
+      "category": "Invoice checks",
+      "question": "Should this invoice use IGST or CGST with SGST UTGST?",
+      "template": "Provide supplier location, legally determined place of supply, supply type and special facts such as SEZ/export treatment. Customer postal address alone is not always decisive.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C09",
+      "category": "Invoice checks",
+      "question": "Why does the system show a rounding or tax head mismatch?",
+      "template": "Open Validation Details and compare each line and total with the original. Resolve the specific code; do not silently rewrite source evidence.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "C10",
+      "category": "Invoice checks",
+      "question": "What evidence confirms the applicable rate on the invoice date?",
+      "template": "Provide description, HSN/SAC, invoice date and conditions/exemptions. A professional should verify the effective notification before material rate decisions.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D01",
+      "category": "Sales",
+      "question": "What are my confirmed sales for the selected period?",
+      "template": "Open the Sales Register for the selected period. The confirmed invoice-value metric includes tax and signed note effects; it is different from taxable sales.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D02",
+      "category": "Sales",
+      "question": "What are my taxable sales and output GST by tax head?",
+      "template": "Use the sales/tax-head report with the same period. Taxable value and invoice value must be labelled separately; unavailable subtotals must not be guessed.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D03",
+      "category": "Sales",
+      "question": "Which sales invoices are pending review or rejected?",
+      "template": "Open Bills and Vouchers and filter status and sales direction. Rejected and pending records must not be included as confirmed sales.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D04",
+      "category": "Sales",
+      "question": "What are my recorded B2B and B2C sales?",
+      "template": "This needs supported customer-registration classification and a dedicated register breakdown. Do not infer registered status from a customer name.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D05",
+      "category": "Sales",
+      "question": "What are my intrastate and interstate sales?",
+      "template": "Use classified sales evidence with place-of-supply validation. If the breakdown is unavailable, review the Sales Register rather than inferring it from addresses.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D06",
+      "category": "Sales",
+      "question": "Which customers account for the highest confirmed sales?",
+      "template": "This requires an exhaustive grouped sales query. The assistant's small evidence sample cannot establish a complete ranking; use a supported report.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D07",
+      "category": "Sales",
+      "question": "How have sales credit notes affected my totals?",
+      "template": "Inspect confirmed credit notes and their period/sign in the Sales Register. Do not count a credit note as an additional positive sale.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D08",
+      "category": "Sales",
+      "question": "How should a debit note affect sales records?",
+      "template": "Link the original transaction and check reason, date, taxable value and tax increase. Review the note through normal confirmation and period controls.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D09",
+      "category": "Sales",
+      "question": "How should advances and later invoice adjustments be treated?",
+      "template": "Provide goods/services classification, dates and existing advance/invoice records. Do not treat every receipt as a fresh taxable sale.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "D10",
+      "category": "Sales",
+      "question": "Why do my sales register and return working paper differ?",
+      "template": "Compare scope, status, notes, adjustments and source versions. Reprepare a stale paper only after investigating the difference.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E01",
+      "category": "ITC",
+      "question": "What are my confirmed purchases for the selected period?",
+      "template": "Open Purchase Register. Confirmed invoice value includes tax and signed notes; unconfirmed records are excluded.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E02",
+      "category": "ITC",
+      "question": "How much ITC is currently usable?",
+      "template": "Ask for usable ITC in the selected period. It is an application-calculated amount subject to source coverage and statutory eligibility, not a guarantee of a portal claim.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E03",
+      "category": "ITC",
+      "question": "What is my usable ITC split by tax head?",
+      "template": "Use the current tax-head summary. IGST, CGST, SGST/UTGST and cess must remain separate.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E04",
+      "category": "ITC",
+      "question": "Which purchases have no usable ITC?",
+      "template": "Open Purchases Without ITC and inspect each reason and source. Absence of usable credit is not always permanent ineligibility.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E05",
+      "category": "ITC",
+      "question": "Which credits are blocked deferred or pending evidence?",
+      "template": "Use credit decisions and their rule references. Reconciliation delays, blocked categories and missing evidence are separate reasons.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E06",
+      "category": "ITC",
+      "question": "Can I claim ITC on capital goods?",
+      "template": "Provide business use, asset details, depreciation/tax treatment, supply mix and documents. Capital goods do not create an unconditional credit entitlement.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E07",
+      "category": "ITC",
+      "question": "How should personal exempt and business use be separated?",
+      "template": "Identify the actual use and relevant period. Mixed use may require apportionment/reversal calculations and supporting evidence.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E08",
+      "category": "ITC",
+      "question": "What happens if supplier payment conditions are not met?",
+      "template": "Provide invoice, receipt/payment dates and credit already availed. Any reversal/reclaim requires the applicable period-specific conditions, not a guessed deadline.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E09",
+      "category": "ITC",
+      "question": "Which ITC reversals or reclaims need review?",
+      "template": "Inspect reversal/reclaim evidence and reasons. If the records are not captured, the assistant cannot claim a complete list.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "E10",
+      "category": "ITC",
+      "question": "What time limits affect this ITC claim?",
+      "template": "Provide invoice/debit-note date, financial year, return history and special facts. Verify effective statutory limits and exceptions professionally before claiming.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F01",
+      "category": "Reconciliation",
+      "question": "Has GSTR 2B been imported for this period?",
+      "template": "Check Returns and Credit statement status for the selected GSTIN and period. A missing statement prevents statement-based matching conclusions.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F02",
+      "category": "Reconciliation",
+      "question": "Which purchases match the imported statement?",
+      "template": "Use Reconciliation Cases with the matched filter and inspect evidence. A match is not complete ITC eligibility approval.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F03",
+      "category": "Reconciliation",
+      "question": "Which purchases are in books but not GSTR 2B?",
+      "template": "Use books-only cases after a statement is imported. Check supplier reporting, period and invoice identity before deciding credit treatment.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F04",
+      "category": "Reconciliation",
+      "question": "Which statement records are missing from books?",
+      "template": "Use statement-only cases. Request the missing original or investigate incorrect association; do not invent a purchase record.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F05",
+      "category": "Reconciliation",
+      "question": "Which invoices have amount or tax head mismatches?",
+      "template": "Use mismatch cases and compare the original, statement and book values. Keep amount and tax-head differences distinct.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F06",
+      "category": "Reconciliation",
+      "question": "Could punctuation explain an invoice number mismatch?",
+      "template": "Punctuation can suggest a candidate, but validate GSTIN, date, amounts and duplicate identity before treating it as matched.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F07",
+      "category": "Reconciliation",
+      "question": "Are there duplicate reconciliation candidates?",
+      "template": "Inspect duplicate candidates and source versions. Do not count multiple rows for the same logical invoice as independent credit.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F08",
+      "category": "Reconciliation",
+      "question": "Why does a credit note differ between books and statement?",
+      "template": "Compare note identity, original linkage, date, signed amounts and the relevant statement generation version.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F09",
+      "category": "Reconciliation",
+      "question": "What do IMS accept reject pending and no action mean?",
+      "template": "IMS treatment depends on document type and applicable period. Internal review is not a submitted government IMS decision; use the current official IMS guidance.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "F10",
+      "category": "Reconciliation",
+      "question": "Does a GSTR 2B match automatically approve ITC?",
+      "template": "No. Matching is evidence; eligibility, restrictions, documents and other statutory conditions remain separate checks.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G01",
+      "category": "Special supplies",
+      "question": "Could this transaction attract reverse charge?",
+      "template": "Provide supply description, supplier/recipient category, date and notification facts. Do not infer RCM solely from an unregistered supplier.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G02",
+      "category": "Special supplies",
+      "question": "What is my recorded reverse charge liability?",
+      "template": "Use supported RCM records and the working paper. If those records are not captured, an ordinary sales total is not a substitute.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G03",
+      "category": "Special supplies",
+      "question": "When can reverse charge tax become eligible ITC?",
+      "template": "Check actual payment, receipt, documents, business use and restrictions under applicable rules. Liability recognition alone is insufficient.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G04",
+      "category": "Special supplies",
+      "question": "What facts determine transport or GTA treatment?",
+      "template": "Identify the provider, consignment-note facts, recipient category, service date, chosen treatment and applicable conditions. The word freight alone cannot determine the rate.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G05",
+      "category": "Special supplies",
+      "question": "How should imported goods be recorded?",
+      "template": "Keep bill-of-entry and import tax evidence alongside the purchase. Do not substitute supplier invoice tax for actual import IGST evidence.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G06",
+      "category": "Special supplies",
+      "question": "How should an import of services be assessed?",
+      "template": "Provide supplier/recipient location, service description, place-of-supply facts and consideration. Cross-border treatment requires case-specific review.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G07",
+      "category": "Special supplies",
+      "question": "How do exports with and without payment of IGST differ?",
+      "template": "Confirm export eligibility, relevant period, LUT/bond and payment/refund conditions. Do not classify a foreign customer alone as a qualifying export.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G08",
+      "category": "Special supplies",
+      "question": "What evidence supports supplies to an SEZ?",
+      "template": "Check recipient status, authorized-operation evidence, supply documents and applicable treatment. SEZ tax handling needs separate review.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G09",
+      "category": "Special supplies",
+      "question": "How should branch transfers or job work be reviewed?",
+      "template": "Identify ownership/registrations, movement, documents and return timeline. Not every stock movement is the same taxable event.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "G10",
+      "category": "Special supplies",
+      "question": "What GST facts matter for e commerce settlements?",
+      "template": "Separate sales, returns, commission, operator liabilities, TCS and payments. A net settlement is not automatically taxable turnover.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H01",
+      "category": "Returns",
+      "question": "Which GST returns apply to my taxpayer category?",
+      "template": "Confirm registration type, period and frequency. Regular, composition, ISD, TDS/TCS, non-resident, OIDAR and UIN obligations differ; ask for the specific form guide.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H02",
+      "category": "Returns",
+      "question": "What outward supply information belongs in GSTR 1?",
+      "template": "Classify sales, notes and amendments using the applicable form tables. Ask how to file GSTR-1 for the portal sequence.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H03",
+      "category": "Returns",
+      "question": "What is GSTR 1A and when is it relevant?",
+      "template": "It is a same-period correction/addition facility subject to its permitted window and prerequisites. Ask for the GSTR-1A guide; do not assume GSTR-3B is freely revisable.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H04",
+      "category": "Returns",
+      "question": "What figures support GSTR 3B preparation?",
+      "template": "Reconcile sales liability, RCM, eligible credit, reversals and payment facts. Ask how to file GSTR-3B for guided portal stages.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H05",
+      "category": "Returns",
+      "question": "Do my GSTR 1 and GSTR 3B figures reconcile?",
+      "template": "This needs actual return versions, scope and adjustments. Application working papers alone do not prove what was filed on the portal.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H06",
+      "category": "Returns",
+      "question": "What should I check before a nil return?",
+      "template": "Check all relevant supply, liability, credit and adjustment facts against the form's eligibility conditions. Zero recorded sales alone does not prove nil eligibility.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H07",
+      "category": "Returns",
+      "question": "How do QRMP and IFF affect reporting?",
+      "template": "Check opted frequency, relevant month and records already furnished. Do not report IFF invoices a second time in the quarterly reconciliation.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H08",
+      "category": "Returns",
+      "question": "What is needed for CMP 08 and GSTR 4?",
+      "template": "Verify composition applicability, quarter/year, payment statements, books and RCM facts. Ask for either form's portal guide.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H09",
+      "category": "Returns",
+      "question": "What supports annual GSTR 9 and GSTR 9C reconciliation?",
+      "template": "Gather books, filed returns, notes, tax/credit adjustments and payment evidence. Check year-specific applicability before preparation.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "H10",
+      "category": "Returns",
+      "question": "What is preventing my working paper review?",
+      "template": "Open the current preparation exceptions and source versions. Resolve validation, stale inputs and permissions before submission.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I01",
+      "category": "Payments",
+      "question": "What is my estimated GST cash requirement?",
+      "template": "Use the selected-period application calculation. It is not proof of payment or a full opening/carry-forward portal ledger position.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I02",
+      "category": "Payments",
+      "question": "How much liability is covered by usable credit?",
+      "template": "Use the supported tax-head utilization summary with the same period. Do not subtract a total credit pool indiscriminately from all liabilities.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I03",
+      "category": "Payments",
+      "question": "How do cash credit and liability ledgers differ?",
+      "template": "Cash ledger records deposits/use, credit ledger records eligible credit/use and liability register records obligations. Obtain authoritative ledger evidence for actual balances.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I04",
+      "category": "Payments",
+      "question": "What opening balances are needed for payment assessment?",
+      "template": "Gather tax-head opening balances, liabilities, utilization and adjustments. Quarter/year application estimates do not supply a complete carry-forward ledger.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I05",
+      "category": "Payments",
+      "question": "How may credits be utilized?",
+      "template": "Credit utilization is tax-head and effective-rule dependent. Use approved backend calculations and current ledger facts; do not invent cross-head set-off.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I06",
+      "category": "Payments",
+      "question": "Why does estimated cash differ from the portal?",
+      "template": "Compare opening balances, actual liability, eligible credit, RCM, interest/fees, payments and period. The application estimate is not the official ledger.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I07",
+      "category": "Payments",
+      "question": "What are PMT 06 and a challan?",
+      "template": "They support depositing amounts into the cash ledger. Deposit is distinct from offsetting liability and filing; ask how to create a challan for guidance.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I08",
+      "category": "Payments",
+      "question": "What proves payment was credited?",
+      "template": "Check bank/payment reference, portal challan/CIN status and ledger credit. A bank debit or generated challan alone is not filing proof.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I09",
+      "category": "Payments",
+      "question": "Could interest apply to my delay?",
+      "template": "Provide liability, credit/payment, due-date and actual discharge facts. Use the applicable rules and notified relief; no flat guess is appropriate.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "I10",
+      "category": "Payments",
+      "question": "Could late fees extensions or waivers apply?",
+      "template": "Provide form, taxpayer type, state and period. Verify the applicable notification rather than using a permanent hardcoded deadline.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J01",
+      "category": "Cases and special taxpayers",
+      "question": "Which refund category fits my case?",
+      "template": "Describe the transaction, tax/payment facts and refund reason. Eligibility, limitation and documents depend on category; ask for RFD-01 navigation.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J02",
+      "category": "Cases and special taxpayers",
+      "question": "What evidence supports export or SEZ refunds?",
+      "template": "Collect relevant supply, export/SEZ, tax/credit and realization evidence as applicable. Required documents vary by category and period.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J03",
+      "category": "Cases and special taxpayers",
+      "question": "What is needed for an inverted duty refund?",
+      "template": "Provide supply/rate classifications, inputs, output and credit records. Do not infer eligibility solely because purchase tax exceeds sales tax.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J04",
+      "category": "Cases and special taxpayers",
+      "question": "How can excess cash ledger balance be reviewed for refund?",
+      "template": "Obtain the actual cash ledger and relevant liability/payment evidence before preparing the applicable refund request.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J05",
+      "category": "Cases and special taxpayers",
+      "question": "What is my refund application status?",
+      "template": "Use the official ARN/status or authorized imported evidence. GST Easy cannot claim a live portal status without that evidence.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J06",
+      "category": "Cases and special taxpayers",
+      "question": "What does this notice require and what deadline is shown?",
+      "template": "Supply a redacted notice and its dates/reference. Identify the requested documents and obtain professional review; do not invent an extension or reply.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J07",
+      "category": "Cases and special taxpayers",
+      "question": "What records support a discrepancy reply?",
+      "template": "Gather the notice, period-specific books, filed returns, reconciliation, payment and original evidence. Explain differences with traceable versions.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J08",
+      "category": "Cases and special taxpayers",
+      "question": "What should an ISD check for GSTR 6?",
+      "template": "Review received credit, eligible distribution, recipients and amendments under current rules. Use the GSTR-6 portal guide for navigation.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J09",
+      "category": "Cases and special taxpayers",
+      "question": "What obligations apply to TDS TCS non resident OIDAR or UIN taxpayers?",
+      "template": "Specify your registration category and form: GSTR-7, GSTR-8, GSTR-5, GSTR-5A or GSTR-11. Each has separate eligibility and preparation requirements.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "J10",
+      "category": "Cases and special taxpayers",
+      "question": "What needs review for cancellation revocation or final return?",
+      "template": "Identify the order/application, effective date and pending obligations. Ask for cancellation, revocation or GSTR-10 guidance separately.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K01",
+      "category": "Application help",
+      "question": "How do I upload purchase and sales bills?",
+      "template": "Choose the correct business/period, open Bills and Vouchers, Upload Bills, select supported files and submit once. Review direction, evidence and extracted values before confirmation.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K02",
+      "category": "Application help",
+      "question": "Which invoice formats are supported?",
+      "template": "The invoice uploader supports PDF, JPEG/JPG, PNG, XLSX and CSV within displayed limits. Use the expected spreadsheet template; do not assume arbitrary ZIP or workbook compatibility.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K03",
+      "category": "Application help",
+      "question": "Why is my bill still processing?",
+      "template": "Inspect Upload History and the per-file result. Use Retry saved upload only when offered; repeated new uploads risk duplicates.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K04",
+      "category": "Application help",
+      "question": "How do I correct extracted values and retain the original?",
+      "template": "Open Review, inspect View Original Bill, edit evidence-supported fields, Save Changes and read validation. Source evidence and history must remain retained.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K05",
+      "category": "Application help",
+      "question": "How do I reject request correction and resubmit?",
+      "template": "Reject with a category/reason. Use Bill corrections, request correction, edit/save and resubmit through available controls. Resubmission is not confirmation.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K06",
+      "category": "Application help",
+      "question": "What changes when Auto Review is ON or OFF?",
+      "template": "OFF retains validation but requires manual confirmation. ON evaluates eligible bills; all hard gates still apply and missing legal policy can keep a bill manual.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K07",
+      "category": "Application help",
+      "question": "How do I run Auto Review on existing pending bills?",
+      "template": "In Invoice Intelligence enable the existing or both scope, inspect the eligible count and Run Auto Review. Up to 100 records are handled per durable batch.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K08",
+      "category": "Application help",
+      "question": "Why is this invoice in Requires Attention?",
+      "template": "Open Review and Validation Details for the specific reasons. Fix evidence-supported errors; do not force a total or bypass a policy gate.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K09",
+      "category": "Application help",
+      "question": "Why was this invoice flagged as duplicate?",
+      "template": "Compare original file identity, supplier, invoice number, date/financial year and existing record. A renamed copy is not a different invoice.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "K10",
+      "category": "Application help",
+      "question": "Why can I not confirm edit or approve this record?",
+      "template": "Check membership, required permission, record status, latest version and period locks. Do not borrow another user's credentials.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L01",
+      "category": "Combined analysis",
+      "question": "Why did usable ITC change since the previous period?",
+      "template": "This needs two period-scoped snapshots, notes, eligibility and reconciliation decisions. The current-period evidence sample cannot prove a complete comparison.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L02",
+      "category": "Combined analysis",
+      "question": "Why did cash requirement rise even though sales fell?",
+      "template": "Compare liability, usable credit, RCM, notes and adjustments across both periods. Do not infer the cause from sales alone.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L03",
+      "category": "Combined analysis",
+      "question": "Which suppliers have the largest unresolved differences?",
+      "template": "Use an exhaustive grouped reconciliation report. A few retrieved invoices cannot establish a ranking for the whole business.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L04",
+      "category": "Combined analysis",
+      "question": "Which invoices have multiple issues and need review first?",
+      "template": "Use Requires Attention filters and full validation reasons. Prioritize material identity, evidence and arithmetic failures with the authorized reviewer.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L05",
+      "category": "Combined analysis",
+      "question": "Is a GSTIN mismatch a problem when the total is correct?",
+      "template": "Yes. Correct arithmetic cannot override a wrong business identity. Investigate the original and selected context before confirmation.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L06",
+      "category": "Combined analysis",
+      "question": "How does a credit note in another period affect review?",
+      "template": "Check the original linkage, note date, financial year, applicable adjustment rules and filed/locked periods. Do not silently backdate it.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L07",
+      "category": "Combined analysis",
+      "question": "Is an invoice repeated in Vendor Customer and Driver feeds?",
+      "template": "Cross-reference stable source IDs, invoice identity and booking/trip links. Payments or settlements must not create duplicate taxable invoices.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L08",
+      "category": "Combined analysis",
+      "question": "Why do dashboard export and approved snapshot differ?",
+      "template": "Compare selected period, refresh time, status, source versions and adjustments. Exports can be current while a snapshot preserves an earlier approved version.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L09",
+      "category": "Combined analysis",
+      "question": "What changes after a filing period is locked?",
+      "template": "Mutations are restricted. Use permitted reopening/correction procedures and record a reason; do not alter a confirmed financial record through chat.",
+      "legal_status": "guidance_requires_case_review"
+    },
+    {
+      "id": "L10",
+      "category": "Combined analysis",
+      "question": "What evidence is missing before completing this period?",
+      "template": "Review pending invoices, statements, reconciliation exceptions, eligibility evidence and approval prerequisites. Missing portal ledgers/acknowledgements cannot be inferred from application data.",
+      "legal_status": "guidance_requires_case_review"
+    }
+  ]
+}
