@@ -1,7 +1,9 @@
 # Assistant reliability, templates and private history
 
-Date: 29 October 2026. Branch: GST_NEW_V3. Status: implemented and locally tested;
-not pushed, migrated in BigQuery or deployed by this change.
+Date: 29 October 2026. Branch: GST_NEW_V3. Status: deployed and verified on the main
+V3 URL. See ASSISTANT_RELEASE_2026-10-29.md for actual revisions, migration, live
+results and remaining provider/legal limitations. The sections below describe the
+implementation and its original local verification.
 
 ## Implemented behavior
 
@@ -132,15 +134,18 @@ They are not real provider or BigQuery/browser end-to-end acceptance.
 Screenshots: artifacts/assistant-2026-10-29/assistant-1440.png and assistant-390.png.
 Playwright JSON: artifacts/v3/frontend-tests.json (latest targeted run).
 
-## Outstanding acceptance
+## Acceptance follow-up
 
-- Actual V3 table migration, BigQuery IAM and durable storage acceptance.
-- Live candidate provider/repeated-question tests and measured performance.
+- Actual V3 table migration and durable storage acceptance were completed in the
+  subsequent release; no IAM changes were required.
+- Live candidate/main repeated-question tests completed. Provider outcomes and
+  measured functional sample timings are recorded in the release report; broad
+  load testing and guaranteed performance remain outstanding.
 - Professional GST review of conditional advice and specialist-form instructions.
 - Official portal menus/eligibility may change; references are guidance, not a
   government submission integration or guarantee of statutory acceptance.
-- No Git push, Cloud Build, live release, paid provider test or government filing
-  was performed for this change.
+- The subsequent release completed Git push, Cloud Build, migration and live V3
+  acceptance; see the release report. Government filing remains disabled.
 
 Official references include GST Portal GSTR-1, GSTR-2B, GSTR-3B and GSTR-1A
 manuals/FAQ, the portal user-guide index and CBIC payment guidance. Each portal

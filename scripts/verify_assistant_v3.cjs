@@ -10,7 +10,9 @@ const commit=JSON.parse(fs.readFileSync(path.join(art,'web-candidate.json'),'utf
 const sdk=path.join(process.env.LOCALAPPDATA,'Google/Cloud SDK/google-cloud-sdk')
 const env={...process.env};delete env.PYTHONPATH
 function secret(name){return execFileSync(path.join(sdk,'platform/bundledpython/python.exe'),[path.join(sdk,'lib/gcloud.py'),'secrets','versions','access','1',`--secret=${name}`,'--project=aidirac-503309'],{env,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim()}
-const report={commit,url:base,phase,checks:{},questions:[],provider_test:null,passed:false}
+const resume=process.argv[4]==='--resume-core'
+const report=resume?JSON.parse(fs.readFileSync(path.join(art,`diagnostics-${phase}.json`),'utf8')):{commit,url:base,phase,checks:{},questions:[],provider_test:null,passed:false}
+if(resume){assert.equal(report.commit,commit);assert.equal(report.url,base);assert.equal(report.checks.second_account_cannot_retrieve_or_resume_first_history,true)}
 function write(){fs.writeFileSync(path.join(art,`diagnostics-${phase}.json`),JSON.stringify(report,null,2))}
 async function main(){
  const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true})
@@ -21,7 +23,9 @@ async function main(){
    const context=await browser.newContext();const page=await context.newPage();page.setDefaultTimeout(120000)
    await page.goto(base+'/login');await page.getByLabel('Email',{exact:true}).fill(email)
    let password=secret(secretName);await page.locator('input[type=password]').fill(password);password=''
-   await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL('**/gst/workspace')
+   const authResponse=page.waitForResponse(response=>response.url().includes('/api/auth/login')&&response.request().method()==='POST')
+   await page.getByRole('button',{name:'Sign in',exact:true}).click();assert.equal((await authResponse).status(),200,'Demo sign-in endpoint status')
+   await page.waitForURL('**/gst/workspace')
    const token=(await(await context.request.get(base+'/api/auth/csrf')).json()).token
    return {context,page,headers:{origin:base,'x-csrf-token':token}}
   }
@@ -32,12 +36,14 @@ async function main(){
   assert.match(info.profile?.legal_name||'',/Nature Labs/i)
   const dashboardBefore=await(await a.context.request.get(base+'/api/gst/bills/dashboard?period=2026-10')).json()
   const beforeBills=await(await a.context.request.get(base+'/api/gst/bills?period=2026-10')).json()
+  let relogin=a
   const evidenceId=beforeBills.invoices?.[0]?.invoice_id
   if(evidenceId){
    const original=await a.context.request.get(base+`/api/gst/bills/${encodeURIComponent(evidenceId)}/original`)
    assert.equal(original.status(),200);assert((await original.body()).length>0)
    report.checks.authorized_original_evidence_available=true
   }
+  if(!resume){
   const conversation=crypto.randomUUID();const marker=`Assistant diagnostic ${phase} ${crypto.randomUUID()}`
   async function ask(question,id=conversation){
    const started=Date.now()
@@ -65,7 +71,7 @@ async function main(){
   assert.equal((await a.context.request.post(base+'/api/assistant/history/clear?period=2026-10',{headers:{origin:base}})).status(),403)
   report.checks.history_persisted_and_csrf_retained=true
   await a.context.close()
-  const relogin=await login('naturelabs1@demo.com','gst-easy-v3-naturelabs1-password')
+  relogin=await login('naturelabs1@demo.com','gst-easy-v3-naturelabs1-password')
   const saved=await(await relogin.context.request.get(base+'/api/assistant/history?period=2026-10&limit=50')).json()
   assert(saved.items.some(item=>item.question.includes(marker)))
   report.checks.history_survives_new_sign_in=true
@@ -100,11 +106,12 @@ async function main(){
    report.checks.authorized_business_switch_history_isolation=true
   }
   await b.context.close()
+  }
   // Read-only checks: preserve existing invoices, approval states and totals.
   for(const endpoint of ['/api/gst/bills?period=2026-10','/api/gst/bills/intelligence?period=2026-10','/api/gst/bills/working-papers?period=2026-10']){
    const result=await relogin.context.request.get(base+endpoint)
    if(endpoint.includes('/working-papers')&&result.status()===403){
-    assert.equal((await result.json()).detail.code,'sample_data_blocked');report.checks.synthetic_export_protection_retained=true
+    const body=await result.json();assert.equal((body.error||body.detail).code,'sample_data_blocked');report.checks.synthetic_export_protection_retained=true
    }else assert.equal(result.status(),200,endpoint)
   }
   for(const pagePath of ['/settings/profile','/settings/account','/bills','/gst/filing','/reports','/search','/help']){
@@ -124,6 +131,13 @@ async function main(){
   assert.deepEqual(afterBills.invoices,beforeBills.invoices);report.checks.invoice_records_unchanged=true
   const invalid=await relogin.context.request.post(base+'/api/gst/bills/upload?period=2026-10',{headers:relogin.headers,multipart:{files:{name:'assistant-diagnostic.exe',mimeType:'application/octet-stream',buffer:Buffer.from('synthetic invalid file')}}})
   assert.equal(invalid.status(),422);report.checks.invalid_upload_rejected=true
+  for(const [question,metric] of [['What is my usable ITC?','eligible_credit'],['What is the estimated GST cash requirement?','cash_required'],['What is our GST liability on sales?','output_tax']]){
+   const response=await relogin.context.request.post(base+'/api/assistant/chat?period=2026-10',{headers:relogin.headers,data:{question,conversation_id:crypto.randomUUID()},timeout:120000})
+   assert.equal(response.status(),200);const value=await response.json()
+   assert.equal(value.history_saved,true);assert(!value.degraded)
+   assert.equal(value.sources[0].id,'gold-summary');assert(value.answer.includes(String(after.totals[metric])))
+  }
+  report.checks.three_financial_answers_match_dashboard=true
   // One authorized synthetic provider probe, separately reported even on fallback.
   if(phase==='live'||phase==='candidate'){
    const probe=await relogin.context.request.post(base+'/api/assistant/chat?period=2026-10',{headers:relogin.headers,data:{question:'Explain the reconciliation limitations visible in this workspace using the supplied facts.',conversation_id:crypto.randomUUID()},timeout:120000})
@@ -134,4 +148,4 @@ async function main(){
   report.passed=true;write();console.log(JSON.stringify({phase,passed:true,checks:report.checks,provider_test:report.provider_test}))
  }finally{await browser.close();write()}
 }
-main().catch(error=>{write();console.error('Diagnostics failed:',error.message);process.exitCode=1})
+main().catch(error=>{write();console.error('Diagnostics failed:',String(error.message).split(/\r?\n/)[0]);process.exitCode=1})
