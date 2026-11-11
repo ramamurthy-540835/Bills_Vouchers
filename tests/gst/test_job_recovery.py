@@ -43,16 +43,18 @@ def test_completed_delivery_is_noop():
 
 def test_storage_failure_retains_progress_and_exposes_recovery():
     job = {'job_id': 'job', 'status': 'reading', 'period': '2026-09',
-           'files': [{'status': 'reading', 'raw_ref': 'original', 'invoice_ids': []}]}
+           'files': [{'filename':'synthetic.png','doc_id':'synthetic-doc','status': 'reading', 'raw_ref': 'original', 'invoice_ids': []}]}
     store = Mock()
     store.claim_job.return_value = deepcopy(job)
     store.list.return_value = []
     store.download_object.side_effect = RuntimeError('storage unavailable')
-    with pytest.raises(RuntimeError, match='storage unavailable'):
-        run_job(store, {}, 'actor', job)
+    result=run_job(store, {}, 'actor', job)
+    assert result['status']=='completed'
     recorded = store.job.call_args.args[1]
-    assert recorded['status'] == 'needs_attention'
+    assert recorded['status'] == 'completed'
     assert recorded['files'][0]['raw_ref'] == 'original'
+    assert recorded['files'][0]['extraction_issue']['code']=='original_unavailable'
+    store.save.assert_not_called()
     assert public_job(recorded)['retryable']
 
 

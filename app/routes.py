@@ -9,7 +9,6 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
-from google.cloud import bigquery
 
 from .config import get_settings
 from .db import get_db
@@ -1292,7 +1291,7 @@ def _doc_json(d):
 async def api_login(request: Request, repo=Depends(get_db)):
     body = await request.json()
     email = str(body.get("email", "")).strip().lower()
-    auth_identity.throttle(repo, 'login:' + email)
+    login_receipt = auth_identity.throttle(repo, 'login:' + email)
     key = f"{request.client.host if request.client else 'unknown'}:{email}"
     if not login_allowed(key):
         raise HTTPException(429, "Too many attempts. Try again later.")
@@ -1301,18 +1300,21 @@ async def api_login(request: Request, repo=Depends(get_db)):
         record_login_failure(key)
         raise HTTPException(401, "Invalid email or password.")
     record_login_success(key)
-    if not getattr(user, 'is_active', True) or not identity_can_sign_in(user):
-        raise HTTPException(403, 'Verify your email address before signing in.')
+    if not getattr(user, 'is_active', True):
+        raise HTTPException(403, 'This account is inactive. Please contact support.')
+    if not identity_can_sign_in(user):
+        raise HTTPException(403, {'code':'email_verification_required',
+                                  'message':'Verify your email address before signing in. If your link expired, request a new verification email.'})
     admin_mode = request.url.path == '/api/auth/admin/login'
     if admin_mode and not is_provisioned_admin(user, repo):
         raise HTTPException(403, 'This account is not provisioned for platform administration.')
     request.session.clear()
+    auth_identity.complete_login(repo, user.id, login_receipt)
+    fr(repo).audit(user.id, "login", "user", user.id)
     request.session["last_seen"] = str(time())
     request.session["user_id"] = user.id
     request.session['access_mode'] = 'admin' if admin_mode else 'client'
     request.session["session_version"] = int(getattr(user, "session_version", 0) or 0)
-    repo.query(f"UPDATE `{repo.table('users')}` SET last_sign_in=CURRENT_TIMESTAMP() WHERE id=@id", [bigquery.ScalarQueryParameter("id", "STRING", user.id)])
-    fr(repo).audit(user.id, "login", "user", user.id)
     return {"id": user.id, "email": user.email, "full_name": user.full_name,
             "role": 'admin' if admin_mode else workspace_role(user.role),
             "access_mode": request.session['access_mode'],

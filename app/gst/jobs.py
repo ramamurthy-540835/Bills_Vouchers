@@ -1,15 +1,15 @@
 """Durable bill jobs. Stable invoice IDs make retrying partial work safe."""
 import json
 import logging
-from decimal import Decimal
 from uuid import NAMESPACE_URL, uuid5
 
 from app.config import get_settings
 from .extract import extract
-from .schemas.invoice import GstInvoice, Extraction, AutoReview
+from .schemas.invoice import GstInvoice, AutoReview
 from .validate_invoice import validate_invoice
 from .naming import bill_filename
 from .job_state import retryable
+from .extraction_issues import issue_for
 from fastapi import HTTPException
 
 logger=logging.getLogger(__name__)
@@ -18,7 +18,9 @@ logger=logging.getLogger(__name__)
 def public_job(job):
     return {'job_id':job['job_id'],'status':job['status'],'retryable':retryable(job),
         'reason':job.get('reason'),'result':job.get('result'),'files':[
-        {k:v for k,v in entry.items() if k in {'filename','status','invoice_ids','reason','auto_review_status','auto_review_reasons'}} for entry in job['files']]}
+        {**{k:v for k,v in entry.items() if k in {'filename','original_filename','status','invoice_ids','reason','period_notice','invoice_periods','extraction_issue','auto_review_status','auto_review_reasons'}},
+         'original_url':f"/api/gst/bills/upload/{job['job_id']}/original/{index}" if entry.get('raw_ref') else None}
+        for index,entry in enumerate(job['files'])]}
 
 
 def enqueue(client_id,job_id,attempt=None):
@@ -65,31 +67,75 @@ def process_job(store,profile,actor,job):
     existing=store.list()
     existing_ids={i.invoice_id for i in existing}
     for entry in job['files']:
+        entry.setdefault('original_filename',entry['filename'])
         if entry['status'] in {'ready','needs_attention'}:
             continue
         if entry.get('extracted_ref'):
-            invoices=[GstInvoice.model_validate(i) for i in json.loads(store.download_object(entry['extracted_ref'],layer='silver'))]
+            try:
+                invoices=[GstInvoice.model_validate(i) for i in json.loads(store.download_object(entry['extracted_ref'],layer='silver'))]
+            except Exception:
+                entry.update(status='needs_attention',reason='Saved extraction data could not be restored. The original is retained; retry extraction.',
+                    extraction_issue={'code':'extraction_cache_unavailable','message':'Saved extraction data could not be restored. Retry to re-read the retained original.', 'retryable':True})
+                store.job(job['job_id'],job)
+                continue
         else:
-            content=store.download_object(entry['raw_ref'])
+            try:
+                content=store.download_object(entry['raw_ref'])
+            except Exception as exc:
+                entry.update(status='needs_attention',extraction_issue=issue_for(exc,'evidence'))
+                entry['reason']=entry['extraction_issue']['message']
+                store.job(job['job_id'],job)
+                continue
             try:
                 invoices=extract(content,entry['filename'],store.client_id,entry['doc_id'],profile,entry['raw_ref'],
                     lambda a,b:store.usage(entry['doc_id'],a,b))
-            except Exception:
-                logger.exception('Bill extraction requires manual review',extra={'client_id':store.client_id,'source_doc_id':entry['doc_id']})
-                invoices=[GstInvoice(client_id=store.client_id,source_doc_id=entry['doc_id'],
-                    extraction=Extraction(raw_ref=entry['raw_ref'],confidence=Decimal('0')))]
-                entry['reason']='We could not read all the details. Open the original bill and complete the highlighted fields.'
+            except Exception as exc:
+                problem=issue_for(exc)
+                logger.warning('Bill extraction stopped: %s',problem['code'])
+                entry.update(status='needs_attention',reason=problem['message'],extraction_issue=problem)
+                # Retain original evidence and failure metadata, not a fabricated
+                # blank financial invoice or a cached failed extraction.
+                store.job(job['job_id'],job)
+                continue
             if not invoices:
                 entry.update(status='needs_attention',reason='The file contains no bill rows. Check the template and upload again.')
                 store.job(job['job_id'],job);continue
+            if entry.get('replace_invoice_id') and len(invoices)!=1:
+                entry.update(status='needs_attention',reason='This source contains multiple invoice records. Its saved bill was not replaced.',
+                    extraction_issue={'code':'multiple_source_records','message':'Re-reading a saved bill requires a single-invoice original. Review this source manually.', 'retryable':False})
+                store.job(job['job_id'],job)
+                continue
             for index,invoice in enumerate(invoices):
-                invoice.invoice_id=str(uuid5(NAMESPACE_URL,f'{store.client_id}/{entry["doc_id"]}/{index}'))
+                invoice.invoice_id=entry.get('replace_invoice_id') or str(uuid5(NAMESPACE_URL,f'{store.client_id}/{entry["doc_id"]}/{index}'))
                 invoice.selected_period=job['period']
+            entry.pop('extraction_issue',None)
+            entry.pop('reason',None)
             entry['extracted_ref']=store.upload_object(json.dumps([i.model_dump(mode='json') for i in invoices]).encode(),entry['doc_id'],f"invoice-{job.get('worker_token','local')}.json",'silver','application/json')
             store.job(job['job_id'],job)
         needs_attention=False
         for invoice in invoices:
-            if invoice.invoice_id in existing_ids:
+            if entry.get('replace_invoice_id'):
+                previous=store.get(entry['replace_invoice_id'])
+                if (previous.version != entry['expected_version'] or previous.status not in {'extracted','needs_review'}
+                        or previous.source_doc_id != entry['doc_id'] or previous.auto_review.status == 'running'):
+                    entry.update(status='needs_attention',reason='This bill changed or was confirmed after extraction was requested. Its current fields have been preserved.',
+                        extraction_issue={'code':'extraction_version_changed','message':'Current bill fields were preserved. Open the bill and review its latest version.', 'retryable':False})
+                    needs_attention=True
+                    break
+                saved=validate_invoice(invoice,profile,[i for i in existing if i.invoice_id!=previous.invoice_id])
+                saved.version=previous.version+1
+                saved.auto_review=AutoReview()
+                try:
+                    store.save(saved,actor,'extraction_retry',previous,job['period'])
+                except HTTPException as exc:
+                    if exc.status_code not in {403,409}:
+                        raise
+                    entry.update(status='needs_attention',reason='The bill, permissions or filing lock changed. Current fields are preserved.',
+                        extraction_issue={'code':'extraction_version_changed','message':'Current fields are preserved. Refresh and review the latest bill.', 'retryable':False})
+                    needs_attention=True
+                    break
+                existing[:]=[i for i in existing if i.invoice_id!=saved.invoice_id]+[saved]
+            elif invoice.invoice_id in existing_ids:
                 saved=next(i for i in existing if i.invoice_id==invoice.invoice_id)
             else:
                 saved=validate_invoice(invoice,profile,existing)
@@ -134,6 +180,11 @@ def process_job(store,profile,actor,job):
                 entry['filename']=bill_filename(saved)
             if saved.invoice_id not in entry['invoice_ids']:
                 entry['invoice_ids'].append(saved.invoice_id)
+            if saved.invoice_date:
+                actual_period=saved.invoice_date.strftime('%Y-%m')
+                entry['invoice_periods']=sorted(set([*entry.get('invoice_periods',[]),actual_period]))
+                if actual_period!=job['period']:
+                    entry['period_notice']=f"This file contains a bill dated {actual_period}. It is recorded in that invoice period, not {job['period']}. Open the bill to check the date or select its actual period."
             if saved.auto_review.enabled:
                 entry['auto_review_status'] = saved.auto_review.status
                 entry['auto_review_reasons'] = saved.auto_review.reasons

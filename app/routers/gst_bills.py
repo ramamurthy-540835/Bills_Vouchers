@@ -214,6 +214,22 @@ def progress(job_id: str, request: Request, repo=Depends(get_db), user=Depends(c
     return public_job(store.job(job_id))
 
 
+@router.get('/upload/{job_id}/original/{file_index}')
+def upload_original(job_id: str, file_index: int, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    from urllib.parse import quote
+    _, store = scope(request, repo, user)
+    job=store.job(job_id)
+    if not 0 <= file_index < len(job['files']):
+        raise HTTPException(404,'Original file not found.')
+    entry=job['files'][file_index]
+    if not entry.get('raw_ref'):
+        raise HTTPException(404,'Original file not found.')
+    filename=Path(entry.get('original_filename') or entry['filename']).name
+    return Response(store.download_object(entry['raw_ref']),media_type=mimetypes.guess_type(filename)[0] or 'application/octet-stream',
+                    headers={'Content-Disposition':f"inline; filename*=UTF-8''{quote(filename, safe='')}", 'Cache-Control':'private, no-store',
+                             'X-Content-Type-Options':'nosniff'})
+
+
 @router.get('/history')
 def upload_history(request: Request, period: str = '', repo=Depends(get_db), user=Depends(current_user)):
     client, store = scope(request, repo, user)
@@ -524,7 +540,15 @@ async def edit(invoice_id: str, request: Request, repo=Depends(get_db), user=Dep
     client, store = scope(request, repo, user, 'bills:write')
     previous = store.get(invoice_id)
     check_version(request, previous)
-    body = await request.json()
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(422,'Enter bill details as a JSON object.') from None
+    if not isinstance(body,dict):
+        raise HTTPException(422,'Enter bill details as a JSON object.')
+    reviewed_fields=body.pop('reviewed_extraction_fields',[])
+    if not isinstance(reviewed_fields,list) or len(reviewed_fields)>5000 or any(not isinstance(p,str) for p in reviewed_fields):
+        raise HTTPException(422,'Choose the extracted fields you checked against the original.')
     owned = {'client_id', 'invoice_id', 'source_doc_id', 'selected_period', 'extraction', 'itc', 'status', 'review_reasons', 'rejection_reason', 'sample', 'version', 'supply_type',
              'rejection_code','correction_state','correction_reason','correction_actor','correction_at','auto_review'}
     if owned.intersection(body):
@@ -535,6 +559,8 @@ async def edit(invoice_id: str, request: Request, repo=Depends(get_db), user=Dep
         invoice = GstInvoice.model_validate({**previous.model_dump(), **body, 'version': previous.version+1})
     except ValidationError:
         raise HTTPException(422, 'Check the bill fields and enter amounts as decimal text.') from None
+    from app.gst.extraction_issues import clear_reviewed_fields
+    invoice.extraction.document_flags=clear_reviewed_fields(invoice.extraction.document_flags,body,reviewed_fields)
     period = invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else previous.selected_period or date.today().strftime('%Y-%m')
     invoice = validate_invoice(invoice, profile_for(repo, client.id, period), store.list())
     if invoice.auto_review.enabled:
@@ -553,6 +579,40 @@ async def edit(invoice_id: str, request: Request, repo=Depends(get_db), user=Dep
         invoice.correction_state='corrected'
     store.save(invoice, user.id, 'edit', previous, period)
     return invoice.model_dump(mode='json')
+
+
+@router.post('/{invoice_id}/reextract')
+def reextract(invoice_id: str, request: Request, repo=Depends(get_db), user=Depends(current_user)):
+    client,store=scope(request,repo,user,'bills:write')
+    if not request.headers.get('if-match'):
+        raise HTTPException(428,'Refresh this bill and supply its current version before re-reading.')
+    invoice=store.get(invoice_id)
+    check_version(request,invoice)
+    if invoice.status not in {'extracted','needs_review'} or invoice.auto_review.status=='running':
+        raise HTTPException(409,'Only pending bills can be re-read. Confirmed, rejected or actively reviewed bills are protected.')
+    period=invoice.invoice_date.strftime('%Y-%m') if invoice.invoice_date else invoice.selected_period
+    store.assert_writable(period)
+    source=invoice.extraction.raw_ref
+    if not source:
+        raise HTTPException(409,'This bill has no saved original to re-read.')
+    filename=Path(source).name
+    if Path(filename).suffix.lower() not in {'.pdf','.jpg','.jpeg','.png'}:
+        raise HTTPException(422,'Re-reading a saved bill supports PDF and image originals. Review spreadsheet rows through their original batch.')
+    for previous_job in store.job_history(period):
+        if previous_job['status'] in {'queued','reading'} and not public_job(previous_job)['retryable'] and any(e.get('replace_invoice_id')==invoice_id for e in previous_job['files']):
+            raise HTTPException(409,'This bill already has a reading job. Check upload history.')
+    job={'job_id':str(uuid4()),'status':'queued','recovery_version':1,'actor_id':str(user.id),'period':period,
+         'auto_review_enabled':False,'files':[{'filename':filename,'original_filename':filename,'doc_id':invoice.source_doc_id,
+             'raw_ref':source,'status':'reading','invoice_ids':[],'replace_invoice_id':invoice_id,'expected_version':invoice.version}]}
+    store.job(job['job_id'],job)
+    if get_settings().gst_bills_queue:
+        try:
+            enqueue(str(client.id),job['job_id'])
+        except Exception:
+            raise HTTPException(503,'Re-reading was saved but dispatch is unconfirmed. Check upload history before retrying.') from None
+    else:
+        job=run_job(store,profile_for(repo,client.id,period),str(user.id),job)
+    return public_job(job)
 
 
 @router.post('/{invoice_id}/confirm')

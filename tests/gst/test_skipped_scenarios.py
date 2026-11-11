@@ -113,12 +113,12 @@ def test_scenario_K05_extraction_provider_failure_retains_manual_evidence(store,
                {'filename': 'bill.pdf', 'doc_id': 'doc', 'raw_ref': 'original',
                 'status': 'reading', 'invoice_ids': []}]}
     process_job(store, profile, 'owner', job)
-    invoice = store.state.current
     assert job['files'][0]['status'] == 'needs_attention'
-    assert invoice.status != 'confirmed'
-    assert invoice.extraction.raw_ref == 'original'
-    assert invoice.auto_review.status == 'manual_required'
-    assert job['files'][0]['reason'].startswith('Manual Review Required:')
+    assert job['files'][0]['raw_ref'] == 'original'
+    assert job['files'][0]['extraction_issue']['code'] == 'reading_timeout'
+    assert job['files'][0]['extraction_issue']['retryable'] is True
+    assert job['files'][0]['invoice_ids'] == []
+    store.save.assert_not_called()
 
 
 def test_scenario_K06_document_cannot_set_server_review_policy():

@@ -14,6 +14,9 @@ STALE_MINUTES = 35
 
 
 def retryable(job):
+    from .extraction_issues import retryable_file
+    if job['status'] == 'completed':
+        return any(retryable_file(entry) for entry in job.get('files',[]))
     if job['status'] == 'needs_attention':
         return True
     if job['status'] not in {'queued', 'reading'} or job.get('recovery_version') != 1 or not job.get('_updated_at'):
@@ -101,7 +104,11 @@ class JobState(ABC):
         job.pop('worker_token', None)
         job.pop('reason', None)
         for entry in job['files']:
-            if not entry.get('invoice_ids'):
+            from .extraction_issues import retryable_file
+            if retryable_file(entry) or (not entry.get('invoice_ids') and not entry.get('extraction_issue')):
+                if entry.get('extraction_issue',{}).get('code')=='extraction_cache_unavailable':
+                    entry.pop('extracted_ref',None)
                 entry['status'] = 'reading'
                 entry.pop('reason', None)
+                entry.pop('extraction_issue',None)
         return self.transition_job(job, previous, actor, 'job_retry')

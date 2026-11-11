@@ -211,3 +211,9 @@
 .intelligence-scope{display:grid;gap:16px;justify-items:start}.intelligence-scope label,.intelligence-exceptions>label{display:grid;gap:12px;max-width:460px;width:100%;margin-block:16px}
 .intelligence-scope select,.intelligence-exceptions select{max-width:100%;width:100%;min-height:44px}.intelligence-exception{display:flex;justify-content:space-between;align-items:center;gap:20px;padding-block:20px;border-bottom:1px solid #e2eae5}.intelligence-exception>div{min-width:0}.intelligence-exception h3,.intelligence-exception code{overflow-wrap:anywhere}.intelligence-exception h3{font-size:17px}.intelligence-exception p{color:#52675a}.intelligence-exception details{margin-top:12px}.intelligence-exception code{display:block;font-size:12px}.intelligence-exception button{flex-shrink:0}
 @media(max-width:700px){.invoice-intelligence,.intelligence-exceptions{padding:18px}.intelligence-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.intelligence-exception{align-items:stretch;flex-direction:column}.intelligence-heading{gap:16px}}
+.bill-review-drawer .extraction-review-summary{padding:16px;margin:16px 0;border:1px solid #d4e4db;border-radius:10px;background:#f5faf7;overflow-wrap:anywhere}
+.bill-review-drawer .extraction-review-summary h3{margin:0 0 8px}
+.bill-review-drawer input[aria-invalid=true]{border-color:#b74b3b;background:#fff8f5}
+.upload-issues .intelligence-exception>div{min-width:0;overflow-wrap:anywhere}
+.upload-issues .filing-actions{display:flex;flex-wrap:wrap;gap:12px}
+@media(max-width:640px){.upload-issues .intelligence-exception{display:flex;flex-direction:column;align-items:stretch}.upload-issues .filing-actions .button{width:100%;text-align:center}}

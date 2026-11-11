@@ -62,6 +62,10 @@ class Extraction(Model):
     raw_ref: str = ''
     page_count: int | None = None
     document_flags: list[str] = Field(default_factory=list)
+    @property
+    def field_issues(self) -> list[str]:
+        """Expose field diagnostics without changing the stored JSON contract."""
+        return [flag.removeprefix('field_issue:') for flag in self.document_flags if flag.startswith('field_issue:')]
 
 
 class GstInvoice(Model):

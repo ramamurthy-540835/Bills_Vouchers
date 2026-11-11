@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.8-flash"
     gemini_location: str = ""
     gemini_allowed_client_ids: str = ""
+    gemini_customer_extraction_global_enabled: bool = False
     embedding_model: str = "gemini-embedding-001"
     embedding_dimensions: int = 768
     gemini_api_key: str = ""

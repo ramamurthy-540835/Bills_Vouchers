@@ -5,6 +5,8 @@ import logging
 import secrets
 import smtplib
 import ssl
+import time
+from datetime import datetime, timezone
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
 from urllib.parse import urlsplit
@@ -86,17 +88,51 @@ def issue(repo, user_id, email, purpose):
 
 def throttle(repo, key):
     """Transaction guard serializes first writes across Cloud Run instances."""
-    try:
+    receipt = (digest(key), datetime.now(timezone.utc))
+    for attempt in range(3):
+      try:
         repo.query(f'''BEGIN TRANSACTION;
         ASSERT (SELECT COUNT(*) FROM `{repo.table('auth_guard')}` WHERE id='identity')=1 AS 'Storage guard missing';
         UPDATE `{repo.table('auth_guard')}` SET touched_at=CURRENT_TIMESTAMP() WHERE id='identity';
         ASSERT (SELECT COUNT(*) FROM `{repo.table('auth_attempts')}` WHERE key_hash=@key AND created_at>TIMESTAMP_SUB(CURRENT_TIMESTAMP(),INTERVAL 15 MINUTE))<5 AS 'Auth rate limit';
-        INSERT INTO `{repo.table('auth_attempts')}` (key_hash,created_at) VALUES (@key,CURRENT_TIMESTAMP());
-        COMMIT TRANSACTION;''', [param('key', digest(key))])
-    except (BadRequest, Conflict) as exc:
-        if any(value in str(exc).lower() for value in ('auth rate limit', 'concurrent', 'aborted')):
-            raise HTTPException(429, 'Too many attempts. Please try again later.') from None
+        INSERT INTO `{repo.table('auth_attempts')}` (key_hash,created_at) VALUES (@key,@attempt_at);
+        COMMIT TRANSACTION;''', [param('key', receipt[0]), param('attempt_at', receipt[1], 'TIMESTAMP')])
+        return receipt
+      except (BadRequest, Conflict) as exc:
+        if 'auth rate limit' in str(exc).lower():
+            raise HTTPException(429, 'Too many attempts. Wait 15 minutes before trying again.', headers={'Retry-After':'900'}) from None
+        if isinstance(exc, Conflict) or any(value in str(exc).lower() for value in ('concurrent', 'aborted')):
+            if attempt < 2:
+                time.sleep(.1 * (attempt + 1))
+                continue
+            raise HTTPException(503, 'Sign-in services are busy. Please retry shortly.', headers={'Retry-After':'2'}) from None
         raise
+
+
+def complete_login(repo, user_id, receipt):
+    """Release only this authenticated attempt; never clear other failed attempts."""
+    params = [param('id', user_id)]
+    cleanup = ''
+    if receipt:
+        params.extend([param('key', receipt[0]), param('attempt_at', receipt[1], 'TIMESTAMP')])
+        cleanup = f"DELETE FROM `{repo.table('auth_attempts')}` WHERE key_hash=@key AND created_at=@attempt_at;"
+    # A failed transaction keeps the reservation. Do not erase failed requests or
+    # relax the shared limit while completing the sign-in bookkeeping.
+    sql = f'''BEGIN TRANSACTION;
+        UPDATE `{repo.table('users')}` SET last_sign_in=CURRENT_TIMESTAMP() WHERE id=@id;
+        {cleanup}
+        COMMIT TRANSACTION;'''
+    for attempt in range(3):
+        try:
+            repo.query(sql, params)
+            return
+        except (BadRequest, Conflict) as exc:
+            if isinstance(exc, Conflict) or any(value in str(exc).lower() for value in ('concurrent', 'aborted')):
+                if attempt < 2:
+                    time.sleep(.1 * (attempt + 1))
+                    continue
+                raise HTTPException(503, 'Sign-in services are busy. Please retry shortly.', headers={'Retry-After':'2'}) from None
+            raise
 
 
 def consume(repo, token, purpose, password='', confirm=''):

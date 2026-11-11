@@ -148,6 +148,7 @@ LABELS = {
     'hsn_invalid': ('rate','Verify the HSN or SAC code'),
     'rate_invalid': ('rate','GST rate requires verification'),
     'low_confidence': ('unreadable','Invoice could not be read reliably'),
+    'extraction_fields_unresolved': ('missing','Some extracted fields were missing or unreadable; check the highlighted fields against the original'),
     'duplicate_pdf_page': ('evidence','A PDF page appears more than once; verify the original'),
     'multiple_invoice_numbers': ('evidence','This PDF appears to contain multiple invoices; upload each separately'),
     'duplicate_invoice': ('duplicate','This invoice may already exist'),
@@ -155,7 +156,10 @@ LABELS = {
 
 
 def reason_info(code):
-    if code in LABELS:
+    if code.startswith('field_issue:'):
+        path=code.split(':',2)[-1]
+        category,label='missing','Check '+path.replace('line_items.','line ').replace('totals.','invoice ').replace('_',' ').replace('.',' / ')
+    elif code in LABELS:
         category,label=LABELS[code]
     elif 'policy' in code.lower() or 'HSN/SAC' in code:
         category,label='rate','GST rate and applicability require verified policy evidence'
@@ -172,16 +176,34 @@ def reason_info(code):
 
 def overview(store, period, category='all', offset=0):
     invoices=store.list(period)
+    jobs=store.job_history(period)
+    source_names: dict[str,str]={}
+    upload_issues=[]
+    period_notices=[]
+    for job in jobs:
+        for index,entry in enumerate(job.get('files',[])):
+            if entry.get('doc_id'):
+                source_names.setdefault(entry['doc_id'],entry.get('original_filename') or entry.get('filename'))
+            problem=entry.get('extraction_issue')
+            if problem and entry.get('status')=='needs_attention':
+                upload_issues.append({'job_id':job['job_id'],'file_index':index,'filename':entry.get('original_filename') or entry['filename'],
+                    'code':problem['code'],'message':problem['message'],'retryable':bool(problem.get('retryable')),
+                    'original_url':f"/api/gst/bills/upload/{job['job_id']}/original/{index}" if entry.get('raw_ref') else None})
+            if entry.get('period_notice') and entry.get('invoice_ids'):
+                period_notices.append({'filename':entry.get('original_filename') or entry['filename'],
+                    'message':entry['period_notice'],'invoice_ids':entry['invoice_ids'],'periods':entry.get('invoice_periods',[])})
     rows=[]
     for inv in invoices:
         if inv.status not in {'extracted','needs_review'} or inv.auto_review.status=='running':
             continue
-        reasons=list(dict.fromkeys([*inv.review_reasons,*inv.auto_review.reasons])) or ['Manual confirmation is required']
+        reasons=list(dict.fromkeys([*inv.review_reasons,*inv.auto_review.reasons,
+            *[f for f in inv.extraction.document_flags if f.startswith('field_issue:')]])) or ['Manual confirmation is required']
         details=[reason_info(r) for r in reasons]
-        rows.append({'invoice_id':inv.invoice_id,'filename':bill_filename(inv),'party':inv.supplier_legal_name if inv.direction=='purchase' else inv.recipient_legal_name,
-            'invoice_date':str(inv.invoice_date) if inv.invoice_date else None,'amount':str(inv.totals.invoice_total),'reasons':details})
+        unknown_total=(any(f.endswith(':totals.invoice_total') for f in inv.extraction.document_flags if f.startswith('field_issue:'))
+                       or (inv.extraction.confidence==0 and not inv.invoice_number and not inv.line_items))
+        rows.append({'invoice_id':inv.invoice_id,'filename':source_names.get(inv.source_doc_id) or bill_filename(inv),'party':inv.supplier_legal_name if inv.direction=='purchase' else inv.recipient_legal_name,
+            'invoice_date':str(inv.invoice_date) if inv.invoice_date else None,'amount':None if unknown_total else str(inv.totals.invoice_total),'reasons':details})
     filtered=[row for row in rows if category=='all' or any(r['category']==category for r in row['reasons'])]
-    jobs=store.job_history(period)
     active=[j for j in jobs if j['status'] in {'queued','reading'}]
     job_counts=store.intelligence_job_counts(period) if hasattr(type(store),'intelligence_job_counts') else {
         'processing':sum(sum(e['status'] in {'queued','reading'} for e in j['files']) for j in active),
@@ -189,7 +211,9 @@ def overview(store, period, category='all', offset=0):
     return {'policy':policy(store).model_dump(),'eligible':sum(eligible(i) for i in invoices),
         'counts':{'auto_confirmed':sum(i.status=='confirmed' and i.auto_review.status=='auto_confirmed' for i in invoices),
                   'attention':len(rows),'processing':job_counts['processing'],
-                  'duplicates_failed':sum('duplicate_invoice' in i.review_reasons for i in invoices)+job_counts['failed']+job_counts['duplicates']},
+                  'duplicates_failed':sum('duplicate_invoice' in i.review_reasons for i in invoices)+job_counts['failed']+job_counts['duplicates']+sum(j['status']=='completed' and any(e.get('extraction_issue') for e in j.get('files',[])) for j in jobs)},
+        'upload_issues':upload_issues[:50],'upload_issue_count':len(upload_issues),
+        'period_notices':period_notices[:20],
         'exceptions':filtered[offset:offset+20],'total_exceptions':len(filtered),
         'next_offset':offset+20 if len(filtered)>offset+20 else None,
         'jobs':[{'job_id':j['job_id'],'status':j['status'],'done':sum(e['status'] not in {'queued','reading'} for e in j['files']),'total':len(j['files'])} for j in active]}

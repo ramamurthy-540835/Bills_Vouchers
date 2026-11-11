@@ -25,6 +25,8 @@ def duplicate_key(invoice):
 def validate_invoice(invoice: GstInvoice, profile: dict, existing=(), human_review=False):
     inv = invoice.model_copy(deep=True)
     reasons = []
+    if any(flag.startswith('field_issue:') for flag in inv.extraction.document_flags):
+        reasons.append('extraction_fields_unresolved')
     inv.supplier_gstin = inv.supplier_gstin.strip().upper()
     inv.recipient_gstin = inv.recipient_gstin.strip().upper()
     own = str(profile.get('gstin') or '').upper()

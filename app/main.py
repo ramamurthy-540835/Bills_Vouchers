@@ -83,7 +83,7 @@ def create_app():
             return RedirectResponse("/login", status_code=303)
         if request.url.path.startswith("/api/"):
             detail: dict[str, object] = exc.detail if isinstance(exc.detail, dict) else {}
-            return JSONResponse({"error": {"code": str(detail.get("code", f"http_{exc.status_code}")), "message": str(detail.get("message", exc.detail)), "request_id": getattr(request.state, "request_id", "unknown")}}, status_code=exc.status_code)
+            return JSONResponse({"error": {"code": str(detail.get("code", f"http_{exc.status_code}")), "message": str(detail.get("message", exc.detail)), "request_id": getattr(request.state, "request_id", "unknown")}}, status_code=exc.status_code, headers=exc.headers)
         from fastapi.exception_handlers import http_exception_handler
         return await http_exception_handler(request, exc)
 

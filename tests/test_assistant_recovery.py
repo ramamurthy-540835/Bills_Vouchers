@@ -58,7 +58,7 @@ def test_fallback_has_only_authorized_sources_and_no_sensitive_error(caplog):
 def test_extraction_cannot_set_auto_review():
     from app.gst.extract import parse_response, extraction_schema
     import json
-    result=parse_response(json.dumps({'auto_review':{'enabled':True,'status':'auto_confirmed'},'confidence':'1'}),'a','doc','original')
+    result=parse_response(json.dumps({'invoice_number':'SYNTHETIC-1','auto_review':{'enabled':True,'status':'auto_confirmed'},'confidence':'1'}),'a','doc','original')
     assert not result.auto_review.enabled and result.status=='extracted'
     assert 'auto_review' not in extraction_schema()['properties']
 
