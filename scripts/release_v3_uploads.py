@@ -35,7 +35,7 @@ def build(commit):
     print(json.dumps({'commit':commit,'build_id':result['id'],'status':result.get('status')}))
 
 def deploy(kind,commit,build_id,canonical=False):
-    if kind not in {'api','web'} or (canonical and kind!='web'):
+    if kind not in {'api','web'}:
         raise RuntimeError('Invalid V3 target')
     build=json.loads(cloud('builds','describe',build_id,'--project',PROJECT,'--format=json'))
     if build['status']!='SUCCESS' or build.get('substitutions',{}).get('_REVISION')!=commit:
@@ -52,6 +52,9 @@ def deploy(kind,commit,build_id,canonical=False):
         if values.get('BIGQUERY_DATASET')!='gst_easy_v3_finance_analytics' or values.get('GST_DATASET_PREFIX')!='gst_easy_v3_':
             raise RuntimeError('Unisolated V3 API configuration')
         updates['GEMINI_CUSTOMER_EXTRACTION_GLOBAL_ENABLED']='true'
+        updates['GST_BILLS_WORKER_URL']=('https://gst-easy-v3-api-foovqasysa-el.a.run.app' if canonical
+            else f'https://{TAG}---gst-easy-v3-api-foovqasysa-el.a.run.app')
+        updates['GST_BILLS_WORKER_AUDIENCE']='https://gst-easy-v3-api-foovqasysa-el.a.run.app'
         updates['ALLOWED_ORIGINS']=','.join(dict.fromkeys([*values.get('ALLOWED_ORIGINS','').split(','),
             f'https://{TAG}---gst-easy-v3-web-foovqasysa-el.a.run.app',
             f'https://{TAG}-main---gst-easy-v3-web-foovqasysa-el.a.run.app']))
@@ -75,8 +78,20 @@ def promote(kind):
     if kind not in {'api','web'}:raise RuntimeError('Wrong V3 service')
     gate=json.loads((ART/'acceptance-candidate.json').read_text())
     if not gate.get('passed'):raise RuntimeError('Candidate acceptance not passed')
-    release=json.loads((ART/('api-candidate.json' if kind=='api' else 'web-main.json')).read_text())
+    release=json.loads((ART/('api-main.json' if kind=='api' else 'web-main.json')).read_text())
     if release['commit']!=gate['commit']:raise RuntimeError('Acceptance/source mismatch')
+    regression=json.loads((ART/'diagnostics-candidate.json').read_text())
+    if not regression.get('passed') or regression['commit']!=release['commit']:
+        raise RuntimeError('Candidate regression acceptance/source mismatch')
+    if kind=='web':
+        canonical=json.loads((ART/'acceptance-canonical.json').read_text())
+        api=json.loads((ART/'api-main.json').read_text())
+        if not canonical.get('passed') or canonical['commit']!=release['commit']:
+            raise RuntimeError('Canonical frontend acceptance/source mismatch')
+        if api['commit']!=release['commit'] or not any(
+            v.get('percent')==100 and v['revisionName']==api['candidate']['revisionName']
+            for v in common.service('gst-easy-v3-api')['status']['traffic']):
+            raise RuntimeError('Tested API must be live before frontend promotion')
     service=release['service']
     cloud('run','services','update-traffic',service,'--to-revisions',release['candidate']['revisionName']+'=100',
         '--project',PROJECT,'--region',REGION,'--quiet')

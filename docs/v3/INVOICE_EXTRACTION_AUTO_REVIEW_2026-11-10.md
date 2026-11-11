@@ -1,5 +1,7 @@
 # Invoice extraction agent, review and V3 release
 
+Update, 11 November: [public V3 deployment and live acceptance completed](GST_EASY_V3_UPLOAD_RELEASE_2026-11-11.md). The report distinguishes deployed changes from the remaining policy/provider limitations.
+
 10 November 2026. This implementation includes the pending authentication repairs. Deployment evidence will be recorded in a separate release report after live acceptance.
 
 ## Root causes

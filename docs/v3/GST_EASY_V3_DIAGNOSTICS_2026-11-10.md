@@ -1,5 +1,7 @@
 # GST Easy V3 diagnostics and sign-in troubleshooting
 
+Update, 11 November: the repairs described below have now been deployed and tested on the public V3 URL. See [the release report](GST_EASY_V3_UPLOAD_RELEASE_2026-11-11.md) for current status; the following records the earlier diagnostic stage.
+
 Date: 10 November 2026 (IST). Diagnostics started under the 9 November request and continued on 10 November. Status: live checks completed; login hardening implemented and tested locally, not deployed.
 
 Application: https://gst-easy-v3-web-foovqasysa-el.a.run.app/login
