@@ -11,6 +11,7 @@ from .naming import bill_filename
 from .job_state import retryable
 from .extraction_issues import issue_for
 from fastapi import HTTPException
+from app.services.performance import measure
 
 logger=logging.getLogger(__name__)
 
@@ -57,7 +58,8 @@ def run_job(store, profile, actor, job):
 def process_job(store,profile,actor,job):
     if job['status']=='completed':
         return job
-    job['status']='reading';store.job(job['job_id'],job)
+    if job['status'] != 'reading':
+        job['status']='reading';store.job(job['job_id'],job)
     if job.get('kind') == 'auto_review':
         from .auto_review import process_review_job
         return process_review_job(store, profile, actor, job)
@@ -66,7 +68,7 @@ def process_job(store,profile,actor,job):
         return process_batch(store, profile, actor, job)
     existing=store.list()
     existing_ids={i.invoice_id for i in existing}
-    for entry in job['files']:
+    for entry_index, entry in enumerate(job['files']):
         entry.setdefault('original_filename',entry['filename'])
         if entry['status'] in {'ready','needs_attention'}:
             continue
@@ -80,15 +82,17 @@ def process_job(store,profile,actor,job):
                 continue
         else:
             try:
-                content=store.download_object(entry['raw_ref'])
+                with measure('original_download', job['job_id']):
+                    content=store.download_object(entry['raw_ref'])
             except Exception as exc:
                 entry.update(status='needs_attention',extraction_issue=issue_for(exc,'evidence'))
                 entry['reason']=entry['extraction_issue']['message']
                 store.job(job['job_id'],job)
                 continue
             try:
-                invoices=extract(content,entry['filename'],store.client_id,entry['doc_id'],profile,entry['raw_ref'],
-                    lambda a,b:store.usage(entry['doc_id'],a,b))
+                with measure('invoice_extraction', job['job_id']):
+                    invoices=extract(content,entry['filename'],store.client_id,entry['doc_id'],profile,entry['raw_ref'],
+                        lambda a,b:store.usage(entry['doc_id'],a,b))
             except Exception as exc:
                 problem=issue_for(exc)
                 logger.warning('Bill extraction stopped: %s',problem['code'])
@@ -122,7 +126,8 @@ def process_job(store,profile,actor,job):
                         extraction_issue={'code':'extraction_version_changed','message':'Current bill fields were preserved. Open the bill and review its latest version.', 'retryable':False})
                     needs_attention=True
                     break
-                saved=validate_invoice(invoice,profile,[i for i in existing if i.invoice_id!=previous.invoice_id])
+                with measure('financial_and_gst_validation', job['job_id']):
+                    saved=validate_invoice(invoice,profile,[i for i in existing if i.invoice_id!=previous.invoice_id])
                 saved.version=previous.version+1
                 saved.auto_review=AutoReview()
                 try:
@@ -138,7 +143,8 @@ def process_job(store,profile,actor,job):
             elif invoice.invoice_id in existing_ids:
                 saved=next(i for i in existing if i.invoice_id==invoice.invoice_id)
             else:
-                saved=validate_invoice(invoice,profile,existing)
+                with measure('financial_and_gst_validation', job['job_id']):
+                    saved=validate_invoice(invoice,profile,existing)
                 saved.auto_review = AutoReview()  # Document content cannot opt in.
                 enabled = job.get('auto_review_enabled', False)
                 if job.get('business_policy_version') is not None:
@@ -156,7 +162,8 @@ def process_job(store,profile,actor,job):
                     needs_attention=True
                     continue
                 try:
-                    store.save(saved,actor,'upload',selected_period=job['period'])
+                    with measure('canonical_invoice_save', job['job_id']):
+                        store.save(saved,actor,'upload',selected_period=job['period'])
                 except HTTPException as exc:
                     if exc.status_code != 409 or not isinstance(exc.detail, dict) or exc.detail.get('code') != 'bill_conflict':
                         raise
@@ -192,6 +199,8 @@ def process_job(store,profile,actor,job):
                                    else 'Manual Review Required: ' + '; '.join(saved.auto_review.reasons))
             needs_attention=needs_attention or saved.status in {'needs_review','rejected'}
         entry['status']='needs_attention' if needs_attention else 'ready'
-        store.job(job['job_id'],job)
+        # The final fenced completion saves the last entry in the same update.
+        if entry_index < len(job['files']) - 1:
+            store.job(job['job_id'],job)
     job['status']='completed';store.job(job['job_id'],job)
     return job

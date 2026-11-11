@@ -208,7 +208,7 @@ def parse_response(text, client_id, doc_id, raw_ref):
         totals = {}
     payload['totals'] = {key:decimal_value(totals, key, 'totals.'+key)
                          for key in ('taxable_value', 'cgst', 'sgst', 'igst', 'cess', 'invoice_total')}
-    if not (any(payload.get(key) for key in ('invoice_number','supplier_gstin','supplier_legal_name','recipient_gstin'))
+    if not (any(payload.get(key) for key in ('invoice_number','supplier_gstin','supplier_legal_name'))
             or any(line['description'] for line in payload['line_items'])
             or any(payload['totals'].values())):
         raise ExtractionResponseError('No usable invoice evidence was read. Retry with a clearer original.')
@@ -269,6 +269,8 @@ def extract(content, filename, client_id, doc_id, profile, raw_ref, log_usage):
         f'Selected business GSTIN (context, not evidence of verification): {profile.get("gstin", "")}. '
         'Return only the invoice JSON. All amounts, rates and confidence must be decimal strings. '
         'Do not invent missing GSTIN, dates, amounts or supplier names. Unit price, discount and price basis must come from visible source evidence; use null if absent or ambiguous. Price basis is tax_exclusive or tax_inclusive only when clearly shown. Dates must be YYYY-MM-DD. Missing text is empty; missing date is null. Missing or unreadable numeric values are null, not 0. Use zero only when supported by the visible source or a clearly inapplicable tax head. '
+        'Transcribe printed amounts even when they appear mathematically wrong; never repair source tax or totals. '
+        'The selected business GSTIN is context only: never copy it into a field unless it is visible in the document. '
         'One file represents one invoice. Use low confidence for incomplete or multiple invoices.'), part])
     response = agent.read(contents,extraction_schema())
     invoice = parse_response(response.text, client_id, doc_id, raw_ref)

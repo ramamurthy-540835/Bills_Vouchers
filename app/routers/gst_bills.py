@@ -1,5 +1,6 @@
 import csv
 import logging
+import json
 import mimetypes
 import hashlib
 from datetime import date
@@ -7,6 +8,7 @@ from decimal import Decimal, InvalidOperation
 from io import BytesIO, StringIO
 from pathlib import Path
 from typing import Any
+from time import time
 from uuid import uuid4, uuid5, NAMESPACE_URL
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Query
@@ -19,7 +21,7 @@ from app.db import get_db
 from app.config import get_settings
 from app.services.demo_identity import isolated_demo_workspace
 from app.repository import FinanceRepository
-from app.routes import active_client, current_user
+from app.routes import active_client, current_user, request_clients
 from app.services.gst.account import can
 from app.services.gst.medallion import Medallion, clean, period_value
 from app.gst.schemas.invoice import GstInvoice, LineItem, Totals
@@ -34,6 +36,7 @@ from app.gst import reconciliation_reviews, reports, dashboard as dashboard_repo
 from app.gst.matching import parse_gstr2b
 from app.gst.jobs import enqueue, run_job, public_job
 from app.services.tasks import verify_cloud_tasks_request
+from app.services.performance import measure, logger as performance_logger
 
 router = APIRouter(prefix='/api/gst/bills', tags=['Bills'])
 logger = logging.getLogger(__name__)
@@ -148,7 +151,8 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
         if sum(len(c) for _, c in content_files) + len(content) > 25 * 1024 * 1024:
             raise HTTPException(413, 'Upload smaller batches, up to 25 MB per request.')
         try:
-            validate_file(content, filename)
+            with measure('file_validation'):
+                validate_file(content, filename)
         except (ValueError, OSError):
             raise HTTPException(422, 'Check the file format and size. Use a valid PDF, photo or the provided spreadsheet template.') from None
         content_files.append((filename, content))
@@ -168,7 +172,8 @@ def upload(request: Request, files: list[UploadFile] = File(...), period: str = 
         doc_id = str(uuid5(NAMESPACE_URL, f'{client.id}/{hashlib.sha256(content).hexdigest()}'))
         raw_ref = store.upload_object(content, doc_id, filename, 'bronze', mimetypes.guess_type(filename)[0] or 'application/octet-stream')
         job['files'].append({'filename': filename, 'doc_id': doc_id, 'raw_ref': raw_ref, 'status': 'reading', 'invoice_ids': []})
-    store.job(job_id, job)
+    with measure('upload_job_persistence', job_id):
+        store.job(job_id, job)
     if get_settings().gst_bills_queue:
         try:
             enqueue(str(client.id), job_id)
@@ -193,6 +198,20 @@ async def worker(request: Request, repo=Depends(get_db)):
     if not settings.gst_bills_enabled or not verify_cloud_tasks_request(request, settings.gst_bills_worker_audience or settings.gst_bills_worker_url, settings.gst_bills_worker_account):
         raise HTTPException(403, 'Access denied.')
     payload = await request.json()
+    if not isinstance(payload, dict) or not all(isinstance(payload.get(k), str) and payload[k] for k in ('client_id', 'job_id')):
+        raise HTTPException(422, 'Invalid bill processing request.')
+    if getattr(settings, 'performance_metrics_enabled', False) and hasattr(request, 'headers'):
+        try:
+            scheduled = float(request.headers['x-cloudtasks-tasketa'])
+            performance_logger.info(json.dumps({'event':'task_dispatch_lag','job_id':payload['job_id'],
+                'dispatch_lag_ms':round(max(0,time()-scheduled)*1000,3)}))
+        except (KeyError, ValueError):
+            pass
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(process_bill_worker, repo, payload)
+
+
+def process_bill_worker(repo, payload):
     store = BillStore(repo, str(payload['client_id']))
     job = store.job(str(payload['job_id']))
     actor = FinanceRepository(repo).user_by_id(job['actor_id'])
@@ -203,8 +222,8 @@ async def worker(request: Request, repo=Depends(get_db)):
         actor.role = workspace_role(role.role if role else None)
     if not actor or not can(actor, 'bills:write', store.client_id, repo):
         raise HTTPException(403, 'The uploader no longer has permission to save these bills.')
-    from starlette.concurrency import run_in_threadpool
-    await run_in_threadpool(run_job, store, profile_for(repo,store.client_id,job['period']), str(actor.id), job)
+    with measure('bill_job_total', payload['job_id']):
+        run_job(store, profile_for(repo,store.client_id,job['period']), str(actor.id), job)
     return {'completed': True}
 
 
@@ -308,9 +327,21 @@ def dashboard(request: Request, period: str = '', scope_name: str = 'month', rep
     return JSONResponse(clean({'client_id': str(client.id), 'period': period, 'sample': False,
         'test_workspace': bool(getattr(client, 'is_test', False)),
         'user': {'id': str(user.id), 'full_name': user.full_name, 'email': user.email, 'role': user.role},
-        'clients': [{'id': c.id, 'name': c.name} for c in FinanceRepository(repo).clients(user.id)],
+        'clients': [{'id': c.id, 'name': c.name} for c in request_clients(request, repo, user)],
         'can_write': can(user, 'bills:write', client.id, repo),
         **calculation}), headers={'Cache-Control': 'private, no-store'})
+
+
+@router.get('/context')
+def workspace_context(request: Request, period: str = '', repo=Depends(get_db), user=Depends(current_user)):
+    """Navigation identity, without calculating/downloading financial registers."""
+    client, store = scope(request, repo, user)
+    period = selected_period(request, client, store, period)
+    return JSONResponse(clean({'client_id': str(client.id), 'period': period,
+        'profile': profile_for(repo, client.id, period), 'sample': False,
+        'test_workspace': bool(getattr(client, 'is_test', False)),
+        'can_write': can(user, 'bills:write', client.id, repo)}),
+        headers={'Cache-Control': 'private, no-store'})
 
 
 @router.get('/corrections')

@@ -73,6 +73,7 @@ test('rejection correction retains evidence and cannot bypass missing GSTIN vali
  await page.goto('/bills?period=2026-09')
  await expect(page.getByLabel('Loading bills')).toHaveCount(0)
  const csv='Supplier GSTIN,Invoice Number,Invoice Date (DD-MM-YYYY),HSN/SAC,Description,Taxable Value,GST Rate %,CGST,SGST,IGST,Cess,Invoice Total,Place of Supply (State Code),Reverse Charge (Y/N)\n33ABCDE1234F1Z1,V3-CORRECTION,01-09-2026,8703,Synthetic item,1000,18,90,90,0,0,1180,33,N'
+ await expect(page.getByLabel('Upload bills',{exact:true})).toBeEnabled()
  await page.getByLabel('Upload bills',{exact:true}).setInputFiles({name:'synthetic.csv',mimeType:'text/csv',buffer:Buffer.from(csv)})
  await page.locator('.bills-table tr').filter({hasText:'V3-CORRECTION'}).getByRole('button',{name:'Review',exact:true}).click()
  await expect(page.getByRole('heading',{name:'GST comparison',exact:true})).toBeVisible()

@@ -18,6 +18,11 @@ def parse(payload):
     return parse_response(json.dumps(payload), 'authorized-client', 'source-document', 'private-original')
 
 
+def test_selected_recipient_context_alone_is_not_invoice_evidence():
+    with pytest.raises(ExtractionResponseError):
+        parse({'recipient_gstin': '33ZZZPC9876Y1ZW', 'confidence': '0.99'})
+
+
 def test_one_unreadable_total_does_not_erase_readable_identity_or_line_values(invoice):
     payload = provider_payload(invoice)
     payload['totals']['invoice_total'] = 'not readable'

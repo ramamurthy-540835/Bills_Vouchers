@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = "development"
+    deployment_generation: str = ''
     app_secret_key: str = "development-only-change-me"
     allowed_origins: str = ""
     max_upload_mb: int = 15
@@ -48,6 +49,7 @@ class Settings(BaseSettings):
     max_query_bytes: int = 100000000
     query_timeout_seconds: int = 60
     external_timeout_seconds: int = 60
+    performance_metrics_enabled: bool = False
     gcp_project_id: str = ""
     gcp_region: str = "global"
     gcs_bucket_name: str = ""

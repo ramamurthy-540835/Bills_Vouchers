@@ -3,6 +3,7 @@ import re
 import random
 import time
 from datetime import datetime, timezone
+from functools import cached_property
 
 from fastapi import HTTPException
 from google.cloud import storage
@@ -14,10 +15,16 @@ from .schemas.invoice import GstInvoice, AutoReview
 from .validate_invoice import financial_year
 from .naming import bill_filename
 from .job_state import JobState, payload as job_payload
+from app.services.performance import measure
 
 
 class BillStore(JobState):
     intelligence_version = None
+    @cached_property
+    def bucket(self):
+        # Connection reuse is scoped to this authorized store, not financial data.
+        return storage.Client(project=self.project).bucket(get_settings().gcs_bucket_name)
+
     def __init__(self, repo, client_id):
         self.repo, self.client_id = repo, str(client_id)
         project = repo.settings.gcp_project_id
@@ -352,10 +359,11 @@ class BillStore(JobState):
         safe_name = re.sub(r'[^A-Za-z0-9._-]', '_', filename)[:180]
         day = datetime.now(timezone.utc).strftime('%Y/%m/%d')
         key = f'{self.client_id}/{layer}/bills/{day}/{doc_id}/{safe_name}'
-        bucket = storage.Client(project=self.project).bucket(get_settings().gcs_bucket_name)
+        bucket = self.bucket
         blob = bucket.blob(key)
         try:
-            blob.upload_from_string(content, content_type=mime, if_generation_match=0)
+            with measure('gcs_' + layer + '_write'):
+                blob.upload_from_string(content, content_type=mime, if_generation_match=0)
         except PreconditionFailed:
             # A retry may reuse identical evidence, never overwrite different bytes.
             if blob.download_as_bytes() != content:
@@ -370,7 +378,7 @@ class BillStore(JobState):
         key = ref.split('/', 3)[3]
         target = key.rsplit('/', 1)[0] + '/' + bill_filename(invoice)
         if key != target:
-            bucket = storage.Client(project=self.project).bucket(get_settings().gcs_bucket_name)
+            bucket = self.bucket
             source = bucket.blob(key)
             source.reload()
             try:
@@ -392,4 +400,5 @@ class BillStore(JobState):
         if not ref.startswith(prefix):
             raise HTTPException(404, 'Original bill not found.')
         key = ref.split('/', 3)[3]
-        return storage.Client(project=self.project).bucket(get_settings().gcs_bucket_name).blob(key).download_as_bytes()
+        with measure('gcs_' + layer + '_read'):
+            return self.bucket.blob(key).download_as_bytes()

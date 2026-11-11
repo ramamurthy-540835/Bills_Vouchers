@@ -27,7 +27,12 @@ def isolated_v2_demo():
 
 def isolated_demo_workspace():
     settings = get_settings()
-    return isolated_v2_demo() or (
+    v4 = (settings.demo_operator_identity_enabled
+          and getattr(settings, 'deployment_generation', '') == 'v4'
+          and settings.bigquery_dataset == 'gst_easy_v4_finance_analytics'
+          and settings.gst_dataset_prefix == 'gst_easy_v4_'
+          and settings.gcs_bucket_name == settings.gcp_project_id + '-gst-easy-v4-documents')
+    return v4 or isolated_v2_demo() or (
         settings.demo_operator_identity_enabled
         and settings.bigquery_dataset == 'gst_easy_v3_finance_analytics'
         and settings.gst_dataset_prefix == 'gst_easy_v3_'

@@ -94,7 +94,7 @@ def test_source_mapping_and_reconciliation_permissions(api):
 def test_dashboard_range_keeps_membership_boundary_and_private_cache(api,monkeypatch):
     client,user,_=api
     user.full_name='Viewer';user.email='viewer@example.test'
-    monkeypatch.setattr(gst_bills,'FinanceRepository',lambda _:SimpleNamespace(clients=lambda uid:[]))
+    monkeypatch.setattr(gst_bills,'request_clients',lambda *args:[])
     monkeypatch.setattr(gst_bills.dashboard_report,'read_range',lambda store,months,evidence=True:
         {month:{'source_hash':'a'*64,'invoices':store.list(month),'statements':[],
                 'filing':{'state':'draft','version':0}} for month in months})

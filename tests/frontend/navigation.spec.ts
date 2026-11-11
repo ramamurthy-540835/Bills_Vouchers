@@ -121,6 +121,7 @@ test('switching businesses isolates invoices and rejects foreign invoice URLs',a
  const csv='Supplier GSTIN,Invoice Number,Invoice Date (DD-MM-YYYY),HSN/SAC,Description,Taxable Value,GST Rate %,CGST,SGST,IGST,Cess,Invoice Total,Place of Supply (State Code),Reverse Charge (Y/N)\n33ABCDE1234F1Z1,ISOLATION-A,01-09-2026,8703,Vehicle,1000,18,90,90,0,0,1180,33,N'
  await expect(page.getByLabel('Loading bills')).toHaveCount(0)
  await expect(page.getByText('No bills for this period yet.',{exact:true})).toBeVisible()
+ await expect(page.getByLabel('Upload bills',{exact:true})).toBeEnabled()
  await page.getByLabel('Upload bills',{exact:true}).setInputFiles({name:'isolation.csv',mimeType:'text/csv',buffer:Buffer.from(csv)})
  await expect(page.getByText('ISOLATION-A',{exact:true})).toBeVisible()
  const response=await (await page.request.get('/api/gst/bills?period=2026-09')).json()

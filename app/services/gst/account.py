@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from ...config import get_settings
 from ...db import get_db
 from ...repository import FinanceRepository
-from ...routes import current_user, active_client
+from ...routes import current_user, active_client, request_clients
 from .medallion import Medallion, clean, clear_cache, param
 from .profiles import validate_gstin, website_url, company_checks
 from .membership_permissions import is_owner
@@ -168,7 +168,7 @@ def account(request: Request, repo=Depends(get_db), user=Depends(current_user)):
         'mobile_verified':bool(getattr(user,'mobile_verified',False)),
         'email_verified':bool(getattr(user,'email_verified',False)),
         'last_sign_in':getattr(user,'last_sign_in',None)},
-        'clients':[{'id':c.id,'name':c.name} for c in FinanceRepository(repo).clients(user.id)],
+        'clients':[{'id':c.id,'name':c.name} for c in request_clients(request,repo,user)],
         'can_edit_profile':can(user,'edit_profile',client.id,repo),
         'is_owner':owner,'permissions':navigation_permissions(user,owner,client),'require_otp':get_settings().require_otp,
         'mobile_verification_available':configured(), 'company_checks':company_checks(profile)})

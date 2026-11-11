@@ -224,6 +224,7 @@ test('local upload accepts CSV, presents canonical review and blocks missing GST
  await expect(page.getByLabel('Loading bills')).toHaveCount(0)
  const csv='Supplier GSTIN,Invoice Number,Invoice Date (DD-MM-YYYY),HSN/SAC,Description,Taxable Value,GST Rate %,CGST,SGST,IGST,Cess,Invoice Total,Place of Supply (State Code),Reverse Charge (Y/N)\n33ABCDE1234F1Z1,LOCAL-TEST,01-09-2026,8703,Vehicle,1000,18,90,90,0,0,1180,33,N'
  const invoiceNumber=`T-${Date.now().toString().slice(-10)}`
+ await expect(page.getByLabel('Upload bills',{exact:true})).toBeEnabled()
  await page.getByLabel('Upload bills',{exact:true}).setInputFiles({name:'local-test.csv',mimeType:'text/csv',buffer:Buffer.from(csv.replace('LOCAL-TEST',invoiceNumber))})
  await expect(page.getByText(invoiceNumber,{exact:true})).toBeVisible()
  await page.getByLabel('Upload bills',{exact:true}).setInputFiles({name:'same-bill-renamed.csv',mimeType:'text/csv',buffer:Buffer.from(csv.replace('LOCAL-TEST',invoiceNumber))})

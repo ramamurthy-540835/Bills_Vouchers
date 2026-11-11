@@ -156,6 +156,7 @@ gst_bills.active_client=lambda *args:selected_client()
 gst_bills.profile_for=lambda *args:selected_profile()
 gst_bills.can=lambda user,action,*args:action=='bills:read' or user.role!='viewer'
 gst_bills.FinanceRepository=lambda repo:SimpleNamespace(clients=lambda uid:[SimpleNamespace(id=id,name=value['legal_name']) for id,value in profiles.items()])
+gst_bills.request_clients=lambda *args:[SimpleNamespace(id=id,name=value['legal_name']) for id,value in profiles.items()]
 app=FastAPI()
 app.add_middleware(SessionMiddleware,secret_key="synthetic-local-browser-only")
 app.include_router(gst_intake.router)

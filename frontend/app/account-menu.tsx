@@ -7,9 +7,10 @@ import {getVisibleAccountMenu,workspaceDestination} from '../lib/navigation'
 export default function AccountMenu({data,request,action}:{data:any;request:(path:string,body?:any)=>Promise<any>;action:(fn:()=>Promise<void>)=>Promise<void>}){
  const menu=useRef<HTMLDetailsElement>(null),path=usePathname()
  const [ready,setReady]=useState(false)
+ const previousPath=useRef(path)
  useEffect(()=>setReady(true),[])
  const close=()=>{if(menu.current)menu.current.open=false}
- useEffect(()=>{close()},[path])
+ useEffect(()=>{if(previousPath.current!==path)close();previousPath.current=path},[path])
  useEffect(()=>{const outside=(event:PointerEvent)=>{if(!menu.current?.contains(event.target as Node))close()};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside)},[])
  const user=data?.user
  const initials=(user?.full_name||user?.email||'?').trim().split(/\s+/).slice(0,2).map((p:string)=>p[0]).join('').toUpperCase()

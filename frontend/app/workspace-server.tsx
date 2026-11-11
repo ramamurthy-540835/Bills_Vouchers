@@ -9,7 +9,7 @@ export async function WorkspacePage({view,searchParams,reportKind}: {view:string
   // Preserve signed cookie bytes; cookies().toString() URL-encodes base64 padding.
   const cookie=(await headers()).get('cookie')||''
   const query=await searchParams
-  const endpoint=['gstworkspace','overview','bills','filing','assistant','search','reports'].includes(view)?'gst/bills/dashboard':view==='demo'?'demo/data':'workspace'
+  const endpoint=['bills','assistant','search','reports'].includes(view)?'gst/bills/context':['gstworkspace','overview','filing'].includes(view)?'gst/bills/dashboard':view==='demo'?'demo/data':'workspace'
   const params=new URLSearchParams({...query?.period?{period:query.period}:{},...view==='demo'&&query?.scenario?{scenario:query.scenario}:{},...view==='gstworkspace'&&query?.scope?{scope:query.scope}:{}})
   if(view==='gstworkspace'&&query?.range)params.set('scope_name',query.range)
   let response:Response|undefined, data:any=null

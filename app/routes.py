@@ -1,5 +1,6 @@
 import csv
 import secrets
+import re
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from io import StringIO
@@ -9,6 +10,7 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
 
 from .config import get_settings
 from .db import get_db
@@ -33,6 +35,9 @@ v1_router = APIRouter(prefix="/api/v1", tags=["v1"])
 
 def current_user(request: Request, repo=Depends(get_db)):
     request.state.finance_repo = repo
+    # An explicit reauthorization must take a new snapshot even if a caller
+    # invokes this dependency again on the same Request instance.
+    request.state._membership_snapshot = None
     last_seen = request.session.get("last_seen")
     if last_seen and time() - float(last_seen) > get_settings().session_idle_timeout:
         request.session.clear()
@@ -65,7 +70,7 @@ def current_user(request: Request, repo=Depends(get_db)):
         request.session["last_seen"] = str(time())
     if get_settings().medallion_enabled:
         from .services.gst.medallion import param
-        clients = FinanceRepository(repo).clients(user.id)
+        clients = request_clients(request, repo, user)
         if clients:
             selected = next((c for c in clients if c.id == request.session.get("client_id")), clients[0])
             request.session["client_id"] = selected.id
@@ -116,8 +121,20 @@ def fr(repo):
     return FinanceRepository(repo)
 
 
-def active_client(request, repo, user):
+def request_clients(request, repo, user):
+    """Reuse membership reads only within one GET, never across requests/users."""
+    key = (id(repo), str(user.id))
+    previous = getattr(request.state, '_membership_snapshot', None)
+    if request.method == 'GET' and previous is not None and previous[0] == key:
+        return previous[1]
     clients = fr(repo).clients(user.id)
+    if request.method == 'GET':
+        request.state._membership_snapshot = (key, clients)
+    return clients
+
+
+def active_client(request, repo, user):
+    clients = request_clients(request, repo, user)
     if not clients:
         raise HTTPException(403, "You do not have access to a client.")
     selected = request.session.get("client_id")
@@ -1289,8 +1306,29 @@ def _doc_json(d):
 @router.post("/api/auth/admin/login")
 @router.post("/api/auth/login")
 async def api_login(request: Request, repo=Depends(get_db)):
-    body = await request.json()
+    body = await identity_body(request)
+    return await run_in_threadpool(login_identity, request, repo, body)
+
+
+async def identity_body(request):
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(422, 'Enter valid account details.') from None
+    if not isinstance(body, dict):
+        raise HTTPException(422, 'Enter valid account details.')
+    for key in ('email', 'password', 'confirm', 'token', 'purpose'):
+        if key in body and not isinstance(body[key], str):
+            raise HTTPException(422, 'Enter valid account details.')
+    return body
+
+
+def login_identity(request, repo, body):
+    # BigQuery, password hashing and audit are blocking. Keep them off the ASGI
+    # event loop without changing session, rate-limit or permission decisions.
     email = str(body.get("email", "")).strip().lower()
+    if len(email) > 254 or not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
+        raise HTTPException(422, 'Enter a valid email address.')
     login_receipt = auth_identity.throttle(repo, 'login:' + email)
     key = f"{request.client.host if request.client else 'unknown'}:{email}"
     if not login_allowed(key):
@@ -1323,9 +1361,13 @@ async def api_login(request: Request, repo=Depends(get_db)):
 
 @router.post('/api/auth/register', status_code=201)
 async def api_register(request: Request, repo=Depends(get_db)):
+    body = await identity_body(request)
+    return await run_in_threadpool(register_identity, request, repo, body)
+
+
+def register_identity(request, repo, body):
     from .services.registration import register
     auth_mail.ready()
-    body = await request.json()
     key = 'register:' + str(body.get('email', '')).strip().lower()
     if not login_allowed(key):
         raise HTTPException(429, 'Too many attempts. Try again later.')
@@ -1339,15 +1381,22 @@ async def api_register(request: Request, repo=Depends(get_db)):
 
 @router.post('/api/auth/request-link')
 async def request_identity_link(request: Request, repo=Depends(get_db)):
+    body = await identity_body(request)
+    return await run_in_threadpool(queue_identity_link, repo, body)
+
+
+def queue_identity_link(repo, body):
     auth_mail.ready()
-    body = await request.json()
     email = str(body.get('email', '')).strip().lower()
     purpose = str(body.get('purpose', 'reset'))
-    if purpose not in {'reset', 'verify'} or len(email) > 254:
+    if purpose not in {'reset', 'verify'} or len(email) > 254 or not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
         raise HTTPException(422, 'Invalid request.')
     auth_identity.throttle(repo, 'link:' + email)
     auth_mail.request_link(repo, email, purpose)
-    return {'message': 'If this account can receive a link, an email will arrive shortly.'}
+    message = ('Verification email requested. For an active, unverified account, a verification link will be emailed. Check your inbox and spam folder.'
+               if purpose == 'verify' else
+               'Password reset requested. For an active account, a password reset link will be emailed. Check your inbox and spam folder.')
+    return {'message': message, 'purpose': purpose, 'status': 'requested'}
 
 
 @router.post('/internal/auth/mail')
@@ -1376,23 +1425,27 @@ def repair_identity_mail(request: Request, repo=Depends(get_db)):
 
 @router.post('/api/auth/verify-email')
 async def verify_identity_email(request: Request, repo=Depends(get_db)):
-    body = await request.json()
-    auth_identity.throttle(repo, 'verify-token:' + str(body.get('token', '')))
-    auth_identity.consume(repo, body.get('token'), 'verify')
+    body = await identity_body(request)
+    await run_in_threadpool(consume_identity_link, repo, body, 'verify')
     request.session.clear()
     return {'message': 'Email verified. You can now sign in.'}
 
 
 @router.post('/api/auth/reset-password')
 async def reset_identity_password(request: Request, repo=Depends(get_db)):
-    auth_mail.ready()
-    body = await request.json()
-    auth_identity.throttle(repo, 'reset-token:' + str(body.get('token', '')))
-    mail_id = auth_identity.consume(repo, body.get('token'), 'reset', str(body.get('password', '')), str(body.get('confirm', '')))
-    if mail_id:
-        auth_mail.schedule(mail_id)
+    body = await identity_body(request)
+    await run_in_threadpool(consume_identity_link, repo, body, 'reset')
     request.session.clear()
     return {'message': 'Password changed. Sign in with your new password.'}
+
+
+def consume_identity_link(repo, body, purpose):
+    if purpose == 'reset':
+        auth_mail.ready()
+    auth_identity.throttle(repo, ('reset-token:' if purpose == 'reset' else 'verify-token:') + str(body.get('token', '')))
+    mail_id = auth_identity.consume(repo, body.get('token'), purpose, str(body.get('password', '')), str(body.get('confirm', '')))
+    if mail_id:
+        auth_mail.schedule(mail_id)
 
 
 @router.get("/api/auth/csrf")

@@ -3,6 +3,7 @@ import time
 from google import genai
 from google.genai import types
 from app.services.model_access import extraction_model_location
+from app.services.performance import measure
 
 
 class InvoiceExtractionAgent:
@@ -21,9 +22,10 @@ class InvoiceExtractionAgent:
     def read(self, contents, schema):
         for attempt in range(2):
             try:
-                return self.client.models.generate_content(model=self.settings.gemini_model,contents=contents,
-                    config=types.GenerateContentConfig(temperature=0,response_mime_type='application/json',response_schema=schema,
-                        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)))
+                with measure('vertex_document_read'):
+                    return self.client.models.generate_content(model=self.settings.gemini_model,contents=contents,
+                        config=types.GenerateContentConfig(temperature=0,response_mime_type='application/json',response_schema=schema,
+                            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)))
             except Exception as exc:
                 code=getattr(exc,'code',None) or getattr(exc,'status_code',None)
                 transient=(code in {429,500,502,503,504} or isinstance(exc,(TimeoutError,ConnectionError))

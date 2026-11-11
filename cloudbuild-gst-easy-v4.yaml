@@ -1,0 +1,22 @@
+# V4 images only. Never deploy or retag V2/V3 artifacts from this build.
+steps:
+  - id: api
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "Dockerfile", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/gst-easy-v4/api:${_REVISION}", "."]
+    waitFor: ["-"]
+  - id: web
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "frontend/Dockerfile", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/gst-easy-v4/web:${_REVISION}", "frontend"]
+    waitFor: ["-"]
+images:
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/gst-easy-v4/api:${_REVISION}"
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/gst-easy-v4/web:${_REVISION}"
+serviceAccount: projects/$PROJECT_ID/serviceAccounts/gst-easy-v4-build@$PROJECT_ID.iam.gserviceaccount.com
+substitutions:
+  _REVISION: reviewed-commit-required
+  _REGION: asia-south1
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+  diskSizeGb: 100
+timeout: 1800s

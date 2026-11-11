@@ -21,6 +21,8 @@ logger = logging.getLogger("bills_voucher")
 def create_app():
     app = FastAPI(title="Bills & Voucher Finance — BigQuery")
     s = get_settings()
+    from .services.runtime_isolation import validate_runtime
+    validate_runtime(s)
     app.add_middleware(
         SessionMiddleware,
         secret_key=s.app_secret_key,

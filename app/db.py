@@ -3,6 +3,7 @@ import json
 import logging
 import re
 from contextvars import ContextVar
+from time import perf_counter
 
 from fastapi import Depends
 
@@ -34,9 +35,16 @@ class BigQueryRepository:
         s = self.settings
         request_id = re.sub(r"[^a-z0-9_-]", "-", request_id_context.get().lower())[:63] or "system"
         config = bigquery.QueryJobConfig(query_parameters=params or [], maximum_bytes_billed=s.max_query_bytes, labels={"request_id": request_id})
+        started = perf_counter()
         job = retry_call(lambda: self.client.query(sql, job_config=config))
         rows = list(retry_call(lambda: job.result(timeout=s.query_timeout_seconds)))
         logger.debug(json.dumps({"event": "bigquery_query", "bytes_billed": getattr(job, "total_bytes_billed", None), "rows": len(rows)}))
+        if getattr(s, 'performance_metrics_enabled', False):
+            logging.getLogger('uvicorn.error.performance').info(json.dumps({
+                'event': 'database_timing', 'request_id': request_id,
+                'duration_ms': round((perf_counter() - started) * 1000, 3),
+                'bytes_billed': getattr(job, 'total_bytes_billed', None),
+                'job_id': job.job_id, 'row_count': len(rows)}))
         return rows
 
     def insert(self, table, row, row_id=None):

@@ -10,6 +10,7 @@ test.beforeEach(async({request,context,baseURL})=>{
 for(const format of ['pdf','multi','png','jpg','csv','xlsx','failed'])test(`fitted ${format} original and authorized full-view link`,async({page,context})=>{
  const loaded=page.waitForResponse(r=>r.url().includes('/api/gst/bills?')); await page.goto('/bills?period=2026-09'); await loaded
  const csv='Supplier GSTIN,Invoice Number,Invoice Date (DD-MM-YYYY),HSN/SAC,Description,Taxable Value,GST Rate %,CGST,SGST,IGST,Cess,Invoice Total,Place of Supply (State Code),Reverse Charge (Y/N)\n33ABCDE1234F1Z1,PREVIEW-TEST,01-09-2026,8703,Synthetic item,1000,18,90,90,0,0,1180,33,N'
+ await expect(page.getByLabel('Upload bills',{exact:true})).toBeEnabled()
  await page.getByLabel('Upload bills',{exact:true}).setInputFiles({name:'preview.csv',mimeType:'text/csv',buffer:Buffer.from(csv.replace('PREVIEW-TEST','PREVIEW-'+format))})
  const row=page.locator('.bills-table tr').filter({hasText:'PREVIEW-'+format})
  await expect(row).toBeVisible()

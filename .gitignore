@@ -26,4 +26,5 @@ artifacts/
 .testdeps/
 frontend/test-results/
 frontend/playwright-report/
+/test-results/
 frontend/public/pdfjs/

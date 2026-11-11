@@ -12,6 +12,7 @@ const filterKeys=['q','party','invoice_type','eligibility','matching','source','
 export default function ReportsPanel({period,money,reportKind,businessName,gstin}:{period:string;money:(value:unknown)=>string;reportKind?:string;businessName?:string;gstin?:string}){
  const [kind,setKind]=useState(reportKind||'purchases'),[scope,setScope]=useState('month'),[offset,setOffset]=useState(0)
  const [filters,setFilters]=useState<Record<string,string>>({})
+ const [initialized,setInitialized]=useState(false)
  const entry=reportEntries.find(item=>item.kind===kind)
  const [report,setReport]=useState<ReportResponse|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[retry,setRetry]=useState(0),[notice,setNotice]=useState('')
  useEffect(()=>{
@@ -20,8 +21,10 @@ export default function ReportsPanel({period,money,reportKind,businessName,gstin
   setFilters(Object.fromEntries(filterKeys.filter(key=>query.has(key)).map(key=>[key,query.get(key)!])))
   if(!reportKind&&initialKind&&kinds[initialKind])setKind(initialKind)
   if(initialScope&&['month','quarter','financial_year'].includes(initialScope))setScope(initialScope)
+  setInitialized(true)
  },[])
  useEffect(()=>{
+  if(!initialized)return
   const controller=new AbortController();setReport(null);setError('');setNotice('')
   const query=new URLSearchParams({period,kind,scope_name:scope,offset:String(offset),...filters})
   fetch(`/api/gst/bills/reports?${query}`,{cache:'no-store',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(25000)])})
@@ -29,7 +32,7 @@ export default function ReportsPanel({period,money,reportKind,businessName,gstin
    .then(setReport).catch(e=>{if(e.name!=='AbortError')setError(e.message)})
   const url=new URL(window.location.href);for(const key of filterKeys){if(filters[key])url.searchParams.set(key,filters[key]);else url.searchParams.delete(key)};url.searchParams.set('kind',kind);url.searchParams.set('range',scope);window.history.replaceState(null,'',url)
   return ()=>controller.abort()
- },[period,kind,scope,offset,retry,filters])
+ },[initialized,period,kind,scope,offset,retry,filters])
  async function download(format:string){setBusy(true);setError('');setNotice('');try{
   const query=new URLSearchParams({period,kind,scope_name:scope,format,...filters})
   const response=await fetch(`/api/gst/bills/reports?${query}`,{cache:'no-store'})
