@@ -48,7 +48,9 @@ def main():
         if any(not b['is_test'] or b['gstin_verified'] or b['provenance']!='SYNTHETIC_TEST_ONLY' for b in businesses):
             raise RuntimeError('Invalid synthetic provenance')
         email=name+'@demo.com'
-        password=cloud('secrets','versions','access','1','--secret='+'gst-easy-v4-'+name+'-password','--project',PROJECT)
+        # The owner may rotate the V4 demo password without changing the secret name.
+        # Always validate against the current Secret Manager version.
+        password=cloud('secrets','versions','access','latest','--secret='+'gst-easy-v4-'+name+'-password','--project',PROJECT)
         if not password_is_strong(password):
             raise RuntimeError('Password fails unchanged policy')
         user=finance.user_by_email(email)
