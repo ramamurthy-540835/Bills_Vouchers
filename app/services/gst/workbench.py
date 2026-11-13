@@ -256,20 +256,12 @@ async def import_outward(request: Request, repo=Depends(get_db), user=Depends(cu
 
 def transition(store, actor, target, arn=None, filed_at=None, uri=None, digest=None):
     store.writable()
+    if target in {"filed", "locked"}:
+        raise HTTPException(409, "GST Easy cannot verify an official filing. Complete filing on gst.gov.in, then record customer-reported evidence in the Method A filing workflow.")
     state = store.status()["state"]
-    allowed = {"draft": "validated", "validated": "json_generated", "json_generated": "filed", "filed": "locked"}
+    allowed = {"draft": "validated", "validated": "json_generated"}
     if allowed.get(state) != target:
         raise HTTPException(409, f"Cannot transition from {state} to {target}.")
-    if target in {"filed", "locked"} and actor.role not in {"admin", "tax_admin"}:
-        raise HTTPException(403, "Only a tax administrator may file or lock a return.")
-    if target == "filed":
-        if not re.fullmatch(r"[A-Z0-9]{15}", str(arn or "")):
-            raise HTTPException(422, "ARN must contain 15 uppercase letters or digits.")
-        try:
-            if date.fromisoformat(str(filed_at)) > date.today():
-                raise ValueError()
-        except ValueError:
-            raise HTTPException(422, "A valid, non-future filing date is required.")
     params = store.params + [param("expected", state), param("target", target), param("actor", actor.email),
                             param("arn", arn), param("filed_at", filed_at, "DATE"), param("audit_id", str(uuid4())), param("uri", uri), param("hash", digest)]
     canonical_guard = ''
@@ -316,7 +308,10 @@ def generate(kind: str, request: Request, repo=Depends(get_db), user=Depends(cur
         raise HTTPException(409, "Validate this period first.")
     s = w["summary"]
     # Explicit preparer format; never claim an unverified portal schema is upload-ready.
-    result = {"schema_version": get_settings().gst_schema_version, "draft": True, "gstin": w["profile"]["gstin"], "period": store.period, "return_type": kind}
+    result = {"format":"GST_EASY_INTERNAL_DRAFT_NOT_GSTN_SCHEMA", "draft": True,
+              "portal_upload_file":False,
+              "notice":"Internal preparation data only. Not a GST Portal upload file. Verify and file on https://www.gst.gov.in/.",
+              "gstin": w["profile"]["gstin"], "period": store.period, "return_type": kind}
     if kind == "gstr3b":
         result.update({"3.1": s["output_by_head"], "3.1.1": s["eco_by_head"] if w["profile"].get("is_eco_9_5") else {},
                        "4(A)": s["eligible_by_head"], "4(B)": {h: str(sum((amount(r.get('reversal_' + h)) for r in w['ledger']), amount())) for h in HEADS},
@@ -328,7 +323,7 @@ def generate(kind: str, request: Request, repo=Depends(get_db), user=Depends(cur
     uri = GCSObjectStore(get_settings().gcs_bucket_name).upload(f"gold/{store.client_id}/filings/{store.period}/{kind}_{digest}.json", raw, "application/json")
     if w["filing"]["state"] == "validated":
         transition(store, user, "json_generated", uri=uri, digest=digest)
-    return Response(raw, media_type="application/json", headers={"Content-Disposition": f'attachment; filename="{kind}_{store.period}_draft.json"'})
+    return Response(raw, media_type="application/json", headers={"Content-Disposition": f'attachment; filename="{kind}_{store.period}_internal-preparation-only.json"', "Cache-Control":"private, no-store"})
 
 
 @router.post("/internal/pipeline/document")

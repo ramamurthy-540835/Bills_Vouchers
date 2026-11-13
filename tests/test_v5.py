@@ -210,7 +210,7 @@ def test_validation(changes, code):
     assert code in pipeline.validate_extraction(invoice(**changes), "2026-09")
 
 
-def test_filing_permissions_transitions_arn_and_lock(repo):
+def test_filing_workbench_cannot_claim_official_filing_or_lock(repo):
     store = Medallion(repo, "a", "2026-09")
     client = SimpleNamespace(role="client", email="a@example.test")
     admin = SimpleNamespace(role="tax_admin", email="admin@example.test")
@@ -219,18 +219,14 @@ def test_filing_permissions_transitions_arn_and_lock(repo):
     assert e.value.status_code == 409
     workbench.transition(store, client, "validated")
     workbench.transition(store, client, "json_generated")
-    with pytest.raises(HTTPException) as e:
-        workbench.transition(store, client, "filed", "A" * 15, "2026-09-20")
-    assert e.value.status_code == 403
-    with pytest.raises(HTTPException) as e:
-        workbench.transition(store, admin, "filed", "bad", "2026-09-20")
-    assert e.value.status_code == 422
-    workbench.transition(store, admin, "filed", "A" * 15, "2026-09-20")
-    workbench.transition(store, admin, "locked")
-    with pytest.raises(HTTPException) as e:
-        pipeline.land(store, b"%PDF-1.4", "x.pdf", "application/pdf", "a", Objects())
-    assert e.value.status_code == 409
-    assert len(repo.tables["gst_filing_audit"]) == 4
+    for actor in (client, admin):
+        for target in ("filed", "locked"):
+            with pytest.raises(HTTPException) as e:
+                workbench.transition(store, actor, target, "A" * 15, "2026-09-20")
+            assert e.value.status_code == 409
+            assert "cannot verify an official filing" in e.value.detail
+    assert store.status()["state"] == "json_generated"
+    assert len(repo.tables["gst_filing_audit"]) == 2
 
 
 def test_missing_gstin_blocks_validation(repo):

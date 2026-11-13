@@ -287,7 +287,3 @@ async def save_profile(request: Request, repo=Depends(get_db), user=Depends(curr
         raise
     clear_cache(str(client.id))
     return {'saved':True,'gstin_verified':False if 'gstin' in changes else previous.get('gstin_verified')}
-
-
-from .taxpayer_routes import router as taxpayer_router  # noqa: E402
-router.include_router(taxpayer_router)

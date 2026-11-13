@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     gst_verification_storage_enabled: bool = False
     gst_verification_provider: str = ''
     gst_verification_secret_version: str = ''
+    gst_gsp_enabled: bool = False
+    gst_live_filing_enabled: bool = False
+    gst_live_gstr2b_enabled: bool = False
+    gst_official_gstin_lookup_enabled: bool = False
+    gst_einvoice_enabled: bool = False
+    gst_ewaybill_enabled: bool = False
+    gst_external_notifications_enabled: bool = False
     require_otp: bool = False
     auth_public_url: str = ''
     smtp_host: str = ''

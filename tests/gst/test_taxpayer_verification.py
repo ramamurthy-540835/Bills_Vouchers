@@ -16,6 +16,12 @@ from app.services.gst.taxpayer_verification import assess, fingerprint, presenta
 PROFILE = {'gstin':'33ABCDE1234F1Z7','legal_name':'Test Company','profile_id':'v1'}
 
 
+def test_future_government_lookup_routes_are_not_mounted_on_customer_api():
+    paths={route.path for route in account.router.routes}
+    assert '/api/businesses/current/gstin-verification' not in paths
+    assert '/api/businesses/current/verify-gstin' not in paths
+
+
 def record(**changes):
     return ProviderRecord(**{'gstin':PROFILE['gstin'],'found':True,'registration_status':'active','legal_name':'Test Company',**changes})
 
