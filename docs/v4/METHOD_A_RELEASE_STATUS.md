@@ -36,11 +36,11 @@ Baseline service revisions captured before changes:
 - Existing frontend URL: `https://gst-easy-v4-web-foovqasysa-el.a.run.app`
 - Existing API URL: `https://gst-easy-v4-api-foovqasysa-el.a.run.app`
 
-Cloud Build `0299ca1c-93a6-4f76-8223-705509bc26b7` succeeded from exact pushed `GSTv4` commit `78f03afc9afdedc7fb5f96498cc4b3fad1841f54` using the isolated V4 source staging bucket.
+Cloud Build `89c1cbef-44e3-4190-adc6-c52c85d34891` succeeded from exact pushed `GSTv4` commit `e8dc70d069f66838729d0639f85ced7488084d00` using the isolated V4 source staging bucket.
 
-- API image: `asia-south1-docker.pkg.dev/aidirac-503309/gst-easy-v4/api@sha256:1f0530d7348b3a3d8434fbbde1915d00e07100aee86d7d296f5154336daf8bfc`.
-- Web image: `asia-south1-docker.pkg.dev/aidirac-503309/gst-easy-v4/web@sha256:31244e47496c41d506ea3fcf50bb25b226b771e8cc32e68d33973fed3aa556d0`.
-- Deployed API revision: `gst-easy-v4-api-00004-noy`, Ready, 100% traffic; web revision: `gst-easy-v4-web-00005-wug`, Ready, 100% traffic.
+- API image: `asia-south1-docker.pkg.dev/aidirac-503309/gst-easy-v4/api@sha256:8d95613f692777c67cc207714f27a5a354ad5ec3d5c873d2bdfc8812030697c0`.
+- Web image: `asia-south1-docker.pkg.dev/aidirac-503309/gst-easy-v4/web@sha256:48cf6643e07b1f8d46732eca261d72e6303f4485fb4add1c8cc384cf7f5c327c`.
+- Deployed API revision: `gst-easy-v4-api-00006-hin`, Ready, 100% traffic; web revision: `gst-easy-v4-web-00007-bim`, Ready, 100% traffic.
 - Existing URLs remain `https://gst-easy-v4-api-foovqasysa-el.a.run.app` and `https://gst-easy-v4-web-foovqasysa-el.a.run.app`.
 - Live smoke: `/login` returned HTTP 200 (0.20s); `/bills?period=2026-11` returned HTTP 200 (0.24s). The unauthenticated `/api/health` proxy returned the expected application JSON `401 Please log in`; Cloud Run logs confirm the request reached API revision `gst-easy-v4-api-00004-noy`. This verifies routing and auth enforcement, not a signed-in workflow.
 - No live demo-account sign-in, customer filing workflow, portal schema acceptance, or signed-in financial data test was performed in this deployment smoke.
