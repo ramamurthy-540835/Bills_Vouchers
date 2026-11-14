@@ -36,7 +36,16 @@ Baseline service revisions captured before changes:
 - Existing frontend URL: `https://gst-easy-v4-web-foovqasysa-el.a.run.app`
 - Existing API URL: `https://gst-easy-v4-api-foovqasysa-el.a.run.app`
 
-No new V4 revision has been deployed in this change set. Live traffic remains on the captured baseline until the browser acceptance failures and final build gate are resolved. V2/V3 services and branches were not modified in the local changes.
+Cloud Build `cd9f814a-3221-4557-83c3-61087cf2c64c` succeeded from commit `c95b8d4d1b699d8efaf5349bd08cbecf39bd2a8f` using the isolated V4 source staging bucket.
+
+- API candidate: `gst-easy-v4-api-00003-wiw`, digest `sha256:4cfb056c3929bd318e23014f3e1dfdf41a2fbe5d2045e98e7a946f1e00da8f6b`, Ready.
+- Web candidate: `gst-easy-v4-web-00002-wam`, digest `sha256:75995d5ce495d069fc1ca949c948aa32fe48fbdd18cd4b0913388d637c4de2f6`, Ready.
+- Candidate URLs: `https://method-a-candidate---gst-easy-v4-api-foovqasysa-el.a.run.app` and `https://method-a-candidate---gst-easy-v4-web-foovqasysa-el.a.run.app`.
+- Candidate smoke: web `/login` returned HTTP 200. The protected API `/healthz` returned Google's 404 even with the available user identity token; authenticated API smoke remains unverified.
+- Traffic remains 100% on API `gst-easy-v4-api-00002-97d` and web `gst-easy-v4-web-00001-4pj`. The existing V4 URL is unchanged and still serves the pre-change revision.
+- The read-only preservation audit passed for all six V2/V3/older services, branch refs, and existing project IAM grants.
+
+The candidate has not been promoted to live traffic. The full browser suite has unresolved failures and the authenticated API smoke did not complete. V2/V3 services and branches were not modified.
 
 ## Remaining release gates
 
