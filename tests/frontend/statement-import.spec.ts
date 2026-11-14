@@ -1,6 +1,6 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 test.beforeEach(async({context,request,baseURL})=>{
- test.skip(Boolean(process.env.BV_TEST_URL),'Local synthetic statements only')
+ test.skip(Boolean(process.env.BV_TEST_URL&&!/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(process.env.BV_TEST_URL)),'Local synthetic statements only')
  await request.post('http://127.0.0.1:8103/__test__/reset')
  await request.post('http://127.0.0.1:8103/__test__/statement-profile')
  await context.addCookies([{name:'session',value:'local-browser-test',url:baseURL!}])
@@ -10,6 +10,11 @@ test.afterEach(async({request})=>{
 })
 const statement={gstin:'33ABCDE1234F1Z7',rtnprd:'092026',docdata:{b2b:[{ctin:'33BCDEF2345G1ZS',inv:[{inum:'LOCAL-STATEMENT',dt:'01-09-2026',txval:'1000',cgst:'90',sgst:'90',igst:'0',cess:'0',itcavl:'Y'}]}]}}
 test('real canonical import persists evidence, rejects invalid and duplicate records, and isolates businesses',async({page})=>{
+ const accidentalRsc:string[]=[]
+ page.on('request',request=>{
+  const url=new URL(request.url())
+  if(url.pathname.includes('/api/gst/bills/gstr2b/')&&url.searchParams.has('_rsc'))accidentalRsc.push(url.href)
+ })
  await page.goto('/gst/filing?period=2026-09')
  const section=page.getByRole('region',{name:'Reconciliation Evidence'})
  const picker=section.getByLabel('Import GSTR-2B',{exact:true})
@@ -30,6 +35,11 @@ test('real canonical import persists evidence, rejects invalid and duplicate rec
  const history=(await (await page.request.get('/api/gst/bills/gstr2b/history?period=2026-09')).json()).statements
  expect(history).toHaveLength(1)
  const evidence=`/api/gst/bills/gstr2b/${history[0].sha256}/original?period=2026-09`
+ await page.getByRole('button',{name:'View statement history'}).click()
+ const evidenceLink=page.getByRole('link',{name:'Download original statement',exact:true})
+ await expect(evidenceLink).toHaveAttribute('href',evidence)
+ await page.waitForTimeout(500)
+ expect(accidentalRsc).toEqual([])
  expect(await (await page.request.get(evidence)).body()).toEqual(content)
  await page.reload();await expect(section.getByText('LOCAL-STATEMENT',{exact:true})).toBeVisible()
  const duplicate=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/api/gst/bills/gstr2b?'))

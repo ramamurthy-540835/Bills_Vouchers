@@ -1,8 +1,20 @@
 import {test,expect} from '../../frontend/node_modules/@playwright/test'
 test.beforeEach(async({request,context,baseURL})=>{
- test.skip(Boolean(process.env.BV_TEST_URL),'Local financial UI fixtures only')
+ test.skip(Boolean(process.env.BV_TEST_URL&&!/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(process.env.BV_TEST_URL)),'Local financial UI fixtures only')
  await request.post('http://127.0.0.1:8103/__test__/reset')
  await context.addCookies([{name:'session',value:'local-browser-test',url:baseURL!}])
+})
+test('file-download endpoints are not prefetched as Next.js page routes',async({page})=>{
+ const accidentalRsc:string[]=[]
+ page.on('request',request=>{
+  const url=new URL(request.url())
+  if(url.pathname==='/api/gst/bills/working-papers'&&url.searchParams.has('_rsc'))accidentalRsc.push(url.href)
+ })
+ await page.goto('/gst/filing?period=2026-09')
+ const download=page.getByRole('link',{name:'Download CA working papers',exact:true})
+ await expect(download).toHaveAttribute('href','/api/gst/bills/working-papers?period=2026-09')
+ await page.waitForTimeout(500)
+ expect(accidentalRsc).toEqual([])
 })
 test('report information and returns disclosures, empty states and retry are responsive',async({page})=>{
  let unavailable=true

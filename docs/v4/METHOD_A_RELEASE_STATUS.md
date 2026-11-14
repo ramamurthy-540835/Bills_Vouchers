@@ -24,8 +24,13 @@ Baseline source: `925a753807083ec550c8f7feec2b7584f1ee9860`
 | Focused GSTIN frontend test | 1 passed |
 | Full production-mode Playwright suite | 102 passed, 0 failed, 0 skipped, 0 flaky (local synthetic backend) |
 | Next.js production build | Passed on 14 November 2026 |
+| Live V4 demo sign-in/workspace | Passed with latest V4 Secret Manager version; authenticated session and private bill context verified |
+| Live Method A read-only checks | Passed: return status and validation both HTTP 200; portal export remains explicitly unsupported |
+| Filing workflow UI and download navigation | 5 focused Playwright checks passed on a rebuilt local standalone web app; live Cloud Run logs exposed a Next.js prefetch defect subsequently fixed in source |
 
-The initial browser run used an incorrect local setup and stale filing UI assertions. The synthetic test backend now enforces the same write-permission check, and the assertions match the Method A filing UI and safeguards. The final full run completed with 102/102 passing. This is local UI coverage, not live customer account/API acceptance.
+The initial browser run used an incorrect local setup and stale filing UI assertions. The synthetic test backend now enforces the same write-permission check, and the assertions match the Method A filing UI and safeguards. The final full run completed with 102/102 passing. Live sign-in used Secret Manager version `latest` (version 2); an earlier smoke harness reading version 1 returned an invalid-credential response. The V4 synthetic workspace was read-only for live acceptance; no financial records were changed.
+
+During follow-up, a signed-in live page check initially sampled the Filing Centre before its own state request had completed. After waiting for the component to settle, live `GET /api/gst/returns?period=2026-11` rendered the draft status and synthetic-workspace guard correctly. Cloud Run logs also showed `GET /api/gst/bills/working-papers?...&_rsc=...` returning 422 because downloadable API endpoints were rendered as Next.js `Link` elements and prefetched as page routes. The GSTR-2B evidence download used the same pattern. Both were changed to native download links, with regression coverage ensuring no `_rsc` prefetch is issued. Five focused Playwright tests pass against a rebuilt standalone V4 frontend and local synthetic API. Deployment of this follow-up source change is recorded below once complete.
 
 ## Deployment status
 
@@ -42,15 +47,15 @@ Cloud Build `89c1cbef-44e3-4190-adc6-c52c85d34891` succeeded from exact pushed `
 - Web image: `asia-south1-docker.pkg.dev/aidirac-503309/gst-easy-v4/web@sha256:48cf6643e07b1f8d46732eca261d72e6303f4485fb4add1c8cc384cf7f5c327c`.
 - Deployed API revision: `gst-easy-v4-api-00006-hin`, Ready, 100% traffic; web revision: `gst-easy-v4-web-00007-bim`, Ready, 100% traffic.
 - Existing URLs remain `https://gst-easy-v4-api-foovqasysa-el.a.run.app` and `https://gst-easy-v4-web-foovqasysa-el.a.run.app`.
-- Live smoke: `/login` returned HTTP 200 (0.20s); `/bills?period=2026-11` returned HTTP 200 (0.24s). The unauthenticated `/api/health` proxy returned the expected application JSON `401 Please log in`; Cloud Run logs confirm the request reached API revision `gst-easy-v4-api-00004-noy`. This verifies routing and auth enforcement, not a signed-in workflow.
-- No live demo-account sign-in, customer filing workflow, portal schema acceptance, or signed-in financial data test was performed in this deployment smoke.
+- Live smoke: `/login` and `/bills?period=2026-11` returned HTTP 200. The unauthenticated `/api/health` proxy returned expected JSON `401 Please log in`. Authenticated demo checks reached `/gst/workspace`, passed navigation/session/private bill context, and had no horizontal overflow at 1440px. Return status and read-only validation returned HTTP 200; validation correctly flagged unresolved pending/rejected invoices and the portal-schema warning.
+- The Nature Labs 1 demo account and business are synthetic (`is_test=true`). Its package/evidence actions remain blocked by design; no financial data was changed. Secret Manager version 2 matches the stored password hash (checked in memory; neither value was printed or persisted).
 - The read-only preservation audit passed after promotion for all six protected older/V2/V3 services, their traffic/configuration/IAM, remote V2/V3 branch refs, and existing project IAM grants.
 
-The exact-head V4 revisions are live at 100% traffic. Signed-in functional acceptance remains outstanding; V2/V3 services and branches were not modified.
+The exact-head V4 revisions are live at 100% traffic. Signed-in workspace and read-only Method A acceptance passed. Full filing-package/evidence acceptance remains pending because synthetic tenants are prohibited from statutory filing actions; V2/V3 services and branches were not modified.
 
 ## Remaining release gates
 
-1. Complete authenticated live acceptance using an authorized V4 test account, including a synthetic business, return, export, evidence upload, and history flow.
-2. Verify current portal schemas and obtain GST-professional review before labeling any export statutory or portal-compatible. Current outputs remain guided worksheets.
+1. A signed-in package/evidence test requires an authorized non-synthetic V4 test tenant. Do not disable the synthetic-workspace filing guard or relabel demo data.
+2. Obtain the current GST Portal Returns Offline Tool/schema from an authorized source and professional GST review before implementing or labeling any export as portal-compatible. Current outputs remain guided worksheets; GSTR-3B remains online-entry guidance.
 3. Keep the previous V4 revisions available for rollback; rollback targets are API `gst-easy-v4-api-00002-97d` and web `gst-easy-v4-web-00001-4pj`.
 4. Never use customer-provided acknowledgement data as official filing verification.
