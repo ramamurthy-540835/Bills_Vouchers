@@ -50,7 +50,7 @@ test('actual return API loads draft prerequisites and retains synthetic preparat
  const response=await page.request.get('/api/gst/returns?period=2026-09')
  expect(response.status()).toBe(200)
  expect((await response.json()).state).toBe('draft')
- const section=page.getByRole('region',{name:'Return preparation',exact:true})
+ const section=page.getByRole('region',{name:'GST return preparation',exact:true})
  await expect(section.getByText('No return working paper has been prepared for this period.')).toBeVisible()
  await expect(section.getByRole('alert')).toHaveCount(0)
  await expect(section.getByRole('button',{name:'Prepare snapshot'})).toHaveCount(0)

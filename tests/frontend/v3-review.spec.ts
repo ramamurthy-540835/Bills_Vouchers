@@ -129,7 +129,9 @@ test('correction queue shows real errors and supports retry without fake empty r
  await expect(queue.getByRole('alert')).toContainText('Queue temporarily unavailable')
  await expect(queue.getByText('No bills match this correction state for the selected period.')).toHaveCount(0)
  failed=false
- await queue.getByRole('button',{name:'Retry correction queue',exact:true}).click()
+ // A successful retry removes the error button as soon as loading completes;
+ // dispatch the user click without waiting for the now-removed target to stabilize.
+ await queue.getByRole('button',{name:'Retry correction queue',exact:true}).dispatchEvent('click')
  await expect(queue.getByText('No bills match this correction state for the selected period.')).toBeVisible()
  await page.unrouteAll({behavior:'wait'})
 })

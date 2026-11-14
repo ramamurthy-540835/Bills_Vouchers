@@ -170,6 +170,7 @@ def local_return_scope(*args, **kwargs):
 
 gst_returns.scope = local_return_scope
 gst_returns.profile_for = gst_bills.profile_for
+gst_returns.can = gst_bills.can
 app.include_router(gst_returns.router)
 app.dependency_overrides[get_db]=lambda:object()
 app.dependency_overrides[current_user]=lambda:user
